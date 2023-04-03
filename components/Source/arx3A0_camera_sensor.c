@@ -354,7 +354,9 @@ int32_t ARX3A0_Init(ARM_CAMERA_RESOLUTION cam_resolution)
     ARX3A0_Sensor_Enable_Clk_Src();
 
     /*camera sensor resten*/
-    ARX3A0_Camera_Hard_Reseten();
+    ret = ARX3A0_Camera_Hard_Reseten();
+    if(ret != ARM_DRIVER_OK)
+        return ret;
 
     /* Initialize i2c using i3c driver instance depending on
      *  ARX3A0 Camera Sensor specific i2c configurations
@@ -376,7 +378,7 @@ int32_t ARX3A0_Init(ARM_CAMERA_RESOLUTION cam_resolution)
 
     /* Proceed only if CHIP ID is correct. */
     if(rcv_data != ARX3A0_CHIP_ID_REGISTER_VALUE)
-        return ret;
+        return ARM_DRIVER_ERROR;
 
     /*Putting sensor in standby mode*/
     ret = ARX3A0_WRITE_REG(ARX3A0_MODE_SELECT_REGISTER, 0x00, 1);
@@ -418,7 +420,7 @@ int32_t ARX3A0_Init(ARM_CAMERA_RESOLUTION cam_resolution)
 int32_t ARX3A0_Start(void)
 {
     /* Start streaming */
-    return ARX3A0_WRITE_REG(ARX3A0_MODE_SELECT_REGISTER, 0x01, 1);;
+    return ARX3A0_WRITE_REG(ARX3A0_MODE_SELECT_REGISTER, 0x01, 1);
 }
 
 /**
@@ -430,7 +432,7 @@ int32_t ARX3A0_Start(void)
 int32_t ARX3A0_Stop(void)
 {
     /* Suspend any stream */
-    return ARX3A0_WRITE_REG(ARX3A0_MODE_SELECT_REGISTER, 0x00, 1);;
+    return ARX3A0_WRITE_REG(ARX3A0_MODE_SELECT_REGISTER, 0x00, 1);
 }
 
 /**
