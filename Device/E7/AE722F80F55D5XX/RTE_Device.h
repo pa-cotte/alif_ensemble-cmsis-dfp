@@ -13,16 +13,24 @@
 #ifndef __RTE_DEVICE_H
 #define __RTE_DEVICE_H
 
+#include "board.h"
 
-// <e> RTSS_M55_HP (Core Selection)
-// <i> Select if the Configured core is M55_HP
+// <e> RTSS_M55 (Core Selection)
+// <i> Select if the Configured core is M55_HP or M55_HE
+#if defined(M55_HP)
 #define RTE_RTSS_M55_HP	1
-#if RTE_RTSS_M55_HP
+#define RTE_RTSS_M55_HE	0
+#elif defined(M55_HE)
+#define RTE_RTSS_M55_HP	0
+#define RTE_RTSS_M55_HE	1
+#elif defined(A32)
+#define RTE_RTSS_M55_HP	0
 #define RTE_RTSS_M55_HE	0
 #else
-#define RTE_RTSS_M55_HE	1
+#error "Undefined M55 CPU!"
 #endif
-// </e> RTSS_M55_HP  (Core Selection)
+
+// </e> RTSS_M55  (Core Selection)
 
 // <e> FLASH_MRAM (Flash MRAM) [Driver_FLASH_MRAM]
 // <i> Configuration settings for Driver_FLASH_MRAM in component ::Drivers:FLASH_MRAM
@@ -128,12 +136,12 @@
 // <o> Select camera sensor ARX3A0 reset pin number
 // <i> Defines camera sensor ARX3A0 reset pin number
 // <i> Default: 5
-#define RTE_ARX3A0_CAMERA_RESET_PIN_NO                  5
+#define RTE_ARX3A0_CAMERA_RESET_PIN_NO                  BOARD_CAMERA_RESET_PIN_NO
 
 // <o> Select camera sensor ARX3A0 reset GPIO port
 // <i> Defines camera sensor ARX3A0 reset GPIO port
 // <i> Default: 4
-#define RTE_ARX3A0_CAMERA_RESET_GPIO_PORT               4
+#define RTE_ARX3A0_CAMERA_RESET_GPIO_PORT               BOARD_CAMERA_RESET_GPIO_PORT
 
 // <o> Select I3C instance for ARX3A0 camera sensor communication
 // <i> Define I3C instance for ARX3A0 camera sensor communication
@@ -543,7 +551,7 @@
 //     <2=> E50RA_MW550
 // <i> Defines ILI9806E panel variant
 // <i> Default: E43RB_FW405
-#define RTE_ILI9806E_PANEL_VARIANT             0
+#define RTE_ILI9806E_PANEL_VARIANT             BOARD_ILI9806E_PANEL_VARIANT
 
 #if (RTE_ILI9806E_PANEL_VARIANT == 0)
 #define RTE_ILI9806E_PANEL_E43RB_FW405_EN      1
@@ -561,22 +569,22 @@
 // <o> ILI9806 LCD panel reset pin number
 // <i> Defines ILI9806 LCD panel reset pin number.
 // <i> Default: 6
-#define RTE_ILI9806E_PANEL_RESET_PIN_NO                  6
+#define RTE_ILI9806E_PANEL_RESET_PIN_NO                  BOARD_LCD_RESET_PIN_NO
 
 // <o> ILI9806 LCD panel reset pin GPIO port number
 // <i> Defines ILI9806 LCD panel reset pin GPIO port number.
 // <i> Default: 4
-#define RTE_ILI9806E_PANEL_RESET_GPIO_PORT               4
+#define RTE_ILI9806E_PANEL_RESET_GPIO_PORT               BOARD_LCD_RESET_GPIO_PORT
 
 // <o> ILI9806 LCD panel back light pin number
 // <i> Defines ILI9806 LCD panel back light pin number.
 // <i> Default: 4
-#define RTE_ILI9806E_PANEL_BL_LED_PIN_NO                 4
+#define RTE_ILI9806E_PANEL_BL_LED_PIN_NO                 BOARD_LCD_BACKLIGHT_PIN_NO
 
 // <o> ILI9806 LCD panel back light pin GPIO port number
 // <i> Defines ILI9806 LCD panel back light pin GPIO port number.
 // <i> Default: 4
-#define RTE_ILI9806E_PANEL_BL_LED_GPIO_PORT              4
+#define RTE_ILI9806E_PANEL_BL_LED_GPIO_PORT              BOARD_LCD_BACKLIGHT_GPIO_PORT
 
 // <e> MIPI_DSI (ILI9806E_PANEL_E43RB_FW405 | ILI9806E_PANEL_E43GB_MW405) [Driver_ILI9806E_PANEL]
 #if (RTE_ILI9806E_PANEL_E43RB_FW405_EN || RTE_ILI9806E_PANEL_E43GB_MW405_EN)
@@ -701,22 +709,22 @@
 // <o> GT911 Touch screen reset pin GPIO port number
 // <i> Defines GT911 Touch screen reset pin GPIO port number.
 // <i> Default: 4
-#define RTE_GT911_TOUCH_RESET_GPIO_PORT   4
+#define RTE_GT911_TOUCH_RESET_GPIO_PORT   BOARD_TOUCH_RESET_GPIO_PORT
 
 // <o> GT911 Touch screen reset pin number
 // <i> Defines GT911 Touch screen reset pin number.
 // <i> Default: 2
-#define RTE_GT911_TOUCH_RESET_PIN_NO      2
+#define RTE_GT911_TOUCH_RESET_PIN_NO      BOARD_TOUCH_RESET_PIN_NO
 
 // <o> GT911 Touch screen INT pin GPIO port number
 // <i> Defines GT911 Touch screen INT pin GPIO port number.
 // <i> Default: 2
-#define RTE_GT911_TOUCH_INT_GPIO_PORT     2
+#define RTE_GT911_TOUCH_INT_GPIO_PORT     BOARD_TOUCH_INT_GPIO_PORT
 
 // <o> GT911 Touch screen INT pin number
 // <i> Defines GT911 Touch screen INT pin number.
 // <i> Default: 20
-#define RTE_GT911_TOUCH_INT_PIN_NO        20
+#define RTE_GT911_TOUCH_INT_PIN_NO        BOARD_TOUCH_INT_PIN_NO
 #endif
 
 #endif

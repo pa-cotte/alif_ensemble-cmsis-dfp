@@ -10,6 +10,7 @@
 
 #ifndef GLOBAL_MAP_H
 #define GLOBAL_MAP_H
+#define HW_REG32(base,offset) *((volatile uint32_t *)(base + offset))
 
 
 /* =========================================================================================================================== */
@@ -167,7 +168,7 @@
 /*                         Global memory map                              */
 /******************************************************************************/
 
-/*On chip RAM Regions */
+/* On Chip RAM Regions */
 #define SRAM0_BASE                0x02000000
 #define SRAM0_SIZE                0x00400000		/* 4M */
 #define SRAM1_BASE                0x08000000
@@ -176,9 +177,9 @@
 #define SRAM2_SIZE                0x00040000		/* 256K */
 #define SRAM3_BASE                0x50800000
 #define SRAM3_SIZE                0x00100000		/* 1M */
-#define SRAM4_BASE                0x60000000
+#define SRAM4_BASE                0x58000000
 #define SRAM4_SIZE                0x00040000		/* 256K */
-#define SRAM5_BASE                0x60800000
+#define SRAM5_BASE                0x58800000
 #define SRAM5_SIZE                0x00040000		/* 256K */
 #define SRAM6_BASE                0x62000000
 #define SRAM6_SIZE                0x00200000		/* 2M */
@@ -186,11 +187,19 @@
 #define SRAM7_SIZE                0x00080000		/* 512K */
 #define SRAM8_BASE                0x63100000
 #define SRAM8_SIZE                0x00200000		/* 2M */
-#define SRAM9_BASE                0x64000000
+#define SRAM9_BASE                0x60000000
 #define SRAM9_SIZE                0x000C0000		/* 768K */
+
 /* On Chip NVM */
 #define MRAM_BASE                 0x80000000
 #define MRAM_SIZE                 0x00580000		/* 5.5M */
 
+/* Off Chip NVM */
+#define OSPI0_CTRL                0x83000000UL
+#define OSPI1_CTRL                0x83002000UL
+#define OSPI0_BASE                0xA0000000
+#define OSPI1_BASE                0xC0000000
+#define OSPI0_SIZE                0x08000000UL      /* 128M */
+#define OSPI1_SIZE                0x08000000UL      /* 128M */
 
 #endif /* GLOBAL_MAP_H */

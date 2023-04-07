@@ -181,6 +181,8 @@ void SystemInit (void)
   TGU_Setup();
 #endif
 
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+
   SystemCoreClock = SYSTEM_CLOCK;
 
   //Enable the PMU

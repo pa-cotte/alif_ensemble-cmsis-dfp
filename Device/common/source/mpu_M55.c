@@ -29,6 +29,7 @@
 #else
   #error device not specified!
 #endif
+#include "app_map.h"
 
 #include <stdint.h>
 
@@ -85,6 +86,14 @@ void MPU_Load_Regions(void)
             .RLAR = ARM_MPU_RLAR(0x508FFFFF, MEMATTRIDX_NORMAL_WB_RA_WA)
         },
 #endif
+        {   /* SRAM6 - 2MB : RO-0, NP-1, XN-0 */
+            .RBAR = ARM_MPU_RBAR(0x62000000, ARM_MPU_SH_NON, 0, 1, 0),
+            .RLAR = ARM_MPU_RLAR(0x621FFFFF, MEMATTRIDX_NORMAL_WB_RA_WA)
+        },
+        {   /* SRAM8 - 2MB : RO-0, NP-1, XN-0 */
+            .RBAR = ARM_MPU_RBAR(0x63100000, ARM_MPU_SH_NON, 0, 1, 0),
+            .RLAR = ARM_MPU_RLAR(0x632FFFFF, MEMATTRIDX_NORMAL_WB_RA_WA)
+        },
         {   /* MRAM - 5.5MB : RO-1, NP-1, XN-0  */
             .RBAR = ARM_MPU_RBAR(0x80000000, ARM_MPU_SH_NON, 1, 1, 0),
             .RLAR = ARM_MPU_RLAR(0x8057FFFF, MEMATTRIDX_NORMAL_WT_RA)
@@ -162,6 +171,8 @@ __attribute__ ((weak))
 void MPU_Setup(void)
 {
 #define MPU_CONTROL (MPU_CTRL_PRIVDEFENA_Msk | MPU_CTRL_HFNMIENA_Msk)
+
+#if (_APP_ADDRESS < OSPI0_BASE)
 	/* Disable the MPU before operating on the table */
     ARM_MPU_Disable();
 
@@ -173,6 +184,10 @@ void MPU_Setup(void)
 
     /* Enable the MPU now */
     ARM_MPU_Enable(MPU_CONTROL);
+#else
+    MPU_Load_Regions();
+#endif
 }
 
 /************************ (C) COPYRIGHT ALIF SEMICONDUCTOR *****END OF FILE****/
+

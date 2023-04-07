@@ -14,15 +14,15 @@
 #include <peripheral_types.h>
 
 #ifndef AXI_CLOCK
-#define AXI_CLOCK 400000000
+#define AXI_CLOCK 76800000
 #endif
 
 #ifndef AHB_CLOCK
-#define AHB_CLOCK 200000000
+#define AHB_CLOCK 38400000
 #endif
 
 #ifndef APB_CLOCK
-#define APB_CLOCK 100000000
+#define APB_CLOCK 19200000
 #endif
 
 #define I2C_PERIPHERAL_CLOCK    APB_CLOCK

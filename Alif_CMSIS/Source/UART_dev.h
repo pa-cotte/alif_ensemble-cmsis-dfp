@@ -197,7 +197,7 @@ extern "C" {
 
 /* UART Clock Source */
 #define UART_CLK_38P4MHZ                                (38400000.0)   /* UART 38.4Mhz Input Clock Source */
-#define UART_CLK_100MHZ                                 (100000000.0)  /* UART 100Mhz  APB bus clock Input Clock Source */
+#define UART_CLK_100MHZ                                 (APB_CLOCK)  /* UART 100Mhz  APB bus clock Input Clock Source */
 #define UART_CLK_20MHZ                                  (20000000.0)   /* UART 20Mhz   Input Clock Source - FPGA Only */
 
 /* RS485 control registers.------------------------------------------- */
