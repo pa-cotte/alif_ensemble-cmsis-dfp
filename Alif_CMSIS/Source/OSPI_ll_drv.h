@@ -283,9 +283,6 @@ typedef struct _OSPI_RESOURCES
 } OSPI_RESOURCES;
 
 /* Function prototypes */
-
-void            XNVM_OSPI0_IRQHandler        (void);
-void            XNVM_OSPI1_IRQHandler        (void);
 int32_t         OSPI_ll_SetAddrLength        (OSPI_RESOURCES *OSPI, uint32_t arg);
 int32_t         OSPI_ll_SetSpiFrameFormat    (OSPI_RESOURCES *OSPI, uint32_t arg);
 void            OSPI_ll_SetTransmissionMode  (OSPI_RESOURCES *OSPI, uint32_t mode);

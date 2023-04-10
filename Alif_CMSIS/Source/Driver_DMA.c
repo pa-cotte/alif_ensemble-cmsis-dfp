@@ -681,22 +681,33 @@ int32_t DMA_PrepareMcode(uint8_t *mcode, DMA_CCR_Type ccr,
 
         if (desc->direction != ARM_DMA_MEM_TO_MEM)
         {
-            ret = DMA_ConstructFlushPeri (desc->peri_num, mcode, &idx);
-            if (!ret)
-                return ARM_DMA_ERROR_BUFFER;
-
-            ret = DMA_ConstructWaitforPeri (xfer_type, desc->peri_num, mcode, &idx);
-            if (!ret)
-                return ARM_DMA_ERROR_BUFFER;
+            if (!(chnl_info->flags & DMA_CHANNEL_NO_DEV_HANDSHAKE))
+            {
+                ret = DMA_ConstructFlushPeri (desc->peri_num, mcode, &idx);
+                if (!ret)
+                    return ARM_DMA_ERROR_BUFFER;
+                ret = DMA_ConstructWaitforPeri (xfer_type, desc->peri_num, mcode, &idx);
+                if (!ret)
+                    return ARM_DMA_ERROR_BUFFER;
+            }
 
             if (desc->direction ==  ARM_DMA_MEM_TO_DEV)
             {
                 ret = DMA_ConstructLoad (xfer_type, mcode, &idx);
                 if (!ret)
                     return ARM_DMA_ERROR_BUFFER;
-                ret = DMA_ConstructStorePeri (xfer_type, desc->peri_num, mcode, &idx);
-                if (!ret)
-                    return ARM_DMA_ERROR_BUFFER;
+
+                if (chnl_info->flags & DMA_CHANNEL_NO_DEV_HANDSHAKE)
+                {
+                    ret = DMA_ConstructStore (xfer_type, mcode, &idx);
+                    if (!ret)
+                        return ARM_DMA_ERROR_BUFFER;
+                } else
+                {
+                    ret = DMA_ConstructStorePeri (xfer_type, desc->peri_num, mcode, &idx);
+                    if (!ret)
+                        return ARM_DMA_ERROR_BUFFER;
+                }
 
                 /* If I2S mono mode is enabled for this channel, write zeros */
                 if(chnl_info->flags & DMA_CHANNEL_I2S_MONO_MODE)
@@ -769,22 +780,33 @@ int32_t DMA_PrepareMcode(uint8_t *mcode, DMA_CCR_Type ccr,
 
         if (desc->direction != ARM_DMA_MEM_TO_MEM)
         {
-            ret = DMA_ConstructFlushPeri (desc->peri_num, mcode, &idx);
-            if (!ret)
-                return ARM_DMA_ERROR_BUFFER;
+            if (!(chnl_info->flags & DMA_CHANNEL_NO_DEV_HANDSHAKE))
+            {
+                ret = DMA_ConstructFlushPeri (desc->peri_num, mcode, &idx);
+                if (!ret)
+                    return ARM_DMA_ERROR_BUFFER;
 
-            ret = DMA_ConstructWaitforPeri (BURST, desc->peri_num, mcode, &idx);
-            if (!ret)
-                return ARM_DMA_ERROR_BUFFER;
+                ret = DMA_ConstructWaitforPeri (BURST, desc->peri_num, mcode, &idx);
+                if (!ret)
+                    return ARM_DMA_ERROR_BUFFER;
+            }
 
             if (desc->direction ==  ARM_DMA_MEM_TO_DEV)
             {
                 ret = DMA_ConstructLoad (BURST, mcode, &idx);
                     if (!ret)
                         return ARM_DMA_ERROR_BUFFER;
-                ret = DMA_ConstructStorePeri (BURST, desc->peri_num, mcode, &idx);
-                if (!ret)
-                    return ARM_DMA_ERROR_BUFFER;
+
+                if (chnl_info->flags & DMA_CHANNEL_NO_DEV_HANDSHAKE) {
+                    ret = DMA_ConstructStore (BURST, mcode, &idx);
+                    if (!ret)
+                        return ARM_DMA_ERROR_BUFFER;
+                } else
+                {
+                    ret = DMA_ConstructStorePeri (BURST, desc->peri_num, mcode, &idx);
+                    if (!ret)
+                        return ARM_DMA_ERROR_BUFFER;
+                }
 
                 /* If I2S mono mode is enabled for this channel, write zeros */
                 if(chnl_info->flags & DMA_CHANNEL_I2S_MONO_MODE)
@@ -1187,6 +1209,9 @@ static int32_t DMA_Control (DMA_Handle_Type *handle, uint32_t control,
         break;
     case ARM_DMA_I2S_MONO_MODE:
         dma->cfg->channel_thread[*handle].channel_info.flags |= DMA_CHANNEL_I2S_MONO_MODE;
+        break;
+    case ARM_DMA_NO_DEV_HANDSHAKE:
+        dma->cfg->channel_thread[*handle].channel_info.flags |= DMA_CHANNEL_NO_DEV_HANDSHAKE;
         break;
     default:
         return ARM_DRIVER_ERROR_UNSUPPORTED;

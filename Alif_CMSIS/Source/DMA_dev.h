@@ -59,8 +59,9 @@ typedef enum {
 } DMA_DRV_FLAG_Type;
 
 typedef enum {
-    DMA_CHANNEL_USE_USER_MCODE = (1 << 0),         /*!< Use user provided mcode for channel */
-    DMA_CHANNEL_I2S_MONO_MODE  = (1 << 1),         /*!< DMA channel in I2S mono mode */
+    DMA_CHANNEL_USE_USER_MCODE      = (1 << 0),         /*!< Use user provided mcode for channel */
+    DMA_CHANNEL_I2S_MONO_MODE       = (1 << 1),         /*!< DMA channel in I2S mono mode */
+    DMA_CHANNEL_NO_DEV_HANDSHAKE    = (1 << 2),         /*!< Skip peripheral flush and wait, use regular store instead of store and notify peripheral, used with ARM_DMA_MEM_TO_DEV */
 } DMA_CHANNEL_FLAG_Type;
 
 typedef enum {

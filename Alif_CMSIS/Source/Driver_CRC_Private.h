@@ -12,9 +12,11 @@
 #define DRIVER_CRC_PRIVATE_H_
 
 /* System includes */
+#include "DMA_Common.h"
 #include "RTE_Device.h"
 #include "RTE_Components.h"
 #include CMSIS_device_header
+#include <stdatomic.h>
 
 /* Project includes */
 #include "crc.h"
@@ -29,7 +31,7 @@
 typedef volatile struct _CRC_DRIVER_STATE {
     uint32_t initialized : 1;                    /* Driver Initialized    */
     uint32_t powered     : 1;                    /* Driver powered        */
-    uint32_t reserved    : 30;                   /* Reserved              */
+    uint32_t dma_enabled : 1;                    /* Is DMA enabled        */
 } CRC_DRIVER_STATE;
 
 /**
@@ -39,8 +41,11 @@ typedef volatile struct _CRC_DRIVER_STATE {
  */
 typedef struct _CRC_RESOURCES
 {
-    CRC_Type            *regs;      /* CRC register address */
-    CRC_DRIVER_STATE     state;     /* CRC Driver state */
+    CRC_Type                *regs;      /* CRC register address */
+    CRC_DRIVER_STATE        state;      /* CRC Driver state */
+    DMA_PERIPHERAL_CONFIG   *dma_cfg;   /* DMA Config */
+    ARM_DMA_SignalEvent_t   dma_cb;     /* DMA Callback */
+    atomic_uint             dma_cb_val; /* Callback value of DMA operation. Used to wait DMA operation and validate operation success */
 }CRC_RESOURCES;
 
 #endif /* DRIVER_CRC_PRIVATE_H_ */

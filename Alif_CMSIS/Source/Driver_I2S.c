@@ -1078,9 +1078,19 @@ static int32_t I2S_Receive (void *data, uint32_t num, I2S_DRV_INFO *i2s)
 		else
 			dma_params.burst_len  = i2s->cfg->rx_fifo_trg_lvl + 1;
 
+#ifdef I2S_USE_CUSTOM_DMA
+		if (i2s->dma_cfg->mcode)
+		{
+			status = i2s->dma_cfg->mcode(&dma_params, i2s->dma_cfg->dma_code);
+			ARM_DRIVER_DMA *dma_drv = i2s->dma_cfg->dma_rx.dma_drv;
+			status = dma_drv->Control(&i2s->dma_cfg->dma_rx.dma_handle, ARM_DMA_USER_PROVIDED_MCODE, (uint32_t)i2s->dma_cfg->dma_code);
+			if(status)
+				return ARM_DRIVER_ERROR;
+		}
+#else
 		/* Enable the Rx Overflow interrupt */
 		I2S_EnableRxFOInterrupt(i2s);
-
+#endif
 		/* Start DMA transfer */
 		status = I2S_DMA_Start(&i2s->dma_cfg->dma_rx, &dma_params);
 		if(status)
@@ -1144,6 +1154,14 @@ static int32_t I2S_Control (uint32_t control, uint32_t arg1, uint32_t arg2, I2S_
 		I2S_SetTxTriggerLevel (i2s);
 
 		break;
+
+	case ARM_SAI_CONTROL_CUSTOM_DMA_CODE:
+#ifdef I2S_USE_CUSTOM_DMA
+		i2s->dma_cfg->mcode = (mcode_fptr)arg1;
+		return ARM_DRIVER_OK;
+#else
+		return ARM_DRIVER_ERROR_UNSUPPORTED;
+#endif
 	case ARM_SAI_CONFIGURE_RX:
 		/* Set FIFO Trigger Level */
 		I2S_SetRxTriggerLevel (i2s);

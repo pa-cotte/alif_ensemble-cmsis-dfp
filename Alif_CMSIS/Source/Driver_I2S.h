@@ -34,6 +34,8 @@ extern "C"
 {
 #endif
 
+#define ARM_SAI_CONTROL_CUSTOM_DMA_CODE (0x09UL)    ///< Set custom DMA code
+
 /*!< Number of bytes for 16/32bit resolution*/
 #define I2S_16BIT_BUF_TYPE       2
 #define I2S_32BIT_BUF_TYPE       4
@@ -321,12 +323,20 @@ typedef struct _I2S_CONFIG_INFO {
     const bool ext_clk_src_enable;
 } I2S_CONFIG_INFO;
 
+#ifdef I2S_USE_CUSTOM_DMA
+#define DMA_MCODE_SIZE_MAX 256
+typedef int32_t (*mcode_fptr)(ARM_DMA_PARAMS*, uint8_t*);
+#endif
 typedef struct _I2S_DMA_HW_CONFIG {
     /*!< Tx interface */
     DMA_PERIPHERAL_CONFIG dma_tx;
 
     /*!< Rx interface */
     DMA_PERIPHERAL_CONFIG dma_rx;
+#ifdef I2S_USE_CUSTOM_DMA
+    uint8_t dma_code[DMA_MCODE_SIZE_MAX];
+    mcode_fptr mcode;
+#endif
 } I2S_DMA_HW_CONFIG;
 
 typedef struct _I2S_DRV_INFO {

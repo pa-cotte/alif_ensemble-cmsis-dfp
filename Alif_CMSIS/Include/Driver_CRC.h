@@ -41,6 +41,10 @@ extern "C"
 /* CRC algorithm select */
 #define ARM_CRC_ALGORITHM_SEL          (0x01UL << 5)   /* To select the below particular algorithm */
 
+#define ARM_CRC_ENABLE_DMA             (0x01UL << 6)   /* Enable/Disable DMA, Enable = 1 and Disable = 0 */
+
+
+
 #define ARM_CRC_ALGORITHM_SEL_8_BIT_CCITT                (0x01UL)   /* To select CRC_8_CCITT algorithm give value as 0 */
 #define ARM_CRC_ALGORITHM_SEL_16_BIT                     (0x02UL)   /* To select CRC_16 algorithm give value as 2 */
 #define ARM_CRC_ALGORITHM_SEL_16_BIT_CCITT               (0x03UL)   /* To select CRC_16_CCITT algorithm give value as 3 */

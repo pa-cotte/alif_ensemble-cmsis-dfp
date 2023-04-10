@@ -134,6 +134,8 @@ static int32_t CRC_Initialize(CRC_RESOURCES *CRC)
 {
     int ret = ARM_DRIVER_OK;
 
+    atomic_init(&crc->dma_cb_val, 0);
+
     /* Setting the state */
     CRC->state.initialized = 1;
 
@@ -234,7 +236,55 @@ static int32_t CRC_Control (uint32_t control,
         /* To enable or disable the Reflect, Invert, Bit, Byte, Custom polynomial bits of CRC*/
         Control_Bit(control, arg, CRC);
     }
+    else if (control & ARM_CRC_ENABLE_DMA)
+    {
+        if (arg) // Enable DMA
+        {
+            if (crc->dma_cfg)
+            {
+                if (crc->dma_cfg->dma_handle == -1)
+                {
+                    ret = crc->dma_cfg->dma_drv->Initialize();
+                    if (ret != ARM_DRIVER_OK) {
+                        return ret;
+                    }
 
+                    ret = crc->dma_cfg->dma_drv->Allocate(&crc->dma_cfg->dma_handle);
+                    if (ret != ARM_DRIVER_OK) {
+                        (void)crc->dma_cfg->dma_drv->Uninitialize();
+                        crc->dma_cfg->dma_handle = -1;
+                        return ret;
+                    }
+                    ret = crc->dma_cfg->dma_drv->Control(&crc->dma_cfg->dma_handle, ARM_DMA_NO_DEV_HANDSHAKE, 0);
+                    if (ret != ARM_DRIVER_OK) {
+                        (void)crc->dma_cfg->dma_drv->DeAllocate(&crc->dma_cfg->dma_handle);
+                        (void)crc->dma_cfg->dma_drv->Uninitialize();
+                        crc->dma_cfg->dma_handle = -1;
+                        return ret;
+                    }
+                    crc->state.dma_enabled = true;
+                }
+            } else
+            {
+                return ARM_DRIVER_ERROR;
+            }
+        } else
+        {   // Disable DMA
+            if (crc->dma_cfg)
+            {
+                if (crc->dma_cfg->dma_handle > -1)
+                {
+                    crc->state.dma_enabled = false;
+                    ret = crc->dma_cfg->dma_drv->DeAllocate(&crc->dma_cfg->dma_handle);
+                    (void)crc->dma_cfg->dma_drv->Uninitialize(); // DMA Uninitialize returns always ARM_DRIVER_OK
+                    crc->dma_cfg->dma_handle = -1;
+                }
+            } else
+            {
+                return ARM_DRIVER_ERROR;
+            }
+        }
+    }
     else
     {
         switch (control)
@@ -347,6 +397,25 @@ static int32_t CRC_PolyCustom (uint32_t value, CRC_RESOURCES *CRC)
     return ret;
 }
 
+static int32_t CRC_Compute_DMA (ARM_DMA_PARAMS *params, CRC_resources_t *crc, uint32_t *data_out)
+{
+    int32_t ret = ARM_DRIVER_OK;
+    // crc->dma_cfg null was tested earlier and this method can't be called if crc->dma_cfg is null
+    ret = crc->dma_cfg->dma_drv->Start(&crc->dma_cfg->dma_handle, params);
+    if (ret == ARM_DRIVER_OK) {
+        while (crc->dma_cb_val == 0)
+        {
+            __WFE();
+        };
+        if (crc->dma_cb_val != ARM_DMA_EVENT_COMPLETE) {
+            ret = ARM_DRIVER_ERROR;
+        } else {
+            *data_out = (crc->reg_base->CRC_OUT);
+        }
+    }
+    return ret;
+}
+
 /**
 @fn         int32_t CRC_Compute (void *data_in, uint32_t len, uint32_t *data_out, CRC_RESOURCES *CRC)
 @brief      1.To calculate the CRC result for 8 bit 16 bit and 32 bit CRC algorithm.
@@ -370,9 +439,23 @@ static int32_t CRC_Compute (void *data_in, uint32_t len, uint32_t *data_out, CRC
     uint32_t custom;
     uint32_t *data32;
     uint32_t crc_result;
-    int8_t algo_size;
-    int8_t aligned_length,unaligned_length;
+    int32_t algo_size;
+    int32_t aligned_length,unaligned_length;
     uint32_t polynomial_status;
+    ARM_DMA_PARAMS params;
+
+    if (crc->state.dma_enabled)
+    {
+        params.peri_reqno = (int8_t)-1;
+        params.dir = ARM_DMA_MEM_TO_DEV;
+        params.cb_event   = crc->dma_cb;
+        params.src_addr = data_in;
+        params.dst_addr = (void*)crc->reg_base->DATA_IN_8;
+        params.burst_size = BS_BYTE_1;
+        params.burst_len  = 1;
+        params.num_bytes  = len;
+        crc->dma_cb_val = 0;
+    }
 
     if(CRC->state.powered == 0)
     {
@@ -394,14 +477,28 @@ static int32_t CRC_Compute (void *data_in, uint32_t len, uint32_t *data_out, CRC
     /* For 8 bit CRC */
     case CRC_8_BIT_SIZE:
 
-        crc_calculate_8bit(CRC->regs, data_in, len, data_out);
+        if (crc->state.dma_enabled)
+        {
+            ret = CRC_Compute_DMA(&params, crc);
+        }
+        else
+        {
+            crc_calculate_8bit(CRC->regs, data_in, len, data_out);
+        }
 
         break;
 
     /* For 16 bit CRC */
     case CRC_16_BIT_SIZE:
 
-        crc_calculate_16bit(CRC->regs, data_in, len, data_out);
+        if (crc->dma_enabled)
+        {
+            ret = CRC_Compute_DMA(&params, crc, data_out);
+        }
+        else
+        {
+            crc_calculate_16bit(CRC->regs, data_in, len, data_out);
+        }
 
         break;
 
@@ -412,9 +509,16 @@ static int32_t CRC_Compute (void *data_in, uint32_t len, uint32_t *data_out, CRC
         unaligned_length = (len % 4);
         data32           = (uint32_t *)data_in;
 
-        crc_calculate_32bit(CRC->regs, data_in, len, data_out);
-
-        polynomial_status = crc_custom_poly_enabled(CRC->regs);
+        if (crc->dma_enabled)
+        {
+            params.burst_size = BS_BYTE_4;
+            params.dst_addr = (void*)crc->reg_base->DATA_IN_32;
+            ret = CRC_Compute_DMA(&params, crc, data_out);
+        }
+        else
+        {
+            crc_calculate_32bit(CRC->regs, data_in, len, data_out);
+        }
 
         /* Check for the custom polynomial bit  */
         if(polynomial_status)
@@ -445,12 +549,42 @@ static int32_t CRC_Compute (void *data_in, uint32_t len, uint32_t *data_out, CRC
     return ret;
 }
 
+/**
+  \fn          static void  CRC_DMACallback (uint32_t event, int8_t peri_num, CRC_resources_t *crc)
+  \brief       Callback function from DMA for CRC
+  \param[in]   event     Event from DMA
+  \param[in]   peri_num  Peripheral number
+  \param[in]   crc       Pointer to crc resources
+*/
+static void CRC_DMACallback (uint32_t event, int8_t peri_num, CRC_resources_t *crc)
+{
+    (void)peri_num;
+    crc->dma_cb_val = event;
+}
+
 /* CRC0 Driver instance */
 #if (RTE_CRC0)
 
-static CRC_RESOURCES CRC0_RES = {
+#ifndef CRC0_DMA
+#define CRC0_DMA 0
+#endif
+
+static void CRC0_DMACallback (uint32_t event, int8_t peri_num);
+
+#if defined CRC0_DMA && ((CRC0_DMA == 0 && (RTE_DMA0)) || (CRC0_DMA == 1 && (RTE_DMA1)) || (CRC0_DMA == 2 && (RTE_DMA2)))
+static DMA_PERIPHERAL_CONFIG CRC0_DMA_CONFIG = {
+    .dma_drv            = &ARM_Driver_DMA_(CRC0_DMA),
+    .dma_periph_req     = -1,
+    .dma_handle         = -1
+};
+#endif
+
+static CRC_resources_t CRC0 = {
     .regs          = (CRC_Type*) CRC0_BASE,
-    .state         = 0
+#if defined CRC0_DMA && ((CRC0_DMA == 0 && (RTE_DMA0)) || (CRC0_DMA == 1 && (RTE_DMA1)) || (CRC0_DMA == 2 && (RTE_DMA2)))
+    .dma_cfg       = &CRC0_DMA_CONFIG,
+    .dma_cb        = CRC0_DMACallback,
+#endif
 };
 
 /* Function Name: CRC0_Initialize */
@@ -495,6 +629,17 @@ static int32_t CRC0_Compute(void *data_in, uint32_t len, uint32_t *data_out)
     return (CRC_Compute(data_in, len, data_out, &CRC0_RES));
 }
 
+/**
+  \fn          static void  CRC0_DMACallback (uint32_t event, int8_t peri_num)
+  \param[in]   event     Event from DMA
+  \param[in]   peri_num  Peripheral number
+  \brief       Callback function from DMA for CRC0
+*/
+static void CRC0_DMACallback (uint32_t event, int8_t peri_num)
+{
+    CRC_DMACallback (event, peri_num, &CRC0);
+}
+
 extern ARM_DRIVER_CRC Driver_CRC0;
 ARM_DRIVER_CRC Driver_CRC0 = {
     CRC_GetVersion,
@@ -513,9 +658,26 @@ ARM_DRIVER_CRC Driver_CRC0 = {
 /* CRC1 driver instance */
 #if (RTE_CRC1)
 
-static CRC_RESOURCES CRC1_RES = {
+#ifndef CRC1_DMA
+#define CRC1_DMA 0
+#endif
+
+static void CRC1_DMACallback (uint32_t event, int8_t peri_num);
+
+#if defined CRC1_DMA && ((CRC1_DMA == 0 && (RTE_DMA0)) || (CRC1_DMA == 1 && (RTE_DMA1)) || (CRC1_DMA == 2 && (RTE_DMA2)))
+static DMA_PERIPHERAL_CONFIG CRC1_DMA_CONFIG = {
+    .dma_drv            = &ARM_Driver_DMA_(CRC1_DMA),
+    .dma_periph_req     = -1,
+    .dma_handle         = -1
+};
+#endif
+
+static CRC_resources_t CRC1 = {
     .regs          = (CRC_Type*) CRC1_BASE,
-    .state         = 0
+#if defined CRC1_DMA && ((CRC1_DMA == 0 && (RTE_DMA0)) || (CRC1_DMA == 1 && (RTE_DMA1)) || (CRC1_DMA == 2 && (RTE_DMA2)))
+    .dma_cfg       = &CRC1_DMA_CONFIG,
+    .dma_cb        = CRC1_DMACallback,
+#endif
 };
 
 /* Function Name: CRC1_Initialize */
@@ -558,6 +720,17 @@ static int32_t CRC1_PolyCustom(uint32_t value)
 static int32_t CRC1_Compute(void *data_in, uint32_t len, uint32_t *data_out)
 {
     return (CRC_Compute(data_in, len, data_out, &CRC1_RES));
+}
+
+/**
+  \fn          static void  CRC1_DMACallback (uint32_t event, int8_t peri_num)
+  \param[in]   event     Event from DMA
+  \param[in]   peri_num  Peripheral number
+  \brief       Callback function from DMA for CRC0
+*/
+static void CRC1_DMACallback (uint32_t event, int8_t peri_num)
+{
+    CRC_DMACallback (event, peri_num, &CRC1);
 }
 
 extern ARM_DRIVER_CRC Driver_CRC1;

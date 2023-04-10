@@ -795,7 +795,6 @@ static SPI_RESOURCES SPI0_RES = {
     .irq                    = SPI0_IRQ_IRQn
 };
 
-extern void SPI0_IRQHandler(void);
 void SPI0_IRQHandler(void)
 {
     spi_transfer_t *transfer = &(SPI0_RES.transfer);
@@ -903,7 +902,6 @@ static SPI_RESOURCES SPI1_RES = {
     .irq                    = SPI1_IRQ_IRQn
 };
 
-extern void SPI1_IRQHandler(void);
 void SPI1_IRQHandler(void)
 {
     spi_transfer_t *transfer = &(SPI1_RES.transfer);
@@ -1010,7 +1008,6 @@ static SPI_RESOURCES SPI2_RES = {
     .irq                    = SPI2_IRQ_IRQn
 };
 
-extern void SPI2_IRQHandler(void);
 void SPI2_IRQHandler(void)
 {
     spi_transfer_t *transfer = &(SPI2_RES.transfer);
@@ -1117,7 +1114,6 @@ static SPI_RESOURCES SPI3_RES = {
     .irq                    = SPI3_IRQ_IRQn
 };
 
-extern void SPI3_IRQHandler(void);
 void SPI3_IRQHandler(void)
 {
     spi_transfer_t *transfer = &(SPI3_RES.transfer);

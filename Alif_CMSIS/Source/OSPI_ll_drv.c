@@ -22,6 +22,9 @@
 #include "OSPI_ll_drv.h"
 #include "clk.h"
 
+#define _DDR_DRIVE_EDGE_	    (25)
+#define _CMD_SECTOR_ERASE_      (0x21)
+
 static uint32_t getOSpiCoreClock(void)
 {
     return AXI_CLOCK;
@@ -96,6 +99,7 @@ int32_t OSPI_ll_SetBusSpeed(OSPI_RESOURCES *OSPI, uint32_t arg)
     OSPI_ll_Disable(OSPI);
 
     reg_ptr->baudr = clk / arg;
+    reg_ptr->txd_drive_edge = ((clk / arg)/2) - _DDR_DRIVE_EDGE_;
 
     OSPI_ll_Enable(OSPI);
 
@@ -612,6 +616,14 @@ int32_t OSPI_ll_Send(OSPI_RESOURCES *OSPI, const void *data, uint32_t num)
 
     OSPI_ll_Disable(OSPI);
 
+    if((uint32_t)_CMD_SECTOR_ERASE_ == (uint32_t)OSPI->tx_buff[0])
+    {
+    	reg_ptr->txd_drive_edge = 0;
+    }
+    else
+    {
+    	reg_ptr->txd_drive_edge = ((reg_ptr->baudr)/2) - _DDR_DRIVE_EDGE_;
+    }
 
     reg_val = reg_ptr->ctrlr0;
 
