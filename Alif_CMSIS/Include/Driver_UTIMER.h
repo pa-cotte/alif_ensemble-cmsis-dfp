@@ -23,6 +23,9 @@
 
 #include "Driver_Common.h"
 
+#define UTIMER0_IRQ 377
+#define QEC0_INTR_CMP_A_IRQ 369
+
 typedef void (*ARM_UTIMER_SignalEvent_t) (uint32_t event);   /**< Initialization UPTIMER call back function declaration >*/
 
 /**< UTIMER Events >*/

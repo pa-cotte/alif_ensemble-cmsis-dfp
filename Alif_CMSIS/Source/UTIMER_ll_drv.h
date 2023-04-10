@@ -206,20 +206,33 @@ typedef enum _UTIMER_STATUS {
 
 typedef struct
 {
-    __IOM uint32_t cntr_ctrl;                           /**< Counter Control Register >*/
     __IOM uint32_t cntr_start_src;                      /**< Counter Start Source Register >*/
+    __IOM uint32_t cntr_start_src_1;                    /**< Counter Start Source Register >*/
     __IOM uint32_t cntr_stop_src;                       /**< Counter Stop Source Register >*/
+    __IOM uint32_t cntr_stop_src_1;                     /**< Counter Stop Source Register >*/
     __IOM uint32_t cntr_clear_src;                      /**< Counter Clear Source Register >*/
+    __IOM uint32_t cntr_clear_src_1;                    /**< Counter Clear Source Register >*/
     __IOM uint32_t cntr_up_src;                         /**< Counter Up Source Register >*/
+    __IOM uint32_t cntr_up_src_1;                       /**< Counter Up Source Register >*/
     __IOM uint32_t cntr_down_src;                       /**< Counter Down Source Register >*/
-    __IM  uint32_t reserved1[6];                        /**< Reserved Registers >*/
+    __IOM uint32_t cntr_down_src_1;                     /**< Counter Down Source Register >*/
     __IOM uint32_t trig_capture_src_a;                  /**< Trigger Capture Source A Register >*/
+    __IOM uint32_t trig_capture_src_a_1;                /**< Trigger Capture Source A Register >*/
     __IOM uint32_t trig_capture_src_b;                  /**< Trigger Capture Source B Register >*/
-    __IM  uint32_t reserved2[6];                        /**< Reserved Registers >*/
+    __IOM uint32_t trig_capture_src_b_1;                /**< Trigger Capture Source B Register >*/
+    __IOM uint32_t dma_clear_src_a;                     /**< DMA Clear Source A Register >*/
+    __IOM uint32_t dma_clear_src_a_1;                   /**< DMA Clear Source A Register >*/
+    __IOM uint32_t dma_clear_src_b;                     /**< DMA Clear Source B Register >*/
+    __IOM uint32_t dma_clear_src_b_1;                   /**< DMA Clear Source B Register >*/
+    __IOM uint32_t cntr_pause_src;                      /**< Counter Pause Control Register >*/
+    __IM  uint32_t reserved2[13];                        /**< Reserved Registers >*/
+    __IOM uint32_t cntr_ctrl;                           /**< Counter Control Register >*/
+    __IOM uint32_t filter_ctrl_a;                       /**< Counter Control Register >*/
+    __IOM uint32_t filter_ctrl_b;                       /**< Counter Control Register >*/
     __IOM uint32_t compare_ctrl_a;                      /**< Compare Control A Register >*/
     __IOM uint32_t compare_ctrl_b;                      /**< Compare Control B Register >*/
     __IOM uint32_t buf_op_ctrl;                         /**< Buffer Op Control Register >*/
-    __IM  uint32_t reserved3[9];                        /**< Reserved Registers >*/
+    __IM  uint32_t reserved3[2];                        /**< Reserved Registers >*/
     __IOM uint32_t cntr;                                /**< Counter Register >*/
     __IOM uint32_t cntr_ptr;                            /**< Counter Pointer Register >*/
     __IOM uint32_t cntr_ptr_buf1;                       /**< Counter Pointer Buffer 1 Register >*/
@@ -250,7 +263,10 @@ typedef struct
     __IOM uint32_t chan_interrupt_mask;                 /**< Channel Interrupt Mask Register >*/
     __IOM uint32_t duty_cycle_ctrl;                     /**< Duty cycle control register >*/
     __IOM uint32_t dead_time_ctrl;                      /**< Dead Control Register >*/
-    __IM  uint32_t reserved9[958];                      /**< Reserved Registers >*/
+    __IM  uint32_t reserved9[2];                        /**< Reserved Registers >*/
+    __IOM uint32_t int_cntr_ctrl;                       /**< Interrupt Counter Control Register >*/
+    __IOM uint32_t fault_ctrl;                          /**< Fault Control Register >*/
+    __IM  uint32_t reserved10[946];                     /**< Reserved Registers >*/
 } _TIMER_Channel_RegInfo;
 
 typedef struct {
@@ -258,14 +274,14 @@ typedef struct {
     __IOM uint32_t glb_cntr_stop;                       /**< Global Counter Stop Register >*/
     __IOM uint32_t glb_cntr_clear;                      /**< Global Counter Clear Register >*/
     __IOM uint32_t glb_cntr_running;                    /**< Global Counter Running Status Register >*/
-    __IM uint32_t reserved[2];                          /**< Reserved Registers >*/
     __IOM uint32_t glb_driver_oen;                      /**< Channel Driver oen Register >*/
+    __IM uint32_t reserved2[3];                         /**< Reserved Registers >*/
+    __IOM uint32_t glb_clock_en;                      	/**< Channel clock enable >*/
 } _TIMER_Glb_RegInfo;
 
 typedef struct {
-    __IM uint32_t reserved1[68];                        /**< Reserved Registers >*/
     _TIMER_Glb_RegInfo TIMER_Glb_RegInfo;               /**< Timer Global Registers >*/
-    __IM uint32_t reserved2[949];                       /**< Reserved Registers >*/
+    __IM uint32_t reserved2[1015];                       /**< Reserved Registers >*/
     _TIMER_Channel_RegInfo TIMER_Channel_RegInfo[ARM_UTIMER_MAX_CHANNEL];   /**< Timer Channel Registers >*/
 } TIMER_RegInfo;
 

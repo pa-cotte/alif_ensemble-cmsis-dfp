@@ -217,7 +217,7 @@ static void UTIMER_ll_NVIC_Disable (UTIMER_resources_t *UTIMER, uint8_t channel)
 
 static int32_t UTIMER_ll_NVIC_Enable (uint8_t channel, uint32_t priorty, uint8_t irq_type)
 {
-    IRQn_Type IRQnx =0;
+/*    IRQn_Type IRQnx =0;
 
     switch (irq_type) {
         case ARM_UTIMER_IRQ_TYPE_CAPTURE_A:
@@ -279,7 +279,7 @@ static int32_t UTIMER_ll_NVIC_Enable (uint8_t channel, uint32_t priorty, uint8_t
         return ARM_DRIVER_ERROR;
     }
     NVIC_EnableIRQ(IRQnx);
-
+*/
     return ARM_DRIVER_OK;
 }
 
@@ -287,12 +287,13 @@ int32_t UTIMER_ll_PowerOff (UTIMER_resources_t *UTIMER, uint8_t channel)
 {
     TIMER_RegInfo *reg_ptr = (TIMER_RegInfo*)(UTIMER->reg_base);
 
-    reg_ptr->TIMER_Channel_RegInfo[channel].cntr_start_src = 0;
-    reg_ptr->TIMER_Channel_RegInfo[channel].cntr_stop_src = 0;
-    reg_ptr->TIMER_Channel_RegInfo[channel].cntr_clear_src = 0;
+    reg_ptr->TIMER_Channel_RegInfo[channel].cntr_start_src_1 = 0;
+    reg_ptr->TIMER_Channel_RegInfo[channel].cntr_stop_src_1 = 0;
+    reg_ptr->TIMER_Channel_RegInfo[channel].cntr_clear_src_1 = 0;
     reg_ptr->TIMER_Channel_RegInfo[channel].chan_interrupt_mask = ARM_UTIMER_INTRRUPT_MASK;
     reg_ptr->TIMER_Glb_RegInfo.glb_driver_oen |= (3U<<((uint32_t)(channel*2U)));
 
+    reg_ptr->TIMER_Glb_RegInfo.glb_clock_en &= ~(1<<channel);
     return ARM_DRIVER_OK;
 }
 
@@ -300,9 +301,11 @@ int32_t UTIMER_ll_PowerFull (UTIMER_resources_t *UTIMER, uint8_t channel)
 {
     TIMER_RegInfo *reg_ptr = (TIMER_RegInfo*)(UTIMER->reg_base);
 
-    reg_ptr->TIMER_Channel_RegInfo[channel].cntr_start_src = CNTR_SRC_PGM_EN;
-    reg_ptr->TIMER_Channel_RegInfo[channel].cntr_stop_src = CNTR_SRC_PGM_EN;
-    reg_ptr->TIMER_Channel_RegInfo[channel].cntr_clear_src = CNTR_SRC_PGM_EN;
+    reg_ptr->TIMER_Glb_RegInfo.glb_clock_en |= 1<<channel;
+
+    reg_ptr->TIMER_Channel_RegInfo[channel].cntr_start_src_1 = CNTR_SRC_PGM_EN;
+    reg_ptr->TIMER_Channel_RegInfo[channel].cntr_stop_src_1 = CNTR_SRC_PGM_EN;
+    reg_ptr->TIMER_Channel_RegInfo[channel].cntr_clear_src_1 = CNTR_SRC_PGM_EN;
     reg_ptr->TIMER_Channel_RegInfo[channel].chan_interrupt_mask = ARM_UTIMER_INTRRUPT_UNMASK;
     reg_ptr->TIMER_Glb_RegInfo.glb_driver_oen &= ~(3U<<((uint32_t)(channel*2U)));
 
