@@ -87,7 +87,7 @@ LR_ROM __ROM_BASE NOCOMPRESS __ROM_SIZE  {    ; load region size_region
   APP_HEAP  __APP_HEAP_BASE EMPTY  __APP_HEAP_SIZE {; Reserve empty region for application heap
   }
 
-  NS_REGION_0  NS_REGION_0_BASE  NS_REGION_0_SIZE { /* Non secure region 0 */
+  NS_REGION_0  NS_REGION_0_BASE  NS_REGION_0_SIZE { ; Non secure region 0
    * (eth_buf)
    * (usb_dma_buf)
    * (sd_dma_buf)

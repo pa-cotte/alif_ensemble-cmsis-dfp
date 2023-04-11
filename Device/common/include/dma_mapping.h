@@ -463,6 +463,9 @@ extern "C" {
 #define GPIO8_DMA_GROUP                3
 #define GPIO8_DMA_HANDSHAKE_ENABLE     0
 
+#define CRC0_DMA 0
+#define CRC1_DMA 0
+
 #if defined (M55_HP)
 /******************************************************************************/
 /*                         DMA1 peripheral map                              */

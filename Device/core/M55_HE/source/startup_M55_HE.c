@@ -1062,8 +1062,6 @@ extern const VECTOR_TABLE_Type __VECTOR_TABLE[496];
 __attribute__((naked))
 __NO_RETURN void Reset_Handler(void)
 {
-  /* Set up the main stack */
-
   /*
    * Function must be naked to ensure the compiler doesn't use the
    * stack on entry.
@@ -1073,6 +1071,8 @@ __NO_RETURN void Reset_Handler(void)
    */
 #define xstr(s) str(s)
 #define str(s) #s
+
+  /* Set up the main stack */
   __asm (
     "LDR     R0, =" xstr(__STACK_LIMIT) "\n\t"
     "LDR     R1, =" xstr(__INITIAL_SP) "\n\t"
