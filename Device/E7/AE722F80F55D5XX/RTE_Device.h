@@ -117,7 +117,7 @@
 //     <90=> 90 FPS
 // <i> Defines camera ARX3A0 frame per second
 // <i> Default: 90 FPS
-#define RTE_ARX3A0_CAMERA_SENSOR_CPI_CFG_FPS                  90
+#define RTE_ARX3A0_CAMERA_SENSOR_CPI_CFG_FPS                  40
 
 // <o> Select camera ARX3A0 frequency
 // <i> Defines camera ARX3A0 frequency
@@ -1389,7 +1389,7 @@
 // <o> I2S0 IRQ priority <0-255>
 // <i> Defines I2S0 Interrupt priority
 // <i> Default: 0
-#define RTE_I2S0_IRQ_PRI     0
+#define RTE_I2S0_IRQ_PRI     10
 
 // <o> I2S0 Enable External Clock source
 //    <0=> DISABLE
@@ -1489,7 +1489,7 @@
 // <o> I2S1 IRQ priority <0-255>
 // <i> Defines I2S1 Interrupt priority
 // <i> Default: 0
-#define RTE_I2S1_IRQ_PRI     0
+#define RTE_I2S1_IRQ_PRI     10
 
 // <o> I2S1 Enable External Clock source
 //    <0=> DISABLE
@@ -1687,7 +1687,7 @@
 // <o> I2S3 IRQ priority <0-255>
 // <i> Defines I2S3 Interrupt priority
 // <i> Default: 0
-#define RTE_I2S3_IRQ_PRI     0
+#define RTE_I2S3_IRQ_PRI     10
 
 // <o> I2S3 Enable External Clock source
 //    <0=> DISABLE
@@ -6062,7 +6062,7 @@
 
 // <e> HWSEM1 (Hardware Semaphore) [Driver_HWSEM1]
 // <i> Configuration settings for Driver_HWSEM1 in component ::Drivers:HWSEM
-#define RTE_HWSEM1                                     0
+#define RTE_HWSEM1                                     1
 #if RTE_HWSEM1
 #define RTE_HWSEM1_IRQPRIORITY                         0
 #endif
@@ -6072,7 +6072,7 @@
 
 // <e> HWSEM2 (Hardware Semaphore) [Driver_HWSEM2]
 // <i> Configuration settings for Driver_HWSEM2 in component ::Drivers:HWSEM
-#define RTE_HWSEM2                                     0
+#define RTE_HWSEM2                                     1
 #if RTE_HWSEM2
 #define RTE_HWSEM2_IRQPRIORITY                         0
 #endif
@@ -6082,7 +6082,7 @@
 
 // <e> HWSEM3 (Hardware Semaphore) [Driver_HWSEM3]
 // <i> Configuration settings for Driver_HWSEM3 in component ::Drivers:HWSEM
-#define RTE_HWSEM3                                     0
+#define RTE_HWSEM3                                     1
 #if RTE_HWSEM3
 #define RTE_HWSEM3_IRQPRIORITY                         0
 #endif
@@ -6092,7 +6092,7 @@
 
 // <e> HWSEM4 (Hardware Semaphore) [Driver_HWSEM4]
 // <i> Configuration settings for Driver_HWSEM4 in component ::Drivers:HWSEM
-#define RTE_HWSEM4                                     0
+#define RTE_HWSEM4                                     1
 #if RTE_HWSEM4
 #define RTE_HWSEM4_IRQPRIORITY                         0
 #endif
@@ -6102,7 +6102,7 @@
 
 // <e> HWSEM5 (Hardware Semaphore) [Driver_HWSEM5]
 // <i> Configuration settings for Driver_HWSEM5 in component ::Drivers:HWSEM
-#define RTE_HWSEM5                                     0
+#define RTE_HWSEM5                                     1
 #if RTE_HWSEM5
 #define RTE_HWSEM5_IRQPRIORITY                         0
 #endif
@@ -6112,7 +6112,7 @@
 
 // <e> HWSEM6 (Hardware Semaphore) [Driver_HWSEM6]
 // <i> Configuration settings for Driver_HWSEM6 in component ::Drivers:HWSEM
-#define RTE_HWSEM6                                     0
+#define RTE_HWSEM6                                     1
 #if RTE_HWSEM6
 #define RTE_HWSEM6_IRQPRIORITY                         0
 #endif
@@ -6122,7 +6122,7 @@
 
 // <e> HWSEM7 (Hardware Semaphore) [Driver_HWSEM7]
 // <i> Configuration settings for Driver_HWSEM7 in component ::Drivers:HWSEM
-#define RTE_HWSEM7                                     0
+#define RTE_HWSEM7                                     1
 #if RTE_HWSEM7
 #define RTE_HWSEM7_IRQPRIORITY                         0
 #endif
@@ -6132,7 +6132,7 @@
 
 // <e> HWSEM8 (Hardware Semaphore) [Driver_HWSEM8]
 // <i> Configuration settings for Driver_HWSEM8 in component ::Drivers:HWSEM
-#define RTE_HWSEM8                                     0
+#define RTE_HWSEM8                                     1
 #if RTE_HWSEM8
 #define RTE_HWSEM8_IRQPRIORITY                         0
 #endif
@@ -6142,7 +6142,7 @@
 
 // <e> HWSEM9 (Hardware Semaphore) [Driver_HWSEM9]
 // <i> Configuration settings for Driver_HWSEM9 in component ::Drivers:HWSEM
-#define RTE_HWSEM9                                     0
+#define RTE_HWSEM9                                     1
 #if RTE_HWSEM9
 #define RTE_HWSEM9_IRQPRIORITY                         0
 #endif
@@ -6152,7 +6152,7 @@
 
 // <e> HWSEM10 (Hardware Semaphore) [Driver_HWSEM10]
 // <i> Configuration settings for Driver_HWSEM10 in component ::Drivers:HWSEM
-#define RTE_HWSEM10                                     0
+#define RTE_HWSEM10                                     1
 #if RTE_HWSEM10
 #define RTE_HWSEM10_IRQPRIORITY                         0
 #endif
@@ -6162,7 +6162,7 @@
 
 // <e> HWSEM11 (Hardware Semaphore) [Driver_HWSEM11]
 // <i> Configuration settings for Driver_HWSEM11 in component ::Drivers:HWSEM
-#define RTE_HWSEM11                                     0
+#define RTE_HWSEM11                                     1
 #if RTE_HWSEM11
 #define RTE_HWSEM11_IRQPRIORITY                         0
 #endif
@@ -6172,7 +6172,7 @@
 
 // <e> HWSEM12 (Hardware Semaphore) [Driver_HWSEM12]
 // <i> Configuration settings for Driver_HWSEM12 in component ::Drivers:HWSEM
-#define RTE_HWSEM12                                     0
+#define RTE_HWSEM12                                     1
 #if RTE_HWSEM12
 #define RTE_HWSEM12_IRQPRIORITY                         0
 #endif
@@ -6182,7 +6182,7 @@
 
 // <e> HWSEM13 (Hardware Semaphore) [Driver_HWSEM13]
 // <i> Configuration settings for Driver_HWSEM13 in component ::Drivers:HWSEM
-#define RTE_HWSEM13                                     0
+#define RTE_HWSEM13                                     1
 #if RTE_HWSEM13
 #define RTE_HWSEM13_IRQPRIORITY                         0
 #endif
@@ -6192,7 +6192,7 @@
 
 // <e> HWSEM14 (Hardware Semaphore) [Driver_HWSEM14]
 // <i> Configuration settings for Driver_HWSEM14 in component ::Drivers:HWSEM
-#define RTE_HWSEM14                                     0
+#define RTE_HWSEM14                                     1
 #if RTE_HWSEM14
 #define RTE_HWSEM14_IRQPRIORITY                         0
 #endif
@@ -6202,7 +6202,7 @@
 
 // <e> HWSEM15 (Hardware Semaphore) [Driver_HWSEM15]
 // <i> Configuration settings for Driver_HWSEM15 in component ::Drivers:HWSEM
-#define RTE_HWSEM15                                     0
+#define RTE_HWSEM15                                     1
 #if RTE_HWSEM15
 #define RTE_HWSEM15_IRQPRIORITY                         0
 #endif

@@ -23,6 +23,8 @@
 #include "hwsem.h"
 #include "Driver_HWSEM_Private.h"
 
+#define HWSEM ((HWSEM_Type *) HWSEM_BASE)
+
 #define ARM_HWSEM_DRV_VERSION    ARM_DRIVER_VERSION_MAJOR_MINOR(1, 0) /* Driver version */
 
 /* Driver Version */
@@ -128,7 +130,7 @@ static int32_t Lock(HWSEM_RESOURCES *hwsem)
         return ARM_DRIVER_ERROR;
     }
 
-    if (hwsem_request(hwsem->regs, hwsem->sem_id, HWSEM_MASTERID) == HWSEM_MASTERID)
+    if (hwsem_request(HWSEM, hwsem->sem_id, HWSEM_MASTERID) == HWSEM_MASTERID)
     {
         return ARM_DRIVER_OK;
     }
@@ -161,10 +163,10 @@ static int32_t UnLock(HWSEM_RESOURCES *hwsem)
     }
 
     /* Check if semaphore is locked */
-    if (hwsem_getcount(hwsem->regs, hwsem->sem_id) > 0)
+    if (hwsem_getcount(HWSEM, hwsem->sem_id) > 0)
     {
         /* Release the semaphore */
-        hwsem_release(hwsem->regs, hwsem->sem_id, HWSEM_MASTERID);
+        hwsem_release(HWSEM, hwsem->sem_id, HWSEM_MASTERID);
 
         return ARM_DRIVER_OK;
     }
@@ -189,7 +191,7 @@ static int32_t GetCount(HWSEM_RESOURCES *hwsem)
         return ARM_DRIVER_ERROR;
     }
 
-    return hwsem_getcount(hwsem->regs, hwsem->sem_id);
+    return hwsem_getcount(HWSEM, hwsem->sem_id);
 }
 
 /**
@@ -212,7 +214,6 @@ static void ARM_HWSEM_IRQHandler(HWSEM_RESOURCES *hwsem)
 
 /* HWSEM0 Resources */
 static HWSEM_RESOURCES HWSEM0 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ0_IRQn,
     .irq_priority =(uint8_t)RTE_HWSEM0_IRQPRIORITY,
@@ -269,7 +270,6 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM0 =
 
 /* HWSEM1 Resources */
 static HWSEM_RESOURCES HWSEM1 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ1_IRQn,
     .irq_priority =(uint8_t) RTE_HWSEM1_IRQPRIORITY,
@@ -326,7 +326,6 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM1 =
 
 /* HWSEM2 Resources */
 static HWSEM_RESOURCES HWSEM2 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ2_IRQn,
     .irq_priority =(uint8_t) RTE_HWSEM2_IRQPRIORITY,
@@ -383,7 +382,6 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM2 =
 
 /* HWSEM3 Resources */
 static HWSEM_RESOURCES HWSEM3 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ3_IRQn,
     .irq_priority =(uint8_t) RTE_HWSEM3_IRQPRIORITY,
@@ -440,7 +438,6 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM3 =
 
 /* HWSEM4 Resources */
 static HWSEM_RESOURCES HWSEM4 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ4_IRQn,
     .irq_priority =(uint8_t) RTE_HWSEM4_IRQPRIORITY,
@@ -497,7 +494,6 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM4 =
 
 /* HWSEM5 Resources */
 static HWSEM_RESOURCES HWSEM5 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ5_IRQn,
     .irq_priority =(uint8_t) RTE_HWSEM5_IRQPRIORITY,
@@ -554,7 +550,6 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM5 =
 
 /* HWSEM6 Resources */
 static HWSEM_RESOURCES HWSEM6 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ6_IRQn,
     .irq_priority =(uint8_t) RTE_HWSEM6_IRQPRIORITY,
@@ -611,7 +606,6 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM6 =
 
 /* HWSEM7 Resources */
 static HWSEM_RESOURCES HWSEM7 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ7_IRQn,
     .irq_priority =(uint8_t) RTE_HWSEM7_IRQPRIORITY,
@@ -668,7 +662,6 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM7 =
 
 /* HWSEM8 Resources */
 static HWSEM_RESOURCES HWSEM8 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ8_IRQn,
     .irq_priority =(uint8_t) RTE_HWSEM8_IRQPRIORITY,
@@ -725,7 +718,6 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM8 =
 
 /* HWSEM9 Resources */
 static HWSEM_RESOURCES HWSEM9 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ9_IRQn,
     .irq_priority =(uint8_t) RTE_HWSEM9_IRQPRIORITY,
@@ -782,7 +774,6 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM9 =
 
 /* HWSEM10 Resources */
 static HWSEM_RESOURCES HWSEM10 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ10_IRQn,
     .irq_priority =(uint8_t) RTE_HWSEM10_IRQPRIORITY,
@@ -839,7 +830,6 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM10 =
 
 /* HWSEM11 Resources */
 static HWSEM_RESOURCES HWSEM11 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ11_IRQn,
     .irq_priority =(uint8_t) RTE_HWSEM11_IRQPRIORITY,
@@ -896,7 +886,6 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM11 =
 
 /* HWSEM12 Resources */
 static HWSEM_RESOURCES HWSEM12 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ12_IRQn,
     .irq_priority =(uint8_t) RTE_HWSEM12_IRQPRIORITY,
@@ -953,7 +942,6 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM12 =
 
 /* HWSEM13 Resources */
 static HWSEM_RESOURCES HWSEM13 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ13_IRQn,
     .irq_priority =(uint8_t) RTE_HWSEM13_IRQPRIORITY,
@@ -1010,7 +998,6 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM13 =
 
 /* HWSEM14 Resources */
 static HWSEM_RESOURCES HWSEM14 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ14_IRQn,
     .irq_priority =(uint8_t) RTE_HWSEM14_IRQPRIORITY,
@@ -1067,7 +1054,6 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM14 =
 
 /* HWSEM15 Resources */
 static HWSEM_RESOURCES HWSEM15 = {
-    .regs =(HWSEM_Type *) HWSEM_BASE,
     .cb_event = NULL,
     .irq =(IRQn_Type) HWSEM_IRQ15_IRQn,
     .irq_priority =(uint8_t) RTE_HWSEM15_IRQPRIORITY,
