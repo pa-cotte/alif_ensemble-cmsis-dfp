@@ -20,7 +20,7 @@
  ******************************************************************************/
 
 #include <stdio.h>
-#include "Driver_PINMUX_AND_PINPAD.h"
+#include "pinconf.h"
 #include "Driver_Flash.h"
 #include "RTE_Components.h"
 #include CMSIS_device_header
@@ -61,93 +61,51 @@ static int32_t setup_PinMUX(void)
 {
     int32_t ret;
 
-    /* Configure OctalSPI 0 pins - DevBoard
-    *
-    * P1_16 .. P1_23 = D0..D7
-    * P1_26 = RXDS
-    * P1_25 = SCLK
-    * P2_6 = CS
-    * P2_7 = SCLKN
-    */
-
-    ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_16, PINMUX_ALTERNATE_FUNCTION_3);
+    /* OSPI0_D0-D7 -> P6_0-P6_7 */
+    ret = pinconf_set(PORT_6, PIN_0, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
     if (ret)
         return ARM_DRIVER_ERROR;
 
-    ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_17, PINMUX_ALTERNATE_FUNCTION_3);
+    ret = pinconf_set(PORT_6, PIN_1, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
     if (ret)
         return ARM_DRIVER_ERROR;
 
-    ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_18, PINMUX_ALTERNATE_FUNCTION_3);
+    ret = pinconf_set(PORT_6, PIN_2, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
     if (ret)
         return ARM_DRIVER_ERROR;
 
-    ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_19, PINMUX_ALTERNATE_FUNCTION_3);
+    ret = pinconf_set(PORT_6, PIN_3, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
     if (ret)
         return ARM_DRIVER_ERROR;
 
-    ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_20, PINMUX_ALTERNATE_FUNCTION_3);
+    ret = pinconf_set(PORT_6, PIN_4, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
     if (ret)
         return ARM_DRIVER_ERROR;
 
-    ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_21, PINMUX_ALTERNATE_FUNCTION_4);
+    ret = pinconf_set(PORT_6, PIN_5, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
     if (ret)
         return ARM_DRIVER_ERROR;
 
-    ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_22, PINMUX_ALTERNATE_FUNCTION_4);
+    ret = pinconf_set(PORT_6, PIN_6, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
     if (ret)
         return ARM_DRIVER_ERROR;
 
-    ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_23, PINMUX_ALTERNATE_FUNCTION_3);
+    ret = pinconf_set(PORT_6, PIN_7, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
     if (ret)
         return ARM_DRIVER_ERROR;
 
-    ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_25, PINMUX_ALTERNATE_FUNCTION_3);
+    /* OSPI0_RXDS -> P3_4 On the schematics, shown with the remark "was P1 6" */
+    ret = pinconf_set(PORT_3, PIN_4, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
     if (ret)
         return ARM_DRIVER_ERROR;
 
-    ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_26, PINMUX_ALTERNATE_FUNCTION_3);
+    /* OSPI0_SCLK -> P3_0 */
+    ret = pinconf_set(PORT_3, PIN_0, PINMUX_ALTERNATE_FUNCTION_1, 0);
     if (ret)
         return ARM_DRIVER_ERROR;
 
-    ret = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_6, PINMUX_ALTERNATE_FUNCTION_4);
-    if (ret)
-        return ARM_DRIVER_ERROR;
-
-    /* Configure pad control registers */
-    ret = PINPAD_Config(PORT_NUMBER_1, PIN_NUMBER_16, PAD_FUNCTION_READ_ENABLE);
-    if (ret)
-        return ARM_DRIVER_ERROR;
-
-    ret = PINPAD_Config(PORT_NUMBER_1, PIN_NUMBER_17, PAD_FUNCTION_READ_ENABLE);
-    if (ret)
-        return ARM_DRIVER_ERROR;
-
-    ret = PINPAD_Config(PORT_NUMBER_1, PIN_NUMBER_18, PAD_FUNCTION_READ_ENABLE);
-    if (ret)
-        return ARM_DRIVER_ERROR;
-
-    ret = PINPAD_Config(PORT_NUMBER_1, PIN_NUMBER_19, PAD_FUNCTION_READ_ENABLE);
-    if (ret)
-        return ARM_DRIVER_ERROR;
-
-    ret = PINPAD_Config(PORT_NUMBER_1, PIN_NUMBER_20, PAD_FUNCTION_READ_ENABLE);
-    if (ret)
-        return ARM_DRIVER_ERROR;
-
-    ret = PINPAD_Config(PORT_NUMBER_1, PIN_NUMBER_21, PAD_FUNCTION_READ_ENABLE);
-    if (ret)
-        return ARM_DRIVER_ERROR;
-
-    ret = PINPAD_Config(PORT_NUMBER_1, PIN_NUMBER_22, PAD_FUNCTION_READ_ENABLE);
-    if (ret)
-        return ARM_DRIVER_ERROR;
-
-    ret = PINPAD_Config(PORT_NUMBER_1, PIN_NUMBER_23, PAD_FUNCTION_READ_ENABLE);
-    if (ret)
-        return ARM_DRIVER_ERROR;
-
-    ret = PINPAD_Config(PORT_NUMBER_1, PIN_NUMBER_26, PAD_FUNCTION_READ_ENABLE);
+    /* OSPI0_SS -> P3_2 */
+    ret = pinconf_set(PORT_3, PIN_2, PINMUX_ALTERNATE_FUNCTION_1, 0);
     if (ret)
         return ARM_DRIVER_ERROR;
 

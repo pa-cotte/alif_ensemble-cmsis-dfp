@@ -602,9 +602,9 @@ static ARM_OSPI_STATUS ARM_OSPI_GetStatus(OSPI_RESOURCES *OSPI)
 
 /* OSPI0 driver instance */
 #if RTE_OSPI0
-OSPI_RESOURCES OSPI0 = {
+OSPI_RESOURCES OSPI0_RES = {
     .reg_base               = (OSPI_RegInfo*) OSPI0_BASE,
-    .irq                    = XNVM_OSPI0_IRQ,
+    .irq                    = OSPI0_IRQ_IRQn,
     .cb_event               = NULL,
     .irq_priority           = RTE_OSPI0_IRQ_PRIORITY,
     .drv_instance           = OSPI_INSTANCE_0,
@@ -615,54 +615,54 @@ OSPI_RESOURCES OSPI0 = {
     .rx_fifo_threshold      = RTE_OSPI0_RX_FIFO_THRESHOLD
 };
 
-void XNVM_OSPI0_IRQHandler(void)
+void OSPI0_IRQHandler(void)
 {
-    OSPI_IRQHandler(&OSPI0);
+    OSPI_IRQHandler(&OSPI0_RES);
 }
 
 static int32_t ARM_OSPI0_Initialize(ARM_OSPI_SignalEvent_t cb_event)
 {
-    return ARM_OSPI_Initialize(&OSPI0, cb_event);
+    return ARM_OSPI_Initialize(&OSPI0_RES, cb_event);
 }
 
 static int32_t ARM_OSPI0_Uninitialize(void)
 {
-    return ARM_OSPI_Uninitialize(&OSPI0);
+    return ARM_OSPI_Uninitialize(&OSPI0_RES);
 }
 
 static int32_t ARM_OSPI0_PowerControl(ARM_POWER_STATE state)
 {
-    return ARM_OSPI_PowerControl(&OSPI0, state);
+    return ARM_OSPI_PowerControl(&OSPI0_RES, state);
 }
 
 static int32_t ARM_OSPI0_Send(const void *data, uint32_t num)
 {
-    return ARM_OSPI_Send(&OSPI0, data, num);
+    return ARM_OSPI_Send(&OSPI0_RES, data, num);
 }
 
 static int32_t ARM_OSPI0_Receive(void *data, uint32_t num)
 {
-    return ARM_OSPI_Receive(&OSPI0, data, num);
+    return ARM_OSPI_Receive(&OSPI0_RES, data, num);
 }
 
 static int32_t ARM_OSPI0_Transfer(const void *data_out, void *data_in, uint32_t num)
 {
-    return ARM_OSPI_Transfer(&OSPI0, data_out, data_in, num);
+    return ARM_OSPI_Transfer(&OSPI0_RES, data_out, data_in, num);
 }
 
 static uint32_t ARM_OSPI0_GetDataCount(void)
 {
-    return ARM_OSPI_GetDataCount(&OSPI0);
+    return ARM_OSPI_GetDataCount(&OSPI0_RES);
 }
 
 static int32_t ARM_OSPI0_Control(uint32_t control, uint32_t arg)
 {
-    return ARM_OSPI_Control(&OSPI0, control, arg);
+    return ARM_OSPI_Control(&OSPI0_RES, control, arg);
 }
 
 static ARM_OSPI_STATUS ARM_OSPI0_GetStatus(void)
 {
-    return ARM_OSPI_GetStatus(&OSPI0);
+    return ARM_OSPI_GetStatus(&OSPI0_RES);
 }
 
 extern ARM_DRIVER_OSPI Driver_OSPI0;
@@ -683,9 +683,9 @@ ARM_DRIVER_OSPI Driver_OSPI0 = {
 
 /* OSPI1 driver instance */
 #if RTE_OSPI1
-OSPI_RESOURCES OSPI1 = {
+OSPI_RESOURCES OSPI1_RES = {
     .reg_base               = (OSPI_RegInfo*) OSPI1_BASE,
-    .irq                    = XNVM_OSPI1_IRQ,
+    .irq                    = OSPI1_IRQ_IRQn,
     .cb_event               = NULL,
     .irq_priority           = RTE_OSPI1_IRQ_PRIORITY,
     .drv_instance           = OSPI_INSTANCE_1,
@@ -696,54 +696,54 @@ OSPI_RESOURCES OSPI1 = {
     .rx_fifo_threshold      = RTE_OSPI1_RX_FIFO_THRESHOLD
 };
 
-void XNVM_OSPI1_IRQHandler(void)
+void OSPI1_IRQHandler(void)
 {
-    OSPI_IRQHandler(&OSPI1);
+    OSPI_IRQHandler(&OSPI1_RES);
 }
 
 static int32_t ARM_OSPI1_Initialize(ARM_OSPI_SignalEvent_t cb_event)
 {
-    return ARM_OSPI_Initialize(&OSPI1, cb_event);
+    return ARM_OSPI_Initialize(&OSPI1_RES, cb_event);
 }
 
 static int32_t ARM_OSPI1_Uninitialize(void)
 {
-    return ARM_OSPI_Uninitialize(&OSPI1);
+    return ARM_OSPI_Uninitialize(&OSPI1_RES);
 }
 
 static int32_t ARM_OSPI1_PowerControl(ARM_POWER_STATE state)
 {
-    return ARM_OSPI_PowerControl(&OSPI1, state);
+    return ARM_OSPI_PowerControl(&OSPI1_RES, state);
 }
 
 static int32_t ARM_OSPI1_Send(const void *data, uint32_t num)
 {
-    return ARM_OSPI_Send(&OSPI1, data, num);
+    return ARM_OSPI_Send(&OSPI1_RES, data, num);
 }
 
 static int32_t ARM_OSPI1_Receive(void *data, uint32_t num)
 {
-    return ARM_OSPI_Receive(&OSPI1, data, num);
+    return ARM_OSPI_Receive(&OSPI1_RES, data, num);
 }
 
 static int32_t ARM_OSPI1_Transfer(const void *data_out, void *data_in, uint32_t num)
 {
-    return ARM_OSPI_Transfer(&OSPI1, data_out, data_in, num);
+    return ARM_OSPI_Transfer(&OSPI1_RES, data_out, data_in, num);
 }
 
 static uint32_t ARM_OSPI1_GetDataCount(void)
 {
-    return ARM_OSPI_GetDataCount(&OSPI1);
+    return ARM_OSPI_GetDataCount(&OSPI1_RES);
 }
 
 static int32_t ARM_OSPI1_Control(uint32_t control, uint32_t arg)
 {
-    return ARM_OSPI_Control(&OSPI1, control, arg);
+    return ARM_OSPI_Control(&OSPI1_RES, control, arg);
 }
 
 static ARM_OSPI_STATUS ARM_OSPI1_GetStatus(void)
 {
-    return ARM_OSPI_GetStatus(&OSPI1);
+    return ARM_OSPI_GetStatus(&OSPI1_RES);
 }
 
 extern ARM_DRIVER_OSPI Driver_OSPI1;

@@ -25,10 +25,31 @@
 #endif /* __cplusplus */
 
 /* Public function prototypes ------------------------------------------------*/
+
+/**
+ * @brief  Clear all the MPU registers
+ * @note   This function disables the MPU and clear
+ *         all the existing regions.
+ * @param  None
+ * @retval None
+*/
+void MPU_Clear_All_Regions(void);
+
+/**
+ * @brief  Load the MPU regions from the given table
+ * @note   This function loads the region and also sets the
+ *         attributes for the regions.
+ *         User can override from application.
+ * @param  None
+ * @retval None
+ */
+void MPU_Load_Regions(void);
+
 /**
  * @brief  Configure the MPU.
  * @note   This function disables the MPU and loads the regions
  *         from the table. Once it is loaded, MPU is enabled.
+ *         User can override from application.
  * @param  None
  * @retval None
  */

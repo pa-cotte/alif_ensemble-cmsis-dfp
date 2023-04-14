@@ -17,7 +17,7 @@
 #define CMSIS_device_header "M55_HP.h"
 
 /* AlifSemiconductor::Device:SOC Peripherals:PINCONF:1.0.0 */
-#define RTE_Drivers_PINCONF   1           /* Driver PinPAD and PinMux */
+#define RTE_Drivers_LL_PINCONF   1           /* Driver PinPAD and PinMux */
 /* AlifSemiconductor::Device:SOC Peripherals:USART:1.0.0 */
 #define RTE_Drivers_USART0   1           /* Driver UART0 */
         #define RTE_Drivers_USART1   1           /* Driver UART1 */

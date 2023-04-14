@@ -1,12 +1,27 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
  * You should have received a copy of the Alif Semiconductor Software
  * License Agreement with this file. If not, please write to:
  * contact@alifsemi.com, or visit: https://alifsemi.com/license
- *
  */
+
+/**************************************************************************//**
+ * @file     I3C_dev.h
+ * @Author   Silesh C V,
+ *           Tanay Rami,
+ *           Prabhakar kumar
+ * @email    <silesh@alifsemi.com>,
+ *           <tanay@alifsemi.com>,
+ *           <prabhakar.kumar@alifsemi.com>
+ * @version  V1.0.0
+ * @date     07-March-2023
+ * @brief    CMSIS-Driver for I3C
+ * @bug      None.
+ * @Note     None.
+ ******************************************************************************/
+
 #ifndef I3C_DEV_H_
 #define I3C_DEV_H_
 
@@ -73,13 +88,19 @@ struct i3c_dev
 
 #define I3C_FLAG_INIT                     (1 << 0)   /* Driver initialized */
 #define I3C_FLAG_POWER                    (1 << 1)   /* Driver power on    */
+#define I3C_SLV_INIT_DONE                 (1 << 2)   /* Slave initialized  */
+#define I3C_MST_INIT_DONE                 (1 << 3)   /* Master initialized */
+
+#define DEV_OPERATION_MODE_AS_SLV         (1)
 
 /* transaction ids for tx and rx, CCC set and get, and Dynamic Address Assignment. */
 #define I3C_CCC_SET_TID                   0x1
 #define I3C_CCC_GET_TID                   0x2
-#define I3C_TX_TID                        0x3
-#define I3C_RX_TID                        0x4
+#define I3C_MST_TX_TID                    0x3
+#define I3C_MST_RX_TID                    0x4
 #define I3C_ADDR_ASSIGN_TID               0x5
+#define I3C_SLV_TX_TID                    0X6
+#define I3C_SLV_RX_TID                    0X8
 
 /* common helpers */
 #define GENMASK(h, l) \
@@ -109,6 +130,7 @@ struct i3c_dev
 #define COMMAND_PORT_CP                   BIT(15)
 #define COMMAND_PORT_CMD(x)               (((x) << 7) & GENMASK(14, 7))
 #define COMMAND_PORT_TID(x)               (((x) << 3) & GENMASK(6, 3))
+#define COMMAND_SLV_PORT_TID(x)           (((x) << 3) & GENMASK(5, 3))
 
 #define COMMAND_PORT_ARG_DATA_LEN(x)      (((x) << 16) & GENMASK(31, 16))
 #define COMMAND_PORT_ARG_DATA_LEN_MAX     65536
@@ -196,6 +218,16 @@ struct i3c_dev
 
 #define INTR_MASTER_MASK                  (INTR_TRANSFER_ERR_STAT     |   \
                                           INTR_RESP_READY_STAT)
+
+#define INTR_SLAVE_MASK                   (INTR_TRANSFER_ERR_STAT     |   \
+                                          INTR_DYN_ADDR_ASSGN_STAT    |   \
+                                          INTR_RESP_READY_STAT)
+
+#define MR_REQ_REJECT                     (0X1)
+#define REQMST_ACK_CTRL_AS_NACK           (1 << 3)
+#define DYN_ADDR_ASSGN_STS                (1 << 8)
+#define STATIC_ADDR_VAILD                 (1 << 15)
+#define ADAPTIVE_I2C_I3C                  (1 << 27)
 
 #define QUEUE_STATUS_LEVEL                0x4c
 #define QUEUE_STATUS_IBI_STATUS_CNT(x)    (((x) & GENMASK(28, 24)) >> 24)

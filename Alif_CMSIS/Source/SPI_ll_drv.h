@@ -30,7 +30,7 @@
 #define SPI_ENABLE                                      1
 #define SPI_DISABLE                                     0
 
-#define SPI_IRQ_NUM(instance)                           (SPI0_IRQ + instance)
+#define SPI_IRQ_NUM(instance)                           (SPI0_IRQ_IRQn + instance)
 
 #define SPI_TX_FIFO_DEPTH                               16
 #define SPI_RX_FIFO_DEPTH                               16
@@ -50,6 +50,8 @@
 #define CR_SSI_SS_IN_VAL_1                              (1U  <<  9U)
 #define CR_SSI_SS_IN_VAL_2                              (1U  << 10U)
 #define CR_SSI_SS_IN_VAL_3                              (1U  << 11U)
+
+#define CLKCTL_PER_SLV_SSI_CTRL_OFFSET                  0x28U
 
 /* SPI Control Register 0 (CTRLR0) bit Definition, Macros, Offsets and Masks
  * these include DFS, FRF, SCPH, SCPOL, TMOD, etc

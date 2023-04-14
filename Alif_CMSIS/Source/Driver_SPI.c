@@ -694,7 +694,7 @@ __STATIC_INLINE ARM_SPI_STATUS ARM_SPI_GetStatus(SPI_RESOURCES *SPI)
 
 /* SPI0 driver instance */
 #if RTE_SPI0
-SPI_RESOURCES SPI0 = {
+SPI_RESOURCES SPI0_RES = {
     .reg_base               = (SPI_RegInfo*) SPI0_BASE,
     .cb_event               = NULL,
     .irq_priority           = RTE_SPI0_IRQ_PRIORITY,
@@ -709,59 +709,59 @@ SPI_RESOURCES SPI0 = {
 extern void SPI0_IRQHandler(void);
 void SPI0_IRQHandler(void)
 {
-    SPI_IRQHandler(&SPI0);
+    SPI_IRQHandler(&SPI0_RES);
 }
 
 static int32_t ARM_SPI0_Initialize(ARM_SPI_SignalEvent_t cb_event)
 {
-    return ARM_SPI_Initialize(&SPI0, cb_event);
+    return ARM_SPI_Initialize(&SPI0_RES, cb_event);
 }
 
 static int32_t ARM_SPI0_Uninitialize(void)
 {
-    return ARM_SPI_Uninitialize(&SPI0);
+    return ARM_SPI_Uninitialize(&SPI0_RES);
 }
 
 static int32_t ARM_SPI0_PowerControl(ARM_POWER_STATE state)
 {
-    return ARM_SPI_PowerControl(&SPI0, state);
+    return ARM_SPI_PowerControl(&SPI0_RES, state);
 }
 
 static int32_t ARM_SPI0_Send(const void *data, uint32_t num)
 {
-    return ARM_SPI_Send(&SPI0, data, num);
+    return ARM_SPI_Send(&SPI0_RES, data, num);
 }
 
 static int32_t ARM_SPI0_Receive(void *data, uint32_t num)
 {
-    return ARM_SPI_Receive(&SPI0, data, num);
+    return ARM_SPI_Receive(&SPI0_RES, data, num);
 }
 
 static int32_t ARM_SPI0_Transfer(const void *data_out, void *data_in, uint32_t num)
 {
-    return ARM_SPI_Transfer(&SPI0, data_out, data_in, num);
+    return ARM_SPI_Transfer(&SPI0_RES, data_out, data_in, num);
 }
 
 static uint32_t ARM_SPI0_GetDataCount(void)
 {
-    return ARM_SPI_GetDataCount(&SPI0);
+    return ARM_SPI_GetDataCount(&SPI0_RES);
 }
 
 static int32_t ARM_SPI0_Control(uint32_t control, uint32_t arg)
 {
-    return ARM_SPI_Control(&SPI0, control, arg);
+    return ARM_SPI_Control(&SPI0_RES, control, arg);
 }
 
 static ARM_SPI_STATUS ARM_SPI0_GetStatus(void)
 {
-    return ARM_SPI_GetStatus(&SPI0);
+    return ARM_SPI_GetStatus(&SPI0_RES);
 }
 
 #ifdef RTE_Drivers_SPI_MultiSlave
     #if SPI_DRIVER == 0
     static int32_t ARM_SPI0_Control_SlaveSelect(uint32_t device, uint32_t ss_state)
     {
-        return ARM_SPI_Control_SlaveSelect(&SPI0, device, ss_state);
+        return ARM_SPI_Control_SlaveSelect(&SPI0_RES, device, ss_state);
     }
     #endif
 #endif
@@ -784,7 +784,7 @@ ARM_DRIVER_SPI Driver_SPI0 = {
 
 /* SPI1 driver instance */
 #if RTE_SPI1
-SPI_RESOURCES SPI1 = {
+SPI_RESOURCES SPI1_RES = {
     .reg_base               = (SPI_RegInfo*) SPI1_BASE,
     .cb_event               = NULL,
     .irq_priority           = RTE_SPI1_IRQ_PRIORITY,
@@ -799,59 +799,59 @@ SPI_RESOURCES SPI1 = {
 extern void SPI1_IRQHandler(void);
 void SPI1_IRQHandler(void)
 {
-    SPI_IRQHandler(&SPI1);
+    SPI_IRQHandler(&SPI1_RES);
 }
 
 static int32_t ARM_SPI1_Initialize(ARM_SPI_SignalEvent_t cb_event)
 {
-    return ARM_SPI_Initialize(&SPI1, cb_event);
+    return ARM_SPI_Initialize(&SPI1_RES, cb_event);
 }
 
 static int32_t ARM_SPI1_Uninitialize(void)
 {
-    return ARM_SPI_Uninitialize(&SPI1);
+    return ARM_SPI_Uninitialize(&SPI1_RES);
 }
 
 static int32_t ARM_SPI1_PowerControl(ARM_POWER_STATE state)
 {
-    return ARM_SPI_PowerControl(&SPI1, state);
+    return ARM_SPI_PowerControl(&SPI1_RES, state);
 }
 
 static int32_t ARM_SPI1_Send(const void *data, uint32_t num)
 {
-    return ARM_SPI_Send(&SPI1, data, num);
+    return ARM_SPI_Send(&SPI1_RES, data, num);
 }
 
 static int32_t ARM_SPI1_Receive(void *data, uint32_t num)
 {
-    return ARM_SPI_Receive(&SPI1, data, num);
+    return ARM_SPI_Receive(&SPI1_RES, data, num);
 }
 
 static int32_t ARM_SPI1_Transfer(const void *data_out, void *data_in, uint32_t num)
 {
-    return ARM_SPI_Transfer(&SPI1, data_out, data_in, num);
+    return ARM_SPI_Transfer(&SPI1_RES, data_out, data_in, num);
 }
 
 static uint32_t ARM_SPI1_GetDataCount(void)
 {
-    return ARM_SPI_GetDataCount(&SPI1);
+    return ARM_SPI_GetDataCount(&SPI1_RES);
 }
 
 static int32_t ARM_SPI1_Control(uint32_t control, uint32_t arg)
 {
-    return ARM_SPI_Control(&SPI1, control, arg);
+    return ARM_SPI_Control(&SPI1_RES, control, arg);
 }
 
 static ARM_SPI_STATUS ARM_SPI1_GetStatus(void)
 {
-    return ARM_SPI_GetStatus(&SPI1);
+    return ARM_SPI_GetStatus(&SPI1_RES);
 }
 
 #ifdef RTE_Drivers_SPI_MultiSlave
     #if SPI_DRIVER == 1
     static int32_t ARM_SPI1_Control_SlaveSelect(uint32_t device, uint32_t ss_state)
     {
-        return ARM_SPI_Control_SlaveSelect(&SPI1, device, ss_state);
+        return ARM_SPI_Control_SlaveSelect(&SPI1_RES, device, ss_state);
     }
     #endif
 #endif
@@ -874,7 +874,7 @@ ARM_DRIVER_SPI Driver_SPI1 = {
 
 /* SPI2 driver instance */
 #if RTE_SPI2
-SPI_RESOURCES SPI2 = {
+SPI_RESOURCES SPI2_RES = {
     .reg_base               = (SPI_RegInfo*) SPI2_BASE,
     .cb_event               = NULL,
     .irq_priority           = RTE_SPI2_IRQ_PRIORITY,
@@ -889,59 +889,59 @@ SPI_RESOURCES SPI2 = {
 extern void SPI2_IRQHandler(void);
 void SPI2_IRQHandler(void)
 {
-    SPI_IRQHandler(&SPI2);
+    SPI_IRQHandler(&SPI2_RES);
 }
 
 static int32_t ARM_SPI2_Initialize(ARM_SPI_SignalEvent_t cb_event)
 {
-    return ARM_SPI_Initialize(&SPI2, cb_event);
+    return ARM_SPI_Initialize(&SPI2_RES, cb_event);
 }
 
 static int32_t ARM_SPI2_Uninitialize(void)
 {
-    return ARM_SPI_Uninitialize(&SPI2);
+    return ARM_SPI_Uninitialize(&SPI2_RES);
 }
 
 static int32_t ARM_SPI2_PowerControl(ARM_POWER_STATE state)
 {
-    return ARM_SPI_PowerControl(&SPI2, state);
+    return ARM_SPI_PowerControl(&SPI2_RES, state);
 }
 
 static int32_t ARM_SPI2_Send(const void *data, uint32_t num)
 {
-    return ARM_SPI_Send(&SPI2, data, num);
+    return ARM_SPI_Send(&SPI2_RES, data, num);
 }
 
 static int32_t ARM_SPI2_Receive(void *data, uint32_t num)
 {
-    return ARM_SPI_Receive(&SPI2, data, num);
+    return ARM_SPI_Receive(&SPI2_RES, data, num);
 }
 
 static int32_t ARM_SPI2_Transfer(const void *data_out, void *data_in, uint32_t num)
 {
-    return ARM_SPI_Transfer(&SPI2, data_out, data_in, num);
+    return ARM_SPI_Transfer(&SPI2_RES, data_out, data_in, num);
 }
 
 static uint32_t ARM_SPI2_GetDataCount(void)
 {
-    return ARM_SPI_GetDataCount(&SPI2);
+    return ARM_SPI_GetDataCount(&SPI2_RES);
 }
 
 static int32_t ARM_SPI2_Control(uint32_t control, uint32_t arg)
 {
-    return ARM_SPI_Control(&SPI2, control, arg);
+    return ARM_SPI_Control(&SPI2_RES, control, arg);
 }
 
 static ARM_SPI_STATUS ARM_SPI2_GetStatus(void)
 {
-    return ARM_SPI_GetStatus(&SPI2);
+    return ARM_SPI_GetStatus(&SPI2_RES);
 }
 
 #ifdef RTE_Drivers_SPI_MultiSlave
     #if SPI_DRIVER == 2
     int32_t ARM_SPI2_Control_SlaveSelect(uint32_t device, uint32_t ss_state)
     {
-        return ARM_SPI_Control_SlaveSelect(&SPI2, device, ss_state);
+        return ARM_SPI_Control_SlaveSelect(&SPI2_RES, device, ss_state);
     }
     #endif
 #endif
@@ -964,7 +964,7 @@ ARM_DRIVER_SPI Driver_SPI2 = {
 
 /* SPI3 driver instance */
 #if RTE_SPI3
-SPI_RESOURCES SPI3 = {
+SPI_RESOURCES SPI3_RES = {
     .reg_base               = (SPI_RegInfo*) SPI3_BASE,
     .cb_event               = NULL,
     .irq_priority           = RTE_SPI3_IRQ_PRIORITY,
@@ -979,59 +979,59 @@ SPI_RESOURCES SPI3 = {
 extern void SPI3_IRQHandler(void);
 void SPI3_IRQHandler(void)
 {
-    SPI_IRQHandler(&SPI3);
+    SPI_IRQHandler(&SPI3_RES);
 }
 
 static int32_t ARM_SPI3_Initialize(ARM_SPI_SignalEvent_t cb_event)
 {
-    return ARM_SPI_Initialize(&SPI3, cb_event);
+    return ARM_SPI_Initialize(&SPI3_RES, cb_event);
 }
 
 static int32_t ARM_SPI3_Uninitialize(void)
 {
-    return ARM_SPI_Uninitialize(&SPI3);
+    return ARM_SPI_Uninitialize(&SPI3_RES);
 }
 
 static int32_t ARM_SPI3_PowerControl(ARM_POWER_STATE state)
 {
-    return ARM_SPI_PowerControl(&SPI3, state);
+    return ARM_SPI_PowerControl(&SPI3_RES, state);
 }
 
 static int32_t ARM_SPI3_Send(const void *data, uint32_t num)
 {
-    return ARM_SPI_Send(&SPI3, data, num);
+    return ARM_SPI_Send(&SPI3_RES, data, num);
 }
 
 static int32_t ARM_SPI3_Receive(void *data, uint32_t num)
 {
-    return ARM_SPI_Receive(&SPI3, data, num);
+    return ARM_SPI_Receive(&SPI3_RES, data, num);
 }
 
 static int32_t ARM_SPI3_Transfer(const void *data_out, void *data_in, uint32_t num)
 {
-    return ARM_SPI_Transfer(&SPI3, data_out, data_in, num);
+    return ARM_SPI_Transfer(&SPI3_RES, data_out, data_in, num);
 }
 
 static uint32_t ARM_SPI3_GetDataCount(void)
 {
-    return ARM_SPI_GetDataCount(&SPI3);
+    return ARM_SPI_GetDataCount(&SPI3_RES);
 }
 
 static int32_t ARM_SPI3_Control(uint32_t control, uint32_t arg)
 {
-    return ARM_SPI_Control(&SPI3, control, arg);
+    return ARM_SPI_Control(&SPI3_RES, control, arg);
 }
 
 static ARM_SPI_STATUS ARM_SPI3_GetStatus(void)
 {
-    return ARM_SPI_GetStatus(&SPI3);
+    return ARM_SPI_GetStatus(&SPI3_RES);
 }
 
 #ifdef RTE_Drivers_SPI_MultiSlave
     #if SPI_DRIVER == 3
     static int32_t ARM_SPI3_Control_SlaveSelect(uint32_t device, uint32_t ss_state)
     {
-        return ARM_SPI_Control_SlaveSelect(&SPI3, device, ss_state);
+        return ARM_SPI_Control_SlaveSelect(&SPI3_RES, device, ss_state);
     }
     #endif
 #endif

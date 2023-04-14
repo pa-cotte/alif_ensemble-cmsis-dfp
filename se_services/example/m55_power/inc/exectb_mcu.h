@@ -664,7 +664,7 @@ typedef struct
   __IO  uint32_t BER;                         /*!< Offset 0x008 (RW) PMC Byte enable register           */
   __IO  uint32_t PCR;                         /*!< Offset 0x00C (RW) PMC Program control register       */
   __O   uint32_t RPR;                         /*!< Offset 0x010 (RO) PMC Read pipeline register         */
-  __IO  uint32_t HIGHADDR;                    /*!< Offset 0x014 (RW) PMC Max addres register            */
+  __IO  uint32_t HIGHADDR;                    /*!< Offset 0x014 (RW) PMC Max address register            */
   __IO  uint32_t CADDR;                       /*!< Offset 0x018 (RW) PMC Column address register        */
   __IO  uint32_t RADDR;                       /*!< Offset 0x01C (RW) PMC Row address register           */
   __IO  uint32_t AIR;                         /*!< Offset 0x020 (RW) PMC Auxiliary input register       */
@@ -953,6 +953,3 @@ typedef struct {
 #define MEM_RW(base,offset) *((volatile unsigned int *)base + (offset >> 2))
 #endif
 #endif
-
-
-

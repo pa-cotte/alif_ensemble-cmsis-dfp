@@ -36,7 +36,7 @@ static uint32_t getSpiCoreClock(void)
  */
 int32_t SPI_ll_CoreClock(SPI_RESOURCES *SPI, bool option)
 {
-    uint32_t *ptr = (uint32_t*) CFGMST0_SSI;
+    volatile uint32_t *ptr = (volatile uint32_t*) (CLKCTL_PER_SLV_BASE + CLKCTL_PER_SLV_SSI_CTRL_OFFSET);
 
     switch (SPI->drv_instance)
     {
@@ -897,3 +897,4 @@ int32_t SPI_ll_Transfer(SPI_RESOURCES *SPI, const void *data_out, void *data_in,
 
     return ARM_DRIVER_OK;
 }
+

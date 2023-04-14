@@ -1,5 +1,5 @@
 ===================================================================
- Overview : Readme for BareMetal LED BLINK test application 
+ Overview : Readme for BareMetal LED BLINK test application
 ===================================================================
 
 =======================
@@ -11,10 +11,10 @@ About LED Blink TestApp
  - The Leds ds1 and ds2 will turn off and on alternately.
   (means for first cycle ds1=ON and ds2=OFF. next cycle ds1=OFF and ds2=On or vice-versa. this cycle will repeate infinate times).
 
- - The output of this program must be converted to bin format to store the same on MRAM. Use fromelf utility for the same. 
-	$ fromelf --bin --output=BareMetal_LED_Blinky_MRAM.bin BareMetal_LED_Blinky_MRAM.axf 
- - The generated bin file shall be programmed at MRAM addres 0x80001000. Use Alif utility to load.  
- 
+ - The output of this program must be converted to bin format to store the same on MRAM. Use fromelf utility for the same.
+	$ fromelf --bin --output=BareMetal_LED_Blinky_MRAM.bin BareMetal_LED_Blinky_MRAM.axf
+ - The generated bin file shall be programmed at MRAM address 0x80001000. Use Alif utility to load.
+
 
 =====================
  Toolchain supported
@@ -31,10 +31,10 @@ About LED Blink TestApp
  Board Pin Connections
 =======================
 
-CSP board gpio connection to Carrier card as follows:
+COB board gpio connection to Carrier card as follows:
 ---------------------------------------
-    CSP board                     Carrier Card
-    Port 1 pin 14           ----> ds1 LED
-    Port 1 pin 15           ----> ds2 LED
+    COB board            Carrier Card
+    GPIO3_PIN7           ----> ds1 LED
+    GPIO7_PIN2           ----> ds2 LED
 ---------------------------------------
 If both CSP and Carrier card connected, Internally above mentioned pins of the CSP borad is routed to leds of carrier card.

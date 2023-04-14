@@ -63,7 +63,7 @@ typedef enum {
   SVCall_IRQn               =  -5,              /*!< -5 System Service Call via SVC instruction                                */
   DebugMonitor_IRQn         =  -4,              /*!< -4 Debug Monitor                                                          */
   PendSV_IRQn               =  -2,              /*!< -2 Pendable request for system service                                    */
-  SysTick_IRQn 		    =  -1,
+  SysTick_IRQn		    =  -1,
 /* ======================================  AE722F80F55D5AE Specific Interrupt Numbers  ======================================= */
   DMA2_IRQ0_IRQn            =   0,              /*!< 0  Interrupt request 0. One per DMA request interface (32 in
                                                      total).                                                                   */
@@ -609,11 +609,13 @@ typedef enum {
 #define __DCACHE_PRESENT          1U        /* Data Cache present */
 
 #include "core_cm55.h"                      /* Processor and core peripherals */
-#include "system_M55.h"                  /* System Header */
+#include "system_M55.h"                     /* System Header */
 #include "M55_HE_map.h"                     /* Memory Map */
 #include "system_utils.h"                   /* Utility functions */
 #include "clk.h"                            /* clock functions */
 #include "dma_mapping.h"                    /* DMA mapping */
+#include "mpu_M55.h"                        /* MPU functions */
+#include "peripheral_types.h"               /* peripheral types*/
 
 /* --------  End of section using anonymous unions and disabling warnings  -------- */
 #if   defined (__CC_ARM)

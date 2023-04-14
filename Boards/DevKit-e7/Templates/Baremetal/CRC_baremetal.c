@@ -46,8 +46,8 @@
 #define DISABLE  0
 
 /* Select the CRC algorithm */
-#define CRC_8_BIT           1
-#define CRC_16_BIT          0
+#define CRC_8_BIT           0
+#define CRC_16_BIT          1
 #define CRC_32_BIT          0
 #define CRC_CUSTOM_32_BIT   0
 
@@ -63,7 +63,7 @@ void crc_demo();
 
 #if INPUT_HEX_VALUE
 
-uint8_t input_value[] = {0x67, 0x3F, 0x90, 0xC9, 0x25, 0xF0, 0x4A, 0xB1,0x12 };
+uint8_t input_value[] = {0x67, 0x3F, 0x90, 0xC9, 0x25, 0xF0, 0x4A, 0xB1, 0x12};
 
 #endif
 

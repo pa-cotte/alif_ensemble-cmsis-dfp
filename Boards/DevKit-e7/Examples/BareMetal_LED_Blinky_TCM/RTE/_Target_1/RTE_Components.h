@@ -19,7 +19,7 @@
 /* AlifSemiconductor::Device:SOC Peripherals:GPIO:1.0.0 */
 #define RTE_Drivers_GPIO   1           /* Driver GPIO */
 /* AlifSemiconductor::Device:SOC Peripherals:PINCONF:1.0.0 */
-#define RTE_Drivers_PINCONF   1           /* Driver PinPAD and PinMux */
+#define RTE_Drivers_LL_PINCONF   1           /* Driver PinPAD and PinMux */
 
 
 #endif /* RTE_COMPONENTS_H */

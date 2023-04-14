@@ -1,12 +1,26 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
  * You should have received a copy of the Alif Semiconductor Software
  * License Agreement with this file. If not, please write to:
  * contact@alifsemi.com, or visit: https://alifsemi.com/license
- *
  */
+
+/**************************************************************************//**
+ * @file     Driver_I3C.c
+ * Author    Silesh C V,
+ *           Tanay Rami,
+ *           Prabhakar kumar
+ * @email    <silesh@alifsemi.com>,
+ *           <tanay@alifsemi.com>,
+ *           <prabhakar.kumar@alifsemi.com>
+ * @version  V1.0.0
+ * @date     07-March-2023
+ * @brief    CMSIS-Driver for I3C
+ * @bug      None.
+ * @Note     None.
+ ******************************************************************************/
 
 /* System Includes */
 #include <string.h>
@@ -27,7 +41,6 @@
 
 #define ARM_I3C_DRV_VERSION ARM_DRIVER_VERSION_MAJOR_MINOR(1,0) /* driver version */
 
-
 /* I3C0 Driver Instance */
 #if (RTE_I3C0)
 
@@ -37,9 +50,9 @@ static struct i3c_ctrl i3c0_ctrl;
 /* I3C0 Device Resources */
 static struct i3c_dev i3c0 =
 {
-  .baseaddr     = (volatile uint32_t) I3C0_BASE,
+  .baseaddr     = (volatile uint32_t) I3C_BASE,
   .core_clk     = I3C0_CLK_RATE,
-  .irq          = (IRQn_Type) I3C0_IRQ,
+  .irq          = (IRQn_Type) I3C_IRQ_IRQn,
   .irq_priority = RTE_I3C0_IRQ_PRI,
   .ctrl         = &i3c0_ctrl,
 };
@@ -133,16 +146,16 @@ static int i3c_master_get_free_pos(struct i3c_dev *dev)
 }
 
 /**
-  \fn           void i3c_master_wr_tx_fifo(struct i3c_dev *dev, const uint8_t *bytes, int nbytes)
+  \fn           void i3c_wr_tx_fifo(struct i3c_dev *dev, const uint8_t *bytes, int nbytes)
   \brief        Write data to i3c TX FIFO
   \param[in]    dev     : Pointer to i3c resources structure
   \param[in]    bytes   : Pointer to buffer with data which needs to be write to i3c transmitter
   \param[in]    nbytes  : Number of bytes needs to be write
   \return       none
 */
-static void i3c_master_wr_tx_fifo(struct i3c_dev  *dev,
-                                  const  uint8_t  *bytes,
-                                         uint32_t  nbytes)
+static void i3c_wr_tx_fifo(struct i3c_dev  *dev,
+                           const  uint8_t  *bytes,
+                                  uint32_t  nbytes)
 {
   uint32_t len_in_words = nbytes / 4;
   uint32_t i, tmp;
@@ -174,9 +187,9 @@ static void i3c_master_wr_tx_fifo(struct i3c_dev  *dev,
   \param[in]    nbytes   : Number of bytes needs to be receive
   \return       none
 */
-static void i3c_master_read_rx_fifo(struct i3c_dev  *dev,
-                                           uint8_t  *bytes,
-                                           uint32_t  nbytes)
+static void i3c_read_rx_fifo(struct i3c_dev  *dev,
+                                    uint8_t  *bytes,
+                                    uint32_t  nbytes)
 {
   uint32_t len_in_words = nbytes / 4;
   uint32_t i, tmp;
@@ -209,7 +222,7 @@ static void i3c_enqueue_xfer(struct i3c_dev *dev)
 
   /* write data to tx port (if any) */
   if (dev->xfer.tx_buf)
-    i3c_master_wr_tx_fifo(dev, dev->xfer.tx_buf, dev->xfer.tx_len);
+    i3c_wr_tx_fifo(dev, dev->xfer.tx_buf, dev->xfer.tx_len);
 
   thld_ctrl = i3c_read_reg(dev, QUEUE_THLD_CTRL);
   thld_ctrl &= ~QUEUE_THLD_CTRL_RESP_BUF_MASK;
@@ -217,8 +230,15 @@ static void i3c_enqueue_xfer(struct i3c_dev *dev)
   thld_ctrl |= QUEUE_THLD_CTRL_RESP_BUF(1);
   i3c_write_reg(dev, QUEUE_THLD_CTRL, thld_ctrl);
 
-  i3c_write_reg(dev, COMMAND_QUEUE_PORT, dev->xfer.cmd_hi);
-  i3c_write_reg(dev, COMMAND_QUEUE_PORT, dev->xfer.cmd_lo);
+  if(dev->xfer.cmd_hi)
+  {
+    i3c_write_reg(dev, COMMAND_QUEUE_PORT, dev->xfer.cmd_hi);
+  }
+
+  if(dev->xfer.cmd_lo)
+  {
+    i3c_write_reg(dev, COMMAND_QUEUE_PORT, dev->xfer.cmd_lo);
+  }
 }
 
 /**
@@ -363,7 +383,7 @@ static int32_t i3c_configure_control_reg(bool enable)
 #define I3C_EXPMST0_CTRL_OFFSET      0x24
 
   /* i3c EXPMST0 control configuration settings */
-  __IOM uint32_t *i3c_expmst0_ctrl_reg = (uint32_t *) (CFGMST0_BASE + I3C_EXPMST0_CTRL_OFFSET);
+  __IOM uint32_t *i3c_expmst0_ctrl_reg = (uint32_t *) (CLKCTL_PER_SLV_BASE + I3C_EXPMST0_CTRL_OFFSET);
 
   if(enable)
   {
@@ -374,15 +394,15 @@ static int32_t i3c_configure_control_reg(bool enable)
      * ip_clk_force -> [4] (1: force peripherals function clocks on, bypass clock gating)
      * pclk_force   -> [0] (1: force APB bus clocks on, bypass clock gating)
      */
-    __IOM uint32_t *expmst0_ctrl_reg = (uint32_t *) CFGMST0_BASE;
-    *expmst0_ctrl_reg |= ( (1 << 0) | (1 << 4) );
+    __IOM uint32_t *expmst0_ctrl_reg = (uint32_t *) CLKCTL_PER_SLV_BASE;
+    *expmst0_ctrl_reg |= ( (1 << 30) | (1 << 31) );
 
     /*
      * Enable i3c from EXPMST0 Control Register
      * i3c output enable pol  -> [24] (1: inverted output enable)
      * i3c module enable      -> [0]  (1: module enable)
      */
-    *i3c_expmst0_ctrl_reg |= ( (1 << 0) | (1 << 24) );
+    *i3c_expmst0_ctrl_reg |= ( (1 << 0) );
   }
   else /* disable */
   {
@@ -447,6 +467,83 @@ static int i3c_master_init(struct i3c_dev *dev)
 }
 
 /**
+  \fn           int32_t i3c_slave_init(struct i3c_dev *dev, uint8_t slv_addr)
+  \brief        Initialize i3c slave.
+                 This function will :
+                  - set slave address
+                  - set control to adaptive i2c and i3c
+                  - Enable interrupt for Response Queue Ready and
+                                         Transfer error status
+                                         dynamic address assignment
+                  - set secondary master as slave mode
+                  - Enable i3c controller
+  \param[in]    dev      : Pointer to i3c resources structure
+  \return       \ref execution_status
+*/
+static int32_t i3c_slave_init(struct i3c_dev *dev, uint8_t slv_addr)
+{
+    int32_t val;
+
+    val = i3c_read_reg(dev, DEVICE_ADDR_TABLE_POINTER);
+    dev->datp = val;
+    dev->maxdevs = val >> 16;
+    dev->freepos = GENMASK(dev->maxdevs - 1, 0);
+
+    /* As per mipi_i3c_user Section 5 */
+
+    /* Slave adaptive i2c and i3c control DEVICE_CTRL */
+    i3c_write_reg(dev, DEVICE_CTRL,
+            i3c_read_reg(dev, DEVICE_CTRL) | ADAPTIVE_I2C_I3C);
+
+    /* DEVICE_ADDR to set static addr valid bit */
+    i3c_write_reg(dev, DEVICE_ADDR,
+            i3c_read_reg(dev, DEVICE_ADDR) | STATIC_ADDR_VAILD );
+
+    /*DEVICE_ADDR used to set the slave address*/
+    i3c_write_reg(dev, DEVICE_ADDR,
+            i3c_read_reg(dev, DEVICE_ADDR) | slv_addr );
+
+    /* Response buffer threshold */
+    val = i3c_read_reg(dev, QUEUE_THLD_CTRL);
+    val &= ~QUEUE_THLD_CTRL_RESP_BUF_MASK;
+    i3c_write_reg(dev, QUEUE_THLD_CTRL, val);
+
+    val = i3c_read_reg(dev, DATA_BUFFER_THLD_CTRL);
+    val &= ~DATA_BUFFER_THLD_CTRL_RX_BUF;
+    i3c_write_reg(dev, DATA_BUFFER_THLD_CTRL, val);
+
+    /* Setting up interrupt bit */
+    i3c_write_reg(dev, INTR_STATUS, INTR_ALL);
+    i3c_write_reg(dev, INTR_STATUS_EN, INTR_SLAVE_MASK);
+    i3c_write_reg(dev, INTR_SIGNAL_EN, INTR_SLAVE_MASK);
+
+    /* Slave bus control DEVICE_CTRL_EXTENDED */
+    i3c_write_reg(dev, DEVICE_CTRL_EXTENDED,
+            i3c_read_reg(dev, DEVICE_CTRL_EXTENDED) | DEV_OPERATION_MODE_AS_SLV );
+
+    /* controller to operate either as a master or a slave without
+     * participating in the dynamic mode switching
+     * As per mipi_i3c_user Section 5.1.4
+     */
+    i3c_write_reg(dev, DEVICE_CTRL_EXTENDED,
+            i3c_read_reg(dev, DEVICE_CTRL_EXTENDED) | REQMST_ACK_CTRL_AS_NACK );
+
+    /* reject all MR request */
+    i3c_write_reg(dev, IBI_MR_REQ_REJECT,
+            i3c_read_reg(dev, IBI_MR_REQ_REJECT) | MR_REQ_REJECT );
+
+    /* reject all ibis */
+    i3c_write_reg(dev, IBI_SIR_REQ_REJECT, IBI_REQ_REJECT_ALL);
+    i3c_write_reg(dev, IBI_MR_REQ_REJECT, IBI_REQ_REJECT_ALL);
+
+    /* Enable i3c controller. */
+    i3c_write_reg(dev, DEVICE_CTRL,
+            i3c_read_reg(dev, DEVICE_CTRL) | DEV_CTRL_ENABLE);
+
+    return ARM_DRIVER_OK;
+}
+
+/**
   \fn           void i3c_isr(struct i3c_dev *dev)
   \brief        i3c interrupt service routine
   \param[in]    dev      : Pointer to i3c resources structure
@@ -458,6 +555,15 @@ void i3c_isr(struct i3c_dev *dev)
   uint32_t event = 0;
 
   status = i3c_read_reg(dev, INTR_STATUS);
+
+  /* Checking for dynamic address valid */
+  if(status & DYN_ADDR_ASSGN_STS)
+  {
+      event = ARM_I3C_DYN_ADDR_ASSGN;
+
+      i3c_write_reg(dev, INTR_STATUS,
+              i3c_read_reg(dev, INTR_STATUS) | DYN_ADDR_ASSGN_STS );
+  }
 
   if (!(status & i3c_read_reg(dev, INTR_STATUS_EN)))
   {
@@ -482,21 +588,49 @@ void i3c_isr(struct i3c_dev *dev)
 
   switch (tid)
   {
-    case I3C_TX_TID:
+    case I3C_MST_TX_TID:
+    case I3C_SLV_TX_TID:
     case I3C_CCC_SET_TID:
       if (dev->xfer.error)
         event |= ARM_I3C_EVENT_TRANSFER_ERROR;
       else
-        event |= ARM_I3C_EVENT_TRANSFER_DONE;
+      {
+          if (tid == I3C_MST_TX_TID)
+          {
+             event |= ARM_I3C_EVENT_MST_TX_DONE;
+          }
+          if (tid == I3C_SLV_TX_TID)
+          {
+              event |= ARM_I3C_EVENT_SLV_TX_DONE;
+          }
+          if (tid == I3C_CCC_SET_TID)
+          {
+             event |= ARM_I3C_EVENT_TRANSFER_DONE;
+          }
+      }
       break;
 
-    case I3C_RX_TID:
+    case I3C_MST_RX_TID:
+    case I3C_SLV_RX_TID:
     case I3C_CCC_GET_TID:
       if (dev->xfer.rx_len && !dev->xfer.error)
       {
-        i3c_master_read_rx_fifo(dev, dev->xfer.rx_buf,
+        i3c_read_rx_fifo(dev, dev->xfer.rx_buf,
                 dev->xfer.rx_len);
-        event |= ARM_I3C_EVENT_TRANSFER_DONE;
+
+        if (tid == I3C_MST_RX_TID)
+        {
+           event |= ARM_I3C_EVENT_MST_RX_DONE;
+        }
+        if (tid == I3C_SLV_RX_TID)
+        {
+            event |= ARM_I3C_EVENT_SLV_RX_DONE;
+        }
+        if (tid == I3C_CCC_GET_TID)
+        {
+           event |= ARM_I3C_EVENT_TRANSFER_DONE;
+        }
+
       }
       else if (dev->xfer.error)
       {
@@ -670,6 +804,9 @@ static int I3Cx_MasterReceive(struct i3c_dev *dev,  uint8_t  addr,
   if (!(dev->ctrl->flags & I3C_FLAG_POWER))
     return ARM_DRIVER_ERROR;
 
+  if (!(dev->ctrl->flags & I3C_MST_INIT_DONE))
+      return ARM_DRIVER_ERROR;
+
   index = i3c_master_get_addr_pos(dev, addr);
 
   if (index < 0)
@@ -692,7 +829,7 @@ static int I3Cx_MasterReceive(struct i3c_dev *dev,  uint8_t  addr,
   dev->xfer.tx_len = 0;
   dev->xfer.cmd_lo = COMMAND_PORT_READ_TRANSFER  |
          COMMAND_PORT_SPEED(0)                   |
-         COMMAND_PORT_TID(I3C_RX_TID)            |
+         COMMAND_PORT_TID(I3C_MST_RX_TID)        |
          COMMAND_PORT_DEV_INDEX(index)           |
          COMMAND_PORT_ROC                        |
          COMMAND_PORT_TOC;
@@ -701,6 +838,50 @@ static int I3Cx_MasterReceive(struct i3c_dev *dev,  uint8_t  addr,
   i3c_enqueue_xfer(dev);
 
   return ARM_DRIVER_OK;
+}
+
+/**
+  \fn           int I3Cx_SlaveReceive(struct i3c_dev *dev, uint8_t *data, uint32_t len)
+  \brief        Read data from the master
+  \param[in]    dev      : Pointer to i3c resources structure
+  \param[in]    data     : Pointer to buffer for data to receive from master
+  \param[in]    len      : Number of bytes needs to be receive
+  \return       \ref execution_status
+*/
+static int I3Cx_SlaveReceive(struct i3c_dev *dev, uint8_t *data, uint32_t len)
+{
+  /* Checking for power done initialization */
+  if (!(dev->ctrl->flags & I3C_FLAG_POWER))
+      return ARM_DRIVER_ERROR;
+
+  if (!(dev->ctrl->flags & I3C_SLV_INIT_DONE))
+      return ARM_DRIVER_ERROR;
+
+  /* Parameter check */
+  if (!data || !len)
+      return ARM_DRIVER_ERROR_PARAMETER;
+
+  if (dev->ctrl->status.busy)
+      return ARM_DRIVER_ERROR_BUSY;
+
+  dev->ctrl->status.busy = 1;
+
+  /* Buffer initialization for TX/RX */
+  dev->xfer.rx_buf = data;
+  dev->xfer.rx_len = len;
+  dev->xfer.tx_buf = NULL;
+  dev->xfer.tx_len = 0;
+
+  /* As per mipi_i3c_user Section 7
+   * no command is required for slave receive
+   */
+  dev->xfer.cmd_lo = NULL;
+  dev->xfer.cmd_hi = NULL;
+
+  /* Add commands to i3c Command Queue */
+  i3c_enqueue_xfer(dev);
+
+    return ARM_DRIVER_OK;
 }
 
 /**
@@ -722,6 +903,9 @@ static int I3Cx_MasterTransmit(struct i3c_dev *dev,  uint8_t  addr,
   if (!(dev->ctrl->flags & I3C_FLAG_POWER))
     return ARM_DRIVER_ERROR;
 
+  if (!(dev->ctrl->flags & I3C_MST_INIT_DONE))
+      return ARM_DRIVER_ERROR;
+
   index = i3c_master_get_addr_pos(dev, addr);
 
   if (index < 0)
@@ -736,17 +920,68 @@ static int I3Cx_MasterTransmit(struct i3c_dev *dev,  uint8_t  addr,
   dev->ctrl->status.busy = 1;
 
   dev->xfer.cmd_hi = COMMAND_PORT_ARG_DATA_LEN(len) |
-          COMMAND_PORT_TRANSFER_ARG;
+                     COMMAND_PORT_TRANSFER_ARG;
 
   dev->xfer.rx_buf = NULL;
   dev->xfer.rx_len = 0;
   dev->xfer.tx_buf = data;
   dev->xfer.tx_len = len;
-  dev->xfer.cmd_lo = COMMAND_PORT_SPEED(0)         |
-                     COMMAND_PORT_TID(I3C_TX_TID)  |
-                     COMMAND_PORT_DEV_INDEX(index) |
-                     COMMAND_PORT_ROC              |
+  dev->xfer.cmd_lo = COMMAND_PORT_SPEED(0)             |
+                     COMMAND_PORT_TID(I3C_MST_TX_TID)  |
+                     COMMAND_PORT_DEV_INDEX(index)     |
+                     COMMAND_PORT_ROC                  |
                      COMMAND_PORT_TOC;
+
+  /* Add commands to i3c Command Queue */
+  i3c_enqueue_xfer(dev);
+
+  return ARM_DRIVER_OK;
+}
+
+/**
+  \fn           int I3Cx_SlaveTransmit(struct i3c_dev *dev,
+                                       const  uint8_t *data, uint16_t len)
+  \brief        Write data to the master
+  \param[in]    dev      : Pointer to i3c resources structure
+  \param[in]    data     : Pointer to buffer with data which needs to be transmit to master
+  \param[in]    len      : Number of bytes needs to be transmit
+  \return       \ref execution_status
+*/
+static int I3Cx_SlaveTransmit(struct i3c_dev *dev, const  uint8_t *data, uint16_t len)
+{
+
+  /* Checking for power done initialization */
+  if (!(dev->ctrl->flags & I3C_FLAG_POWER))
+      return ARM_DRIVER_ERROR;
+
+  /* Checking for slave initialization */
+  if (!(dev->ctrl->flags & I3C_SLV_INIT_DONE))
+      return ARM_DRIVER_ERROR;
+
+  /* Parameter check */
+  if (!data || !len)
+      return ARM_DRIVER_ERROR_PARAMETER;
+
+  i3c_write_reg(dev, INTR_STATUS, INTR_ALL);
+
+  if (dev->ctrl->status.busy)
+      return ARM_DRIVER_ERROR_BUSY;
+
+  dev->ctrl->status.busy = 1;
+
+  dev->xfer.cmd_hi = COMMAND_PORT_ARG_DATA_LEN(len) |
+             COMMAND_SLV_PORT_TID(I3C_SLV_TX_TID);
+
+  dev->xfer.tx_buf = data;
+  dev->xfer.tx_len = len;
+  dev->xfer.rx_buf = NULL;
+  dev->xfer.rx_len = 0;
+
+  /* As per mipi_i3c_databook Section 2.7.13
+   * no command required for transmit, only data
+   * length is required
+   */
+  dev->xfer.cmd_lo = NULL;
 
   /* Add commands to i3c Command Queue */
   i3c_enqueue_xfer(dev);
@@ -906,14 +1141,14 @@ static int I3Cx_Detachdev(struct i3c_dev *dev, uint8_t addr)
 }
 
 /**
-  \fn           int32_t I3Cx_MasterControl(struct i3c_dev *dev, uint32_t control, uint32_t arg)
-  \brief        Control i3c master.
+  \fn           int32_t I3Cx_Control(struct i3c_dev *dev, uint32_t control, uint32_t arg)
+  \brief        Control i3c master and slave.
   \param[in]    dev      : Pointer to i3c resources structure
   \param[in]    control  : Operation
   \param[in]    arg      : Argument of operation
   \return       \ref execution_status
 */
-static int32_t I3Cx_MasterControl(struct i3c_dev *dev, uint32_t control, uint32_t arg)
+static int32_t I3Cx_Control(struct i3c_dev *dev, uint32_t control, uint32_t arg)
 {
   int ret;
 
@@ -923,6 +1158,11 @@ static int32_t I3Cx_MasterControl(struct i3c_dev *dev, uint32_t control, uint32_
   switch(control)
   {
   case I3C_MASTER_SET_BUS_MODE:
+      ret = i3c_master_init(dev);
+      if (ret < 0)
+          return ARM_DRIVER_ERROR;
+
+      dev->ctrl->flags |= I3C_MST_INIT_DONE;
     switch(arg)
     {
     case I3C_BUS_MODE_MIXED_FAST_I2C_FMP_SPEED_1_MBPS:
@@ -948,6 +1188,14 @@ static int32_t I3Cx_MasterControl(struct i3c_dev *dev, uint32_t control, uint32_
       return ARM_DRIVER_ERROR_UNSUPPORTED;
     }
     break;
+  case I3C_SET_SLAVE_ADDR:
+        /* Initialize and Enable i3c Slave */
+        ret = i3c_slave_init(dev, arg);
+        if (ret < 0)
+          return ARM_DRIVER_ERROR;
+
+        dev->ctrl->flags |= I3C_SLV_INIT_DONE;
+      break;
 
   default:
     return ARM_DRIVER_ERROR_UNSUPPORTED;
@@ -967,6 +1215,9 @@ static int32_t  I3Cx_Initialize(struct i3c_dev *dev, ARM_I3C_SignalEvent_t cb_ev
 {
   if (dev->ctrl->flags & I3C_FLAG_INIT)
     return ARM_DRIVER_OK;
+
+  if(!cb_event)
+    return ARM_DRIVER_ERROR_PARAMETER;
 
   /* Initialize I3C pads here */
   dev->ctrl->cb_event = cb_event;
@@ -1024,11 +1275,6 @@ static int32_t I3Cx_PowerControl(struct i3c_dev *dev, ARM_POWER_STATE state)
       /* i3c EXPMST0 control configuration: Enable i3c Module. */
       ret = i3c_configure_control_reg(true);
 
-      /* Initialize and Enable i3c master */
-      ret = i3c_master_init(dev);
-      if (ret < 0)
-        return ARM_DRIVER_ERROR;
-
       /* Enable i3c IRQ */
       NVIC_ClearPendingIRQ(dev->irq);
       NVIC_SetPriority(dev->irq, dev->irq_priority);
@@ -1043,7 +1289,6 @@ static int32_t I3Cx_PowerControl(struct i3c_dev *dev, ARM_POWER_STATE state)
 
   return ARM_DRIVER_OK;
 }
-
 
 /* I3C0 Driver Instance */
 #if (RTE_I3C0)
@@ -1074,14 +1319,24 @@ static int32_t I3C0_MasterReceive(uint8_t addr, uint8_t *data, uint16_t len)
   return (I3Cx_MasterReceive(&i3c0, addr, data, len));
 }
 
+static int32_t I3C0_SlaveTransmit(const uint8_t *data, uint16_t len)
+{
+  return (I3Cx_SlaveTransmit(&i3c0, data, len));
+}
+
+static int32_t I3C0_SlaveReceive(uint8_t *data, uint16_t len)
+{
+  return (I3Cx_SlaveReceive(&i3c0, data, len));
+}
+
 static int32_t I3C0_MasterSendCommand(I3C_CMD *ccc)
 {
   return (I3Cx_MasterSendCommand(&i3c0, ccc));
 }
 
-static int32_t I3C0_MasterControl(uint32_t control, uint32_t arg)
+static int32_t I3C0_Control(uint32_t control, uint32_t arg)
 {
-  return (I3Cx_MasterControl(&i3c0, control, arg));
+  return (I3Cx_Control(&i3c0, control, arg));
 }
 
 static int32_t I3C0_MasterAssignDA(uint8_t *dyn_addr, uint8_t sta_addr)
@@ -1099,11 +1354,10 @@ static int32_t I3C0_Detachdev(uint8_t addr)
   return (I3Cx_Detachdev(&i3c0, addr));
 }
 
-void I3C0_IRQHandler(void)
+void I3C_IRQHandler(void)
 {
   i3c_isr(&i3c0);
 }
-
 
 /* I3C0 Driver Control Block */
 extern ARM_DRIVER_I3C Driver_I3C0;
@@ -1116,7 +1370,9 @@ ARM_DRIVER_I3C Driver_I3C0 =
   I3C0_PowerControl,
   I3C0_MasterTransmit,
   I3C0_MasterReceive,
-  I3C0_MasterControl,
+  I3C0_SlaveTransmit,
+  I3C0_SlaveReceive,
+  I3C0_Control,
   I3C0_MasterSendCommand,
   I3C0_MasterAssignDA,
   I3C0_AttachI2Cdev,

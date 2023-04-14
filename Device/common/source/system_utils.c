@@ -17,58 +17,7 @@
  * @bug      None
  * @Note     None
  ******************************************************************************/
-
-#if defined (M55_HP)
-  #include "M55_HP.h"
-#elif defined (M55_HE)
-  #include "M55_HE.h"
-#else
-  #error device not specified!
-#endif
-
-/**
-  \fn          void* LocalToGlobal(void* in_addr)
-  \brief       Return the corresponding global address
-  \param[in]   in_addr  address to convert
-  \return      void* global address
-*/
-void* LocalToGlobal(void *in_addr)
-{
-    /* Only for local TCM address, we need to map it to global address space, rest
-     * for all other memories like SRAM0/1, MRAM, OctalSPI etc we can pass the address
-     * as-is as those are accessed using global address
-     */
-    uint32_t addr = (uint32_t)in_addr;
-
-    if((addr >= DTCM_BASE) && (addr < (DTCM_BASE + DTCM_SIZE)))
-        return (void*)(addr - DTCM_BASE + DTCM_GLOBAL_BASE);
-    else if((addr < (ITCM_BASE+ ITCM_SIZE)))
-        return (void*)(addr - ITCM_BASE + ITCM_GLOBAL_BASE);
-    else
-        return ((void*)addr);
-}
-
-/**
-  \fn          void* GlobalToLocal(void* in_addr)
-  \brief       Return the corresponding local address
-  \param[in]   in_addr  address to convert
-  \return      void* local address
-*/
-void* GlobalToLocal(void *in_addr)
-{
-    /* Only for local TCM address, we need to map it to local address space, rest
-     * for all other memories like SRAM0/1, MRAM, OctalSPI etc we can pass the address
-     * as-is as it is global.
-     */
-    uint32_t addr = (uint32_t)in_addr;
-
-    if((addr >= DTCM_GLOBAL_BASE) && (addr < (DTCM_GLOBAL_BASE + DTCM_SIZE)))
-        return (void*)(addr - DTCM_GLOBAL_BASE + DTCM_BASE);
-    else if((addr >= ITCM_GLOBAL_BASE) && (addr < (ITCM_GLOBAL_BASE+ ITCM_SIZE)))
-        return (void*)(addr - ITCM_GLOBAL_BASE + ITCM_BASE);
-    else
-        return ((void*)addr);
-}
+#include <system_utils.h>
 
 /**
   \fn          void PMU_delay_loop_us(unsigned int delay_us)
@@ -95,4 +44,76 @@ void PMU_delay_loop_us(unsigned int delay_us)
         else
             diff = (((0xFFFFFFFF) - timestamp) + curt_count);
     }
+}
+
+/**
+  \fn          void RTSS_IsCacheClean_Required_by_Addr (volatile void *addr, int32_t size)
+  \brief       Return True if Cache Clean operation is required for the provided
+               address region else return False.
+  \param[in]   addr    address
+  \param[in]   size   size of memory block (in number of bytes)
+  return       True : If CacheOperation Required, else False
+*/
+__attribute__ ((weak))
+bool RTSS_IsCacheClean_Required_by_Addr (volatile void *addr, int32_t size)
+{
+    (void)size;
+    /*
+     * This is a hook, where user can redefine its implementation in application.
+     *
+     * For some scenarios, User don’t need to do anything apart from DSB for
+     * un-cached or shared regions, and don’t need to clean write-through regions.
+     * This particular API is introduced to reduce the overhead in Cache operation
+     * function for the above scenarios mentioned.
+     *
+     * User can define the range of memories for the cache operations can be skipped.
+     * Return True if cache operation is required else return False.
+     *
+     */
+
+    /*
+     * If the provided address is in TCM, then no cache operation is required
+     */
+    if(RTSS_Is_TCM_Addr(addr))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+  \fn          void RTSS_IsCacheInvalidate_Required_by_Addr (volatile void *addr, int32_t size)
+  \brief       Return True if Cache Invalidate operation is required for the provided
+               address region else return False.
+  \param[in]   addr    address
+  \param[in]   size   size of memory block (in number of bytes)
+  return       True : If CacheOperation Required, else False
+*/
+__attribute__ ((weak))
+bool RTSS_IsCacheInvalidate_Required_by_Addr (volatile void *addr, int32_t size)
+{
+    (void)size;
+    /*
+     * This is a hook, where user can redefine its implementation in application.
+     *
+     * For some scenarios, User don’t need to do anything apart from DSB for
+     * un-cached or shared regions, and don’t need to clean write-through regions.
+     * This particular API is introduced to reduce the overhead in Cache operation
+     * function for the above scenarios mentioned.
+     *
+     * User can define the range of memories for the cache operations can be skipped.
+     * Return True if cache operation is required else return False.
+     *
+     */
+
+     /*
+     * If the provided address is in TCM, then no cache operation is required
+     */
+    if(RTSS_Is_TCM_Addr(addr))
+    {
+        return false;
+    }
+
+    return true;
 }

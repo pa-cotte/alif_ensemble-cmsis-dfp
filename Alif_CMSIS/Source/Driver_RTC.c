@@ -671,11 +671,11 @@ static void RTC_IRQHandler (RTC_DRV_INFO *rtc)
 
 /* RTC0 device configuration */
 static RTC_DRV_INFO RTC0 = {
-	.paddr                     = (RTC_TypeDef *) RTC0_BASE,
+	.paddr                     = (RTC_TypeDef *) LPRTC_BASE,
 	.cb_event                  = NULL,
 	.flags                     = 0,
 	.prescaler_value           = RTE_RTC0_DEFAULT_PRESCALER_VALUE,
-	.irq_num                   = (IRQn_Type) RTC0_IRQ,
+	.irq_num                   = (IRQn_Type) LPRTC_IRQ_IRQn,
 	.irq_priority              = RTE_RTC0_IRQ_PRI,
 };
 
@@ -716,8 +716,9 @@ static int32_t RTC0_LoadCounter (uint32_t loadval)
     return (RTC_LoadCounter (loadval, &RTC0));
 }
 
-/* Function Name: RTC0_IRQHandler */
-void RTC0_IRQHandler (void)
+/* Function Name: LPRTC_IRQHandler */
+extern void LPRTC_IRQHandler (void);
+void LPRTC_IRQHandler (void)
 {
     RTC_IRQHandler (&RTC0);
 }

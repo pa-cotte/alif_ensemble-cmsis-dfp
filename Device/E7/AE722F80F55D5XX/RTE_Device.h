@@ -13,17 +13,6 @@
 #ifndef __RTE_DEVICE_H
 #define __RTE_DEVICE_H
 
-// <e> SILICON_REV_A  (Silicon Revison)
-// <i> Select if the Chip Silicon Rev is Ax
-#define RTE_SILICON_REV_A	1
-#if RTE_SILICON_REV_A
-#define RTE_SILICON_REV_A0      0
-#define RTE_SILICON_REV_A1      1
-#define RTE_SILICON_REV_B0	0
-#else
-#define RTE_SILICON_REV_B0	1
-#endif
-// </e> SILICON_REV_A  (Silicon Revison)
 
 // <e> RTSS_M55_HP (Core Selection)
 // <i> Select if the Configured core is M55_HP
@@ -2866,7 +2855,6 @@
 // <i> Configuration settings for UTIMER channel 5 in component ::Drivers:UTIMER
 #define RTE_UTIMER_CHANNEL5   1
 
-
 // <o> CHANNEL5 FIXED BUFFER
 //    <0=> DISABLED
 //    <1=> ENABLED
@@ -5331,14 +5319,77 @@
 #define RTE_DMA2_ABORT_IRQ_PRI 0
 #endif
 // </e> DMA2 (Direct Memory Access Controller) [Driver_DMA2]
-#endif //todo 
+#endif
 
 // <h> GPIO (general purpose input and output)
+// <e> GPIO0
+// <i> Configuration settings for Driver_GPIO0 in component ::Drivers:GPIO
+#define RTE_GPIO0   1
+
+#if RTE_GPIO0
+
+// <o> GPIO0 Debounce Clock Divisor <0-1023>
+// <i> Defines debounce clock divisor for GPIO0.
+// <i> Default: 0
+#define RTE_GPIO0_DB_CLK_DIV            1
+
+// <o> GPIO0_PIN0 IRQ Priority
+// <i> Defines Interrupt priority for GPIO0_PIN0.
+// <i> Default: 0
+#define RTE_GPIO0_PIN0_IRQ_PRIORITY     0
+
+// <o> GPIO0_PIN0 IRQ Priority
+// <i> Defines Interrupt priority for GPIO0_PIN0.
+// <i> Default: 0
+#define RTE_GPIO0_PIN0_IRQ_PRIORITY     0
+
+// <o> GPIO0_PIN1 IRQ Priority
+// <i> Defines Interrupt priority for GPIO0_PIN1.
+// <i> Default: 0
+#define RTE_GPIO0_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO0_PIN2 IRQ Priority
+// <i> Defines Interrupt priority for GPIO0_PIN2.
+// <i> Default: 0
+#define RTE_GPIO0_PIN2_IRQ_PRIORITY     0
+
+// <o> GPIO0_PIN3 IRQ Priority
+// <i> Defines Interrupt priority for GPIO0_PIN3.
+// <i> Default: 0
+#define RTE_GPIO0_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO0_PIN4 IRQ Priority
+// <i> Defines Interrupt priority for GPIO0_PIN4.
+// <i> Default: 0
+#define RTE_GPIO0_PIN4_IRQ_PRIORITY     0
+
+// <o> GPIO0_PIN5 IRQ Priority
+// <i> Defines Interrupt priority for GPIO0_PIN5.
+// <i> Default: 0
+#define RTE_GPIO0_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO0_PIN6 IRQ Priority
+// <i> Defines Interrupt priority for GPIO0_PIN6.
+// <i> Default: 0
+#define RTE_GPIO0_PIN6_IRQ_PRIORITY     0
+
+// <o> GPIO0_PIN7 IRQ Priority
+// <i> Defines Interrupt priority for GPIO0_PIN7.
+// <i> Default: 0
+#define RTE_GPIO0_PIN7_IRQ_PRIORITY     0
+#endif
+// </e> GPIO0
+
 // <e> GPIO1
 // <i> Configuration settings for Driver_GPIO1 in component ::Drivers:GPIO
 #define RTE_GPIO1   1
 
 #if RTE_GPIO1
+
+// <o> GPIO1 Debounce Clock Divisor <0-1023>
+// <i> Defines debounce clock divisor for GPIO1.
+// <i> Default: 0
+#define RTE_GPIO1_DB_CLK_DIV            1
 
 // <o> GPIO1_PIN0 IRQ Priority
 // <i> Defines Interrupt priority for GPIO1_PIN0.
@@ -5379,126 +5430,6 @@
 // <i> Defines Interrupt priority for GPIO1_PIN7.
 // <i> Default: 0
 #define RTE_GPIO1_PIN7_IRQ_PRIORITY     0
-
-// <o> GPIO1_PIN8 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN8.
-// <i> Default: 0
-#define RTE_GPIO1_PIN8_IRQ_PRIORITY     0
-
-// <o> GPIO1_PIN9 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN9.
-// <i> Default: 0
-#define RTE_GPIO1_PIN9_IRQ_PRIORITY     0
-
-// <o> GPIO1_PIN10 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN10.
-// <i> Default: 0
-#define RTE_GPIO1_PIN10_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN11 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN11.
-// <i> Default: 0
-#define RTE_GPIO1_PIN11_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN12 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN12.
-// <i> Default: 0
-#define RTE_GPIO1_PIN12_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN13 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN13.
-// <i> Default: 0
-#define RTE_GPIO1_PIN13_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN14 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN14.
-// <i> Default: 0
-#define RTE_GPIO1_PIN14_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN15 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN15.
-// <i> Default: 0
-#define RTE_GPIO1_PIN15_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN16 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN16.
-// <i> Default: 0
-#define RTE_GPIO1_PIN16_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN17 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN17.
-// <i> Default: 0
-#define RTE_GPIO1_PIN17_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN18 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN18.
-// <i> Default: 0
-#define RTE_GPIO1_PIN18_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN19 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN19.
-// <i> Default: 0
-#define RTE_GPIO1_PIN19_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN20 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN20.
-// <i> Default: 0
-#define RTE_GPIO1_PIN20_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN21 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN21.
-// <i> Default: 0
-#define RTE_GPIO1_PIN21_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN22 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN22.
-// <i> Default: 0
-#define RTE_GPIO1_PIN22_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN23 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN23.
-// <i> Default: 0
-#define RTE_GPIO1_PIN23_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN24 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN24.
-// <i> Default: 0
-#define RTE_GPIO1_PIN24_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN25 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN25.
-// <i> Default: 0
-#define RTE_GPIO1_PIN25_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN26 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN26.
-// <i> Default: 0
-#define RTE_GPIO1_PIN26_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN27 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN27.
-// <i> Default: 0
-#define RTE_GPIO1_PIN27_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN28 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN28.
-// <i> Default: 0
-#define RTE_GPIO1_PIN28_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN29 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN29.
-// <i> Default: 0
-#define RTE_GPIO1_PIN29_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN30 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN30.
-// <i> Default: 0
-#define RTE_GPIO1_PIN30_IRQ_PRIORITY    0
-
-// <o> GPIO1_PIN31 IRQ Priority
-// <i> Defines Interrupt priority for GPIO1_PIN31.
-// <i> Default: 0
-#define RTE_GPIO1_PIN31_IRQ_PRIORITY    0
 #endif
 // </e> GPIO1
 
@@ -5507,6 +5438,11 @@
 #define RTE_GPIO2   1
 
 #if RTE_GPIO2
+
+// <o> GPIO2 Debounce Clock Divisor <0-1023>
+// <i> Defines debounce clock divisor for GPIO2.
+// <i> Default: 0
+#define RTE_GPIO2_DB_CLK_DIV            1
 
 // <o> GPIO2_PIN0 IRQ Priority
 // <i> Defines Interrupt priority for GPIO2_PIN0.
@@ -5547,126 +5483,6 @@
 // <i> Defines Interrupt priority for GPIO2_PIN7.
 // <i> Default: 0
 #define RTE_GPIO2_PIN7_IRQ_PRIORITY     0
-
-// <o> GPIO2_PIN8 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN8.
-// <i> Default: 0
-#define RTE_GPIO2_PIN8_IRQ_PRIORITY     0
-
-// <o> GPIO2_PIN9 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN9.
-// <i> Default: 0
-#define RTE_GPIO2_PIN9_IRQ_PRIORITY     0
-
-// <o> GPIO2_PIN10 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN10.
-// <i> Default: 0
-#define RTE_GPIO2_PIN10_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN11 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN11.
-// <i> Default: 0
-#define RTE_GPIO2_PIN11_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN12 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN12.
-// <i> Default: 0
-#define RTE_GPIO2_PIN12_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN13 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN13.
-// <i> Default: 0
-#define RTE_GPIO2_PIN13_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN14 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN14.
-// <i> Default: 0
-#define RTE_GPIO2_PIN14_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN15 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN15.
-// <i> Default: 0
-#define RTE_GPIO2_PIN15_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN16 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN16.
-// <i> Default: 0
-#define RTE_GPIO2_PIN16_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN17 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN17.
-// <i> Default: 0
-#define RTE_GPIO2_PIN17_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN18 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN18.
-// <i> Default: 0
-#define RTE_GPIO2_PIN18_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN19 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN19.
-// <i> Default: 0
-#define RTE_GPIO2_PIN19_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN20 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN20.
-// <i> Default: 0
-#define RTE_GPIO2_PIN20_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN21 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN21.
-// <i> Default: 0
-#define RTE_GPIO2_PIN21_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN22 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN22.
-// <i> Default: 0
-#define RTE_GPIO2_PIN22_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN23 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN23.
-// <i> Default: 0
-#define RTE_GPIO2_PIN23_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN24 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN24.
-// <i> Default: 0
-#define RTE_GPIO2_PIN24_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN25 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN25.
-// <i> Default: 0
-#define RTE_GPIO2_PIN25_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN26 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN26.
-// <i> Default: 0
-#define RTE_GPIO2_PIN26_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN27 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN27.
-// <i> Default: 0
-#define RTE_GPIO2_PIN27_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN28 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN28.
-// <i> Default: 0
-#define RTE_GPIO2_PIN28_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN29 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN29.
-// <i> Default: 0
-#define RTE_GPIO2_PIN29_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN30 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN30.
-// <i> Default: 0
-#define RTE_GPIO2_PIN30_IRQ_PRIORITY    0
-
-// <o> GPIO2_PIN31 IRQ Priority
-// <i> Defines Interrupt priority for GPIO2_PIN31.
-// <i> Default: 0
-#define RTE_GPIO2_PIN31_IRQ_PRIORITY    0
 #endif
 // </e> GPIO2
 
@@ -5675,6 +5491,11 @@
 #define RTE_GPIO3   1
 
 #if RTE_GPIO3
+
+// <o> GPIO3 Debounce Clock Divisor <0-1023>
+// <i> Defines debounce clock divisor for GPIO3.
+// <i> Default: 0
+#define RTE_GPIO3_DB_CLK_DIV            1
 
 // <o> GPIO3_PIN0 IRQ Priority
 // <i> Defines Interrupt priority for GPIO3_PIN0.
@@ -5715,86 +5536,6 @@
 // <i> Defines Interrupt priority for GPIO3_PIN7.
 // <i> Default: 0
 #define RTE_GPIO3_PIN7_IRQ_PRIORITY     0
-
-// <o> GPIO3_PIN8 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN8.
-// <i> Default: 0
-#define RTE_GPIO3_PIN8_IRQ_PRIORITY     0
-
-// <o> GPIO3_PIN9 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN9.
-// <i> Default: 0
-#define RTE_GPIO3_PIN9_IRQ_PRIORITY     0
-
-// <o> GPIO3_PIN10 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN10.
-// <i> Default: 0
-#define RTE_GPIO3_PIN10_IRQ_PRIORITY    0
-
-// <o> GPIO3_PIN11 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN11.
-// <i> Default: 0
-#define RTE_GPIO3_PIN11_IRQ_PRIORITY    0
-
-// <o> GPIO3_PIN12 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN12.
-// <i> Default: 0
-#define RTE_GPIO3_PIN12_IRQ_PRIORITY    0
-
-// <o> GPIO3_PIN13 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN13.
-// <i> Default: 0
-#define RTE_GPIO3_PIN13_IRQ_PRIORITY    0
-
-// <o> GPIO3_PIN14 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN14.
-// <i> Default: 0
-#define RTE_GPIO3_PIN14_IRQ_PRIORITY    0
-
-// <o> GPIO3_PIN15 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN15.
-// <i> Default: 0
-#define RTE_GPIO3_PIN15_IRQ_PRIORITY    0
-
-// <o> GPIO3_PIN16 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN16.
-// <i> Default: 0
-#define RTE_GPIO3_PIN16_IRQ_PRIORITY    0
-
-// <o> GPIO3_PIN17 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN17.
-// <i> Default: 0
-#define RTE_GPIO3_PIN17_IRQ_PRIORITY    0
-
-// <o> GPIO3_PIN18 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN18.
-// <i> Default: 0
-#define RTE_GPIO3_PIN18_IRQ_PRIORITY    0
-
-// <o> GPIO3_PIN19 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN19.
-// <i> Default: 0
-#define RTE_GPIO3_PIN19_IRQ_PRIORITY    0
-
-// <o> GPIO3_PIN20 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN20.
-// <i> Default: 0
-#define RTE_GPIO3_PIN20_IRQ_PRIORITY    0
-
-// <o> GPIO3_PIN21 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN21.
-// <i> Default: 0
-#define RTE_GPIO3_PIN21_IRQ_PRIORITY    0
-
-// <o> GPIO3_PIN22 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN22.
-// <i> Default: 0
-#define RTE_GPIO3_PIN22_IRQ_PRIORITY    0
-
-// <o> GPIO3_PIN23 IRQ Priority
-// <i> Defines Interrupt priority for GPIO3_PIN23.
-// <i> Default: 0
-#define RTE_GPIO3_PIN23_IRQ_PRIORITY    0
 #endif
 // </e> GPIO3
 
@@ -5803,6 +5544,11 @@
 #define RTE_GPIO4   1
 
 #if RTE_GPIO4
+
+// <o> GPIO4 Debounce Clock Divisor <0-1023>
+// <i> Defines debounce clock divisor for GPIO4.
+// <i> Default: 0
+#define RTE_GPIO4_DB_CLK_DIV            1
 
 // <o> GPIO4_PIN0 IRQ Priority
 // <i> Defines Interrupt priority for GPIO4_PIN0.
@@ -5843,9 +5589,601 @@
 // <i> Defines Interrupt priority for GPIO4_PIN7.
 // <i> Default: 0
 #define RTE_GPIO4_PIN7_IRQ_PRIORITY     0
-#endif /* RTE_GPIO4 */
+#endif
 // </e> GPIO4
 
+// <e> GPIO5
+// <i> Configuration settings for Driver_GPIO5 in component ::Drivers:GPIO
+#define RTE_GPIO5   1
+
+#if RTE_GPIO5
+
+// <o> GPIO5 Debounce Clock Divisor <0-1023>
+// <i> Defines debounce clock divisor for GPIO5.
+// <i> Default: 0
+#define RTE_GPIO5_DB_CLK_DIV            1
+
+// <o> GPIO5_PIN0 IRQ Priority
+// <i> Defines Interrupt priority for GPIO5_PIN0.
+// <i> Default: 0
+#define RTE_GPIO5_PIN0_IRQ_PRIORITY     0
+
+// <o> GPIO5_PIN1 IRQ Priority
+// <i> Defines Interrupt priority for GPIO5_PIN1.
+// <i> Default: 0
+#define RTE_GPIO5_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO5_PIN2 IRQ Priority
+// <i> Defines Interrupt priority for GPIO5_PIN2.
+// <i> Default: 0
+#define RTE_GPIO5_PIN2_IRQ_PRIORITY     0
+
+// <o> GPIO5_PIN3 IRQ Priority
+// <i> Defines Interrupt priority for GPIO5_PIN3.
+// <i> Default: 0
+#define RTE_GPIO5_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO5_PIN4 IRQ Priority
+// <i> Defines Interrupt priority for GPIO5_PIN4.
+// <i> Default: 0
+#define RTE_GPIO5_PIN4_IRQ_PRIORITY     0
+
+// <o> GPIO5_PIN5 IRQ Priority
+// <i> Defines Interrupt priority for GPIO5_PIN5.
+// <i> Default: 0
+#define RTE_GPIO5_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO5_PIN6 IRQ Priority
+// <i> Defines Interrupt priority for GPIO5_PIN6.
+// <i> Default: 0
+#define RTE_GPIO5_PIN6_IRQ_PRIORITY     0
+
+// <o> GPIO5_PIN7 IRQ Priority
+// <i> Defines Interrupt priority for GPIO5_PIN7.
+// <i> Default: 0
+#define RTE_GPIO5_PIN7_IRQ_PRIORITY     0
+#endif /* RTE_GPIO5 */
+// </e> GPIO5
+
+// <e> GPIO6
+// <i> Configuration settings for Driver_GPIO6 in component ::Drivers:GPIO
+#define RTE_GPIO6   1
+
+#if RTE_GPIO6
+
+// <o> GPIO6 Debounce Clock Divisor <0-1023>
+// <i> Defines debounce clock divisor for GPIO6.
+// <i> Default: 0
+#define RTE_GPIO6_DB_CLK_DIV            1
+
+// <o> GPIO6_PIN0 IRQ Priority
+// <i> Defines Interrupt priority for GPIO6_PIN0.
+// <i> Default: 0
+#define RTE_GPIO6_PIN0_IRQ_PRIORITY     0
+
+// <o> GPIO6_PIN1 IRQ Priority
+// <i> Defines Interrupt priority for GPIO6_PIN1.
+// <i> Default: 0
+#define RTE_GPIO6_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO6_PIN2 IRQ Priority
+// <i> Defines Interrupt priority for GPIO6_PIN2.
+// <i> Default: 0
+#define RTE_GPIO6_PIN2_IRQ_PRIORITY     0
+
+// <o> GPIO6_PIN3 IRQ Priority
+// <i> Defines Interrupt priority for GPIO6_PIN3.
+// <i> Default: 0
+#define RTE_GPIO6_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO6_PIN4 IRQ Priority
+// <i> Defines Interrupt priority for GPIO6_PIN4.
+// <i> Default: 0
+#define RTE_GPIO6_PIN4_IRQ_PRIORITY     0
+
+// <o> GPIO6_PIN5 IRQ Priority
+// <i> Defines Interrupt priority for GPIO6_PIN5.
+// <i> Default: 0
+#define RTE_GPIO6_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO6_PIN6 IRQ Priority
+// <i> Defines Interrupt priority for GPIO6_PIN6.
+// <i> Default: 0
+#define RTE_GPIO6_PIN6_IRQ_PRIORITY     0
+
+// <o> GPIO6_PIN7 IRQ Priority
+// <i> Defines Interrupt priority for GPIO6_PIN7.
+// <i> Default: 0
+#define RTE_GPIO6_PIN7_IRQ_PRIORITY     0
+#endif /* RTE_GPIO6 */
+// </e> GPIO6
+
+// <e> GPIO7
+// <i> Configuration settings for Driver_GPIO7 in component ::Drivers:GPIO
+#define RTE_GPIO7   1
+
+#if RTE_GPIO7
+
+// <o> GPIO7 Debounce Clock Divisor <0-1023>
+// <i> Defines debounce clock divisor for GPIO7.
+// <i> Default: 0
+#define RTE_GPIO7_DB_CLK_DIV            1
+
+// <o> GPIO7_PIN0 IRQ Priority
+// <i> Defines Interrupt priority for GPIO7_PIN0.
+// <i> Default: 0
+#define RTE_GPIO7_PIN0_IRQ_PRIORITY     0
+
+// <o> GPIO7_PIN1 IRQ Priority
+// <i> Defines Interrupt priority for GPIO7_PIN1.
+// <i> Default: 0
+#define RTE_GPIO7_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO7_PIN2 IRQ Priority
+// <i> Defines Interrupt priority for GPIO7_PIN2.
+// <i> Default: 0
+#define RTE_GPIO7_PIN2_IRQ_PRIORITY     0
+
+// <o> GPIO7_PIN3 IRQ Priority
+// <i> Defines Interrupt priority for GPIO7_PIN3.
+// <i> Default: 0
+#define RTE_GPIO7_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO7_PIN4 IRQ Priority
+// <i> Defines Interrupt priority for GPIO7_PIN4.
+// <i> Default: 0
+#define RTE_GPIO7_PIN4_IRQ_PRIORITY     0
+
+// <o> GPIO7_PIN5 IRQ Priority
+// <i> Defines Interrupt priority for GPIO7_PIN5.
+// <i> Default: 0
+#define RTE_GPIO7_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO7_PIN6 IRQ Priority
+// <i> Defines Interrupt priority for GPIO7_PIN6.
+// <i> Default: 0
+#define RTE_GPIO7_PIN6_IRQ_PRIORITY     0
+
+// <o> GPIO7_PIN7 IRQ Priority
+// <i> Defines Interrupt priority for GPIO7_PIN7.
+// <i> Default: 0
+#define RTE_GPIO7_PIN7_IRQ_PRIORITY     0
+#endif /* RTE_GPIO7 */
+// </e> GPIO7
+
+// <e> GPIO8
+// <i> Configuration settings for Driver_GPIO8 in component ::Drivers:GPIO
+#define RTE_GPIO8   1
+
+#if RTE_GPIO8
+
+// <o> GPIO8 Debounce Clock Divisor <0-1023>
+// <i> Defines debounce clock divisor for GPIO8.
+// <i> Default: 0
+#define RTE_GPIO8_DB_CLK_DIV            1
+
+// <o> GPIO8_PIN0 IRQ Priority
+// <i> Defines Interrupt priority for GPIO8_PIN0.
+// <i> Default: 0
+#define RTE_GPIO8_PIN0_IRQ_PRIORITY     0
+
+// <o> GPIO8_PIN1 IRQ Priority
+// <i> Defines Interrupt priority for GPIO8_PIN1.
+// <i> Default: 0
+#define RTE_GPIO8_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO8_PIN2 IRQ Priority
+// <i> Defines Interrupt priority for GPIO8_PIN2.
+// <i> Default: 0
+#define RTE_GPIO8_PIN2_IRQ_PRIORITY     0
+
+// <o> GPIO8_PIN3 IRQ Priority
+// <i> Defines Interrupt priority for GPIO8_PIN3.
+// <i> Default: 0
+#define RTE_GPIO8_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO8_PIN4 IRQ Priority
+// <i> Defines Interrupt priority for GPIO8_PIN4.
+// <i> Default: 0
+#define RTE_GPIO8_PIN4_IRQ_PRIORITY     0
+
+// <o> GPIO8_PIN5 IRQ Priority
+// <i> Defines Interrupt priority for GPIO8_PIN5.
+// <i> Default: 0
+#define RTE_GPIO8_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO8_PIN6 IRQ Priority
+// <i> Defines Interrupt priority for GPIO8_PIN6.
+// <i> Default: 0
+#define RTE_GPIO8_PIN6_IRQ_PRIORITY     0
+
+// <o> GPIO8_PIN7 IRQ Priority
+// <i> Defines Interrupt priority for GPIO8_PIN7.
+// <i> Default: 0
+#define RTE_GPIO8_PIN7_IRQ_PRIORITY     0
+#endif /* RTE_GPIO8 */
+// </e> GPIO8
+
+// <e> GPIO9
+// <i> Configuration settings for Driver_GPIO9 in component ::Drivers:GPIO
+#define RTE_GPIO9   1
+
+#if RTE_GPIO9
+
+// <o> GPIO9 Debounce Clock Divisor <0-1023>
+// <i> Defines debounce clock divisor for GPIO9.
+// <i> Default: 0
+#define RTE_GPIO9_DB_CLK_DIV            1
+
+// <o> GPIO9_PIN0 IRQ Priority
+// <i> Defines Interrupt priority for GPIO9_PIN0.
+// <i> Default: 0
+#define RTE_GPIO9_PIN0_IRQ_PRIORITY     0
+
+// <o> GPIO9_PIN1 IRQ Priority
+// <i> Defines Interrupt priority for GPIO9_PIN1.
+// <i> Default: 0
+#define RTE_GPIO9_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO9_PIN2 IRQ Priority
+// <i> Defines Interrupt priority for GPIO9_PIN2.
+// <i> Default: 0
+#define RTE_GPIO9_PIN2_IRQ_PRIORITY     0
+
+// <o> GPIO9_PIN3 IRQ Priority
+// <i> Defines Interrupt priority for GPIO9_PIN3.
+// <i> Default: 0
+#define RTE_GPIO9_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO9_PIN4 IRQ Priority
+// <i> Defines Interrupt priority for GPIO9_PIN4.
+// <i> Default: 0
+#define RTE_GPIO9_PIN4_IRQ_PRIORITY     0
+
+// <o> GPIO9_PIN5 IRQ Priority
+// <i> Defines Interrupt priority for GPIO9_PIN5.
+// <i> Default: 0
+#define RTE_GPIO9_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO9_PIN6 IRQ Priority
+// <i> Defines Interrupt priority for GPIO9_PIN6.
+// <i> Default: 0
+#define RTE_GPIO9_PIN6_IRQ_PRIORITY     0
+
+// <o> GPIO9_PIN7 IRQ Priority
+// <i> Defines Interrupt priority for GPIO9_PIN7.
+// <i> Default: 0
+#define RTE_GPIO9_PIN7_IRQ_PRIORITY     0
+#endif /* RTE_GPIO9 */
+// </e> GPIO9
+
+// <e> GPIO10
+// <i> Configuration settings for Driver_GPIO10 in component ::Drivers:GPIO
+#define RTE_GPIO10   1
+
+#if RTE_GPIO10
+
+// <o> GPIO10 Debounce Clock Divisor <0-1023>
+// <i> Defines debounce clock divisor for GPIO10.
+// <i> Default: 0
+#define RTE_GPIO10_DB_CLK_DIV            1
+
+// <o> GPIO10_PIN0 IRQ Priority
+// <i> Defines Interrupt priority for GPIO10_PIN0.
+// <i> Default: 0
+#define RTE_GPIO10_PIN0_IRQ_PRIORITY     0
+
+// <o> GPIO10_PIN1 IRQ Priority
+// <i> Defines Interrupt priority for GPIO10_PIN1.
+// <i> Default: 0
+#define RTE_GPIO10_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO10_PIN2 IRQ Priority
+// <i> Defines Interrupt priority for GPIO10_PIN2.
+// <i> Default: 0
+#define RTE_GPIO10_PIN2_IRQ_PRIORITY     0
+
+// <o> GPIO10_PIN3 IRQ Priority
+// <i> Defines Interrupt priority for GPIO10_PIN3.
+// <i> Default: 0
+#define RTE_GPIO10_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO10_PIN4 IRQ Priority
+// <i> Defines Interrupt priority for GPIO10_PIN4.
+// <i> Default: 0
+#define RTE_GPIO10_PIN4_IRQ_PRIORITY     0
+
+// <o> GPIO10_PIN5 IRQ Priority
+// <i> Defines Interrupt priority for GPIO10_PIN5.
+// <i> Default: 0
+#define RTE_GPIO10_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO10_PIN6 IRQ Priority
+// <i> Defines Interrupt priority for GPIO10_PIN6.
+// <i> Default: 0
+#define RTE_GPIO10_PIN6_IRQ_PRIORITY     0
+
+// <o> GPIO10_PIN7 IRQ Priority
+// <i> Defines Interrupt priority for GPIO10_PIN7.
+// <i> Default: 0
+#define RTE_GPIO10_PIN7_IRQ_PRIORITY     0
+#endif /* RTE_GPIO10 */
+// </e> GPIO10
+
+// <e> GPIO11
+// <i> Configuration settings for Driver_GPIO11 in component ::Drivers:GPIO
+#define RTE_GPIO11   1
+
+#if RTE_GPIO11
+
+// <o> GPIO11 Debounce Clock Divisor <0-1023>
+// <i> Defines debounce clock divisor for GPIO11.
+// <i> Default: 0
+#define RTE_GPIO11_DB_CLK_DIV            1
+
+// <o> GPIO11_PIN0 IRQ Priority
+// <i> Defines Interrupt priority for GPIO11_PIN0.
+// <i> Default: 0
+#define RTE_GPIO11_PIN0_IRQ_PRIORITY     0
+
+// <o> GPIO11_PIN1 IRQ Priority
+// <i> Defines Interrupt priority for GPIO11_PIN1.
+// <i> Default: 0
+#define RTE_GPIO11_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO11_PIN2 IRQ Priority
+// <i> Defines Interrupt priority for GPIO11_PIN2.
+// <i> Default: 0
+#define RTE_GPIO11_PIN2_IRQ_PRIORITY     0
+
+// <o> GPIO11_PIN3 IRQ Priority
+// <i> Defines Interrupt priority for GPIO11_PIN3.
+// <i> Default: 0
+#define RTE_GPIO11_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO11_PIN4 IRQ Priority
+// <i> Defines Interrupt priority for GPIO11_PIN4.
+// <i> Default: 0
+#define RTE_GPIO11_PIN4_IRQ_PRIORITY     0
+
+// <o> GPIO11_PIN5 IRQ Priority
+// <i> Defines Interrupt priority for GPIO11_PIN5.
+// <i> Default: 0
+#define RTE_GPIO11_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO11_PIN6 IRQ Priority
+// <i> Defines Interrupt priority for GPIO11_PIN6.
+// <i> Default: 0
+#define RTE_GPIO11_PIN6_IRQ_PRIORITY     0
+
+// <o> GPIO11_PIN7 IRQ Priority
+// <i> Defines Interrupt priority for GPIO11_PIN7.
+// <i> Default: 0
+#define RTE_GPIO11_PIN7_IRQ_PRIORITY     0
+#endif /* RTE_GPIO11 */
+// </e> GPIO11
+
+// <e> GPIO12
+// <i> Configuration settings for Driver_GPIO12 in component ::Drivers:GPIO
+#define RTE_GPIO12   1
+
+#if RTE_GPIO12
+
+// <o> GPIO12 Debounce Clock Divisor <0-1023>
+// <i> Defines debounce clock divisor for GPIO12.
+// <i> Default: 0
+#define RTE_GPIO12_DB_CLK_DIV            1
+
+// <o> GPIO12_PIN0 IRQ Priority
+// <i> Defines Interrupt priority for GPIO12_PIN0.
+// <i> Default: 0
+#define RTE_GPIO12_PIN0_IRQ_PRIORITY     0
+
+// <o> GPIO12_PIN1 IRQ Priority
+// <i> Defines Interrupt priority for GPIO12_PIN1.
+// <i> Default: 0
+#define RTE_GPIO12_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO12_PIN2 IRQ Priority
+// <i> Defines Interrupt priority for GPIO12_PIN2.
+// <i> Default: 0
+#define RTE_GPIO12_PIN2_IRQ_PRIORITY     0
+
+// <o> GPIO12_PIN3 IRQ Priority
+// <i> Defines Interrupt priority for GPIO12_PIN3.
+// <i> Default: 0
+#define RTE_GPIO12_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO12_PIN4 IRQ Priority
+// <i> Defines Interrupt priority for GPIO12_PIN4.
+// <i> Default: 0
+#define RTE_GPIO12_PIN4_IRQ_PRIORITY     0
+
+// <o> GPIO12_PIN5 IRQ Priority
+// <i> Defines Interrupt priority for GPIO12_PIN5.
+// <i> Default: 0
+#define RTE_GPIO12_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO12_PIN6 IRQ Priority
+// <i> Defines Interrupt priority for GPIO12_PIN6.
+// <i> Default: 0
+#define RTE_GPIO12_PIN6_IRQ_PRIORITY     0
+
+// <o> GPIO12_PIN7 IRQ Priority
+// <i> Defines Interrupt priority for GPIO12_PIN7.
+// <i> Default: 0
+#define RTE_GPIO12_PIN7_IRQ_PRIORITY     0
+#endif /* RTE_GPIO12 */
+// </e> GPIO12
+
+// <e> GPIO13
+// <i> Configuration settings for Driver_GPIO13 in component ::Drivers:GPIO
+#define RTE_GPIO13   1
+
+#if RTE_GPIO13
+
+// <o> GPIO13 Debounce Clock Divisor <0-1023>
+// <i> Defines debounce clock divisor for GPIO13.
+// <i> Default: 0
+#define RTE_GPIO13_DB_CLK_DIV            1
+
+// <o> GPIO13_PIN0 IRQ Priority
+// <i> Defines Interrupt priority for GPIO13_PIN0.
+// <i> Default: 0
+#define RTE_GPIO13_PIN0_IRQ_PRIORITY     0
+
+// <o> GPIO13_PIN1 IRQ Priority
+// <i> Defines Interrupt priority for GPIO13_PIN1.
+// <i> Default: 0
+#define RTE_GPIO13_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO13_PIN2 IRQ Priority
+// <i> Defines Interrupt priority for GPIO13_PIN2.
+// <i> Default: 0
+#define RTE_GPIO13_PIN2_IRQ_PRIORITY     0
+
+// <o> GPIO13_PIN3 IRQ Priority
+// <i> Defines Interrupt priority for GPIO13_PIN3.
+// <i> Default: 0
+#define RTE_GPIO13_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO13_PIN4 IRQ Priority
+// <i> Defines Interrupt priority for GPIO13_PIN4.
+// <i> Default: 0
+#define RTE_GPIO13_PIN4_IRQ_PRIORITY     0
+
+// <o> GPIO13_PIN5 IRQ Priority
+// <i> Defines Interrupt priority for GPIO13_PIN5.
+// <i> Default: 0
+#define RTE_GPIO13_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO13_PIN6 IRQ Priority
+// <i> Defines Interrupt priority for GPIO13_PIN6.
+// <i> Default: 0
+#define RTE_GPIO13_PIN6_IRQ_PRIORITY     0
+
+// <o> GPIO13_PIN7 IRQ Priority
+// <i> Defines Interrupt priority for GPIO13_PIN7.
+// <i> Default: 0
+#define RTE_GPIO13_PIN7_IRQ_PRIORITY     0
+#endif /* RTE_GPIO13 */
+// </e> GPIO13
+
+// <e> GPIO14
+// <i> Configuration settings for Driver_GPIO14 in component ::Drivers:GPIO
+#define RTE_GPIO14   1
+
+#if RTE_GPIO14
+
+// <o> GPIO14 Debounce Clock Divisor <0-1023>
+// <i> Defines debounce clock divisor for GPIO14.
+// <i> Default: 0
+#define RTE_GPIO14_DB_CLK_DIV            1
+
+// <o> GPIO14_PIN0 IRQ Priority
+// <i> Defines Interrupt priority for GPIO14_PIN0.
+// <i> Default: 0
+#define RTE_GPIO14_PIN0_IRQ_PRIORITY     0
+
+// <o> GPIO14_PIN1 IRQ Priority
+// <i> Defines Interrupt priority for GPIO14_PIN1.
+// <i> Default: 0
+#define RTE_GPIO14_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO14_PIN2 IRQ Priority
+// <i> Defines Interrupt priority for GPIO14_PIN2.
+// <i> Default: 0
+#define RTE_GPIO14_PIN2_IRQ_PRIORITY     0
+
+// <o> GPIO14_PIN3 IRQ Priority
+// <i> Defines Interrupt priority for GPIO14_PIN3.
+// <i> Default: 0
+#define RTE_GPIO14_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO14_PIN4 IRQ Priority
+// <i> Defines Interrupt priority for GPIO14_PIN4.
+// <i> Default: 0
+#define RTE_GPIO14_PIN4_IRQ_PRIORITY     0
+
+// <o> GPIO14_PIN5 IRQ Priority
+// <i> Defines Interrupt priority for GPIO14_PIN5.
+// <i> Default: 0
+#define RTE_GPIO14_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO14_PIN6 IRQ Priority
+// <i> Defines Interrupt priority for GPIO14_PIN6.
+// <i> Default: 0
+#define RTE_GPIO14_PIN6_IRQ_PRIORITY     0
+
+// <o> GPIO14_PIN7 IRQ Priority
+// <i> Defines Interrupt priority for GPIO14_PIN7.
+// <i> Default: 0
+#define RTE_GPIO14_PIN7_IRQ_PRIORITY     0
+#endif /* RTE_GPIO14 */
+// </e> GPIO14
+
+// <e> GPIO15
+// <i> Configuration settings for Driver_GPIO15 in component ::Drivers:GPIO
+#define RTE_GPIO15   1
+
+#if RTE_GPIO15
+
+// <o> GPIO15_PIN0 IRQ Priority
+// <i> Defines Interrupt priority for GPIO15_PIN0.
+// <i> Default: 0
+#define RTE_GPIO15_PIN0_IRQ_PRIORITY     0
+
+// <o> GPIO15_PIN1 IRQ Priority
+// <i> Defines Interrupt priority for GPIO15_PIN1.
+// <i> Default: 0
+#define RTE_GPIO15_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO15_PIN2 IRQ Priority
+// <i> Defines Interrupt priority for GPIO15_PIN2.
+// <i> Default: 0
+#define RTE_GPIO15_PIN2_IRQ_PRIORITY     0
+
+// <o> GPIO15_PIN3 IRQ Priority
+// <i> Defines Interrupt priority for GPIO15_PIN3.
+// <i> Default: 0
+#define RTE_GPIO15_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO15_PIN4 IRQ Priority
+// <i> Defines Interrupt priority for GPIO15_PIN4.
+// <i> Default: 0
+#define RTE_GPIO15_PIN4_IRQ_PRIORITY     0
+
+// <o> GPIO15_PIN5 IRQ Priority
+// <i> Defines Interrupt priority for GPIO15_PIN5.
+// <i> Default: 0
+#define RTE_GPIO15_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO15_PIN6 IRQ Priority
+// <i> Defines Interrupt priority for GPIO15_PIN6.
+// <i> Default: 0
+#define RTE_GPIO15_PIN6_IRQ_PRIORITY     0
+
+// <o> GPIO15_PIN7 IRQ Priority
+// <i> Defines Interrupt priority for GPIO15_PIN7.
+// <i> Default: 0
+#define RTE_GPIO15_PIN7_IRQ_PRIORITY     0
+#endif /* RTE_GPIO15 */
+// </e> GPIO15
+
 // </h> GPIO (general purpose input and output)
+
+// <h> PDM(Pulse Density Modulation)
+// <e> PDM (Pulse density modulation) [Driver_PDM]
+// <i> Configuration settings for Driver_PDM in component ::Drivers:PDM
+#define RTE_PDM      1
+#if RTE_PDM
+// <o> PDM IRQ priority <0-255>
+// <i> Defines Interrupt priority for PDM.
+// <i> Default: 0
+#define RTE_PDM_IRQ_PRIORITY   0
+#endif
+// </e> PDM (Pulse density modulation) [Driver_PDM]
+
+// </h> PDM (Pulse density modulation)
 
 #endif  /* __RTE_DEVICE_H */

@@ -25,14 +25,6 @@
 #include "Driver_USART.h"
 #include "UART_dev.h"
 
-#include "global_map.h" //todo
-// common helper macros //todo
-
-/* for Unused Arguments. */
-#ifndef ARG_UNUSED
-#define ARG_UNUSED(arg)                     ((void)arg)
-#endif
-
 
 #if !(RTE_UART0 || RTE_UART1 || RTE_UART2 || RTE_UART3 || RTE_UART4 || RTE_UART5 || RTE_UART6 || RTE_UART7)
 #error "UART is not enabled in the RTE_Device.h"
@@ -1433,10 +1425,6 @@ static int32_t uart_configure_clocksource (bool enable, uart_resources_t *uart)
 static int32_t uart_configure_control_reg (bool enable, uart_resources_t *uart)
 {
 
-#define EXPMST0_BASE              (0x48000000UL)
-#define EXPMST0_APB_C_BASE        (EXPMST0_BASE + 0x01020000)
-#define CFGMST0_BASE              (EXPMST0_APB_C_BASE + 0x0000F000)
-
 #define BYPASS_CLK       1
 #define UART_CTRL_OFFSET (0x08) /* UART ctrl offset */
 
@@ -1454,14 +1442,13 @@ static int32_t uart_configure_control_reg (bool enable, uart_resources_t *uart)
  */
 #define PCLK_FORCE   (1 << 30)
 
-	__IOM uint32_t *clkreg_expmst0 = (uint32_t *) CFGMST0_BASE;
+	__IOM uint32_t *clkreg_expmst0 = (uint32_t *) CLKCTL_PER_SLV_BASE;
 
-	//*clkreg_expmst0 = (1 << 0) | (1 << 4);
-	*clkreg_expmst0 = IPCLK_FORCE | PCLK_FORCE; //todo B0 change
+	*clkreg_expmst0 = IPCLK_FORCE | PCLK_FORCE;
 #endif
 
 	/* uart EXPMST0 config settings */
-	__IOM uint32_t *reg_uart_ctrl = (uint32_t *) (CFGMST0_BASE + UART_CTRL_OFFSET);
+	__IOM uint32_t *reg_uart_ctrl = (uint32_t *) (CLKCTL_PER_SLV_BASE + UART_CTRL_OFFSET);
 	uint8_t uart_instance_num = uart->instance_num;
 
 	if(enable)
@@ -2643,11 +2630,11 @@ static uart_config_rs485_info_t uart4_rs485_config = {0};
 /* UART4 Driver Resources */
 static uart_resources_t UART4_Resources =
 {
-	.reg_base       = (uint32_t)UART4_BASE, //todo B0 global_map
+	.reg_base       = (uint32_t)UART4_BASE,
 	.clk            = 0,
 	.cfg            = &uart4_config,
 	.info           = &uart4_info,
-	.irq_num        = (IRQn_Type) UART4_IRQ_IRQn, //todo B0, irq handler startup file
+	.irq_num        = (IRQn_Type) UART4_IRQ_IRQn,
 	.irq_priority   = (uint32_t)RTE_UART4_IRQ_PRI,
 	.instance_num   = UART4_INSTANCE_NUM,
 

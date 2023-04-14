@@ -58,7 +58,7 @@ static DMA_DRV_INFO DMA0 = {
     .apb_intf   = RTE_DMA0_APB_INTERFACE,
     .intf_paddr = NULL,
     .flags      = NULL,
-    .irq_start  = DMA0_IRQ0,
+    .irq_start  = DMA0_IRQ0_IRQn,
     .abort_irq_priority = RTE_DMA0_ABORT_IRQ_PRI,
 };
 #endif
@@ -73,7 +73,7 @@ static DMA_DRV_INFO DMA1 = {
     .apb_intf   = RTE_DMA1_APB_INTERFACE,
     .intf_paddr = NULL,
     .flags      = NULL,
-    .irq_start  = DMA1_IRQ0,
+    .irq_start  = DMA1_IRQ0_IRQn,
     .abort_irq_priority = RTE_DMA1_ABORT_IRQ_PRI,
 };
 #endif
@@ -88,7 +88,7 @@ static DMA_DRV_INFO DMA2 = {
     .apb_intf   = RTE_DMA2_APB_INTERFACE,
     .intf_paddr = NULL,
     .flags      = NULL,
-    .irq_start  = DMA2_IRQ0,
+    .irq_start  = DMA2_IRQ0_IRQn,
     .abort_irq_priority = RTE_DMA2_ABORT_IRQ_PRI,
 };
 #endif
@@ -407,8 +407,8 @@ __STATIC_INLINE int32_t DMA_CopyDesc (ARM_DMA_PARAMS *params,
 
     if(params->dir == ARM_DMA_MEM_TO_MEM)
     {
-        while (((uint32_t)dma_desc->dst_addr |
-                (uint32_t)dma_desc->src_addr |
+        while ((dma_desc->dst_addr |
+                dma_desc->src_addr |
                 dma_desc->total_len) &
                ((1 << dma_desc->dst_bsize) - 1))
         {
@@ -417,8 +417,8 @@ __STATIC_INLINE int32_t DMA_CopyDesc (ARM_DMA_PARAMS *params,
     }
     else
     {
-        if(((uint32_t)dma_desc->dst_addr |
-            (uint32_t)dma_desc->src_addr |
+        if((dma_desc->dst_addr |
+            dma_desc->src_addr |
             dma_desc->total_len) &
            ((1 << dma_desc->dst_bsize) - 1))
         {
@@ -488,7 +488,7 @@ __STATIC_INLINE void DMA_InvalidateDCache(DMA_DESC_INFO *desc_info)
     if ((desc_info->direction == ARM_DMA_MEM_TO_MEM) ||
         (desc_info->direction == ARM_DMA_DEV_TO_MEM))
     {
-        SCB_InvalidateDCache_by_Addr(desc_info->dst_addr, desc_info->total_len);
+        RTSS_InvalidateDCache_by_Addr(GlobalToLocal(desc_info->dst_addr), desc_info->total_len);
     }
 }
 
@@ -503,7 +503,7 @@ __STATIC_INLINE void DMA_CleanDCache(DMA_DESC_INFO *desc_info)
     if ((desc_info->direction == ARM_DMA_MEM_TO_MEM) ||
         (desc_info->direction == ARM_DMA_MEM_TO_DEV))
     {
-        SCB_CleanDCache_by_Addr(desc_info->src_addr, desc_info->total_len);
+        RTSS_CleanDCache_by_Addr(GlobalToLocal(desc_info->src_addr), desc_info->total_len);
     }
 }
 
@@ -533,11 +533,11 @@ int32_t DMA_PrepareMcode(uint8_t *mcode, DMA_CCR_Type ccr,
     if (!ret)
         return ARM_DMA_ERROR_BUFFER;
 
-    ret = DMA_ConstructMove ((uint32_t)desc->src_addr, SAR, mcode, &idx);
+    ret = DMA_ConstructMove (desc->src_addr, SAR, mcode, &idx);
     if (!ret)
         return ARM_DMA_ERROR_BUFFER;
 
-    ret = DMA_ConstructMove ((uint32_t)desc->dst_addr, DAR, mcode, &idx);
+    ret = DMA_ConstructMove (desc->dst_addr, DAR, mcode, &idx);
     if (!ret)
         return ARM_DMA_ERROR_BUFFER;
 
@@ -750,7 +750,7 @@ int32_t DMA_PrepareMcode(uint8_t *mcode, DMA_CCR_Type ccr,
         return ARM_DMA_ERROR_BUFFER;
 
     /* Flush the Cache now */
-    SCB_CleanDCache_by_Addr(mcode, DMA_MCODE_SIZE);
+    RTSS_CleanDCache_by_Addr(mcode, DMA_MCODE_SIZE);
 
     return ARM_DRIVER_OK;
 }
@@ -835,7 +835,7 @@ static int32_t DMA_GetStatus (DMA_Handle_Type *handle, uint32_t *count,
     dma_cfg->channel_thread[*handle].curr_state = DMA_GetChannelStatus (*handle, dma);
     if (dma_cfg->channel_thread[*handle].curr_state == STOPPED) {
         curr_addr = DMA_GetChannelSrcAddress (*handle, dma);
-        *count = curr_addr - (uint32_t)desc->src_addr;
+        *count = curr_addr - desc->src_addr;
         __enable_irq();
         return ARM_DRIVER_OK;
     }
@@ -844,13 +844,13 @@ static int32_t DMA_GetStatus (DMA_Handle_Type *handle, uint32_t *count,
         (desc->direction == ARM_DMA_MEM_TO_MEM))
     {
         curr_addr = DMA_GetChannelSrcAddress (*handle, dma);
-        *count = curr_addr - (uint32_t)desc->src_addr;
+        *count = curr_addr - desc->src_addr;
     }
     else if ((chnl_info->desc_info.direction == ARM_DMA_DEV_TO_MEM) ||
              (desc->direction == ARM_DMA_MEM_TO_MEM))
     {
         curr_addr = DMA_GetChannelDestAddress (*handle, dma);
-        *count = curr_addr - (uint32_t)desc->dst_addr;
+        *count = curr_addr - desc->dst_addr;
     }
 
     if ((dma_cfg->channel_thread[*handle].curr_state == FAULTING_COMPLETING) ||
@@ -876,6 +876,7 @@ static int32_t DMA_Stop (DMA_Handle_Type *handle, DMA_DRV_INFO *dma)
     DMA_CONFIG_INFO *dma_cfg = dma->cfg;
     uint8_t kill_mcode;
     DMA_DBGINST0_Type dbginst0;
+    DMA_DESC_INFO *desc_info;
 
     if (dma->flags == DMA_DRV_UNINITIALIZED)
         return ARM_DRIVER_ERROR;
@@ -912,10 +913,24 @@ static int32_t DMA_Stop (DMA_Handle_Type *handle, DMA_DRV_INFO *dma)
 
     DMA_ExecuteCmd (dma);
 
+    /* Wait for the Channel to be in STOP state */
+    while(1)
+    {
+        dma_cfg->channel_thread[*handle].curr_state = DMA_GetChannelStatus (*handle, dma);
+        if (dma_cfg->channel_thread[*handle].curr_state == STOPPED)
+            {
+                break;
+            }
+    }
+
     DMA_DisableInterrupt (&dma_cfg->channel_thread[*handle], dma);
     DMA_ClearInterrupt (&dma_cfg->channel_thread[*handle], dma);
 
     NVIC_DisableIRQ (dma->irq_start + dma_cfg->channel_thread[*handle].channel_info.evnt_index);
+
+    /* Invalidate the data from cache */
+    desc_info = &dma_cfg->channel_thread[*handle].channel_info.desc_info;
+    DMA_InvalidateDCache(desc_info);
 
     __enable_irq();
 
@@ -963,7 +978,10 @@ static int32_t DMA_Start (DMA_Handle_Type *handle, ARM_DMA_PARAMS *params,
 
     dma_cfg->channel_thread[*handle].curr_state = DMA_GetChannelStatus (*handle, dma);
     if (dma_cfg->channel_thread[*handle].curr_state != STOPPED)
+    {
+        __enable_irq();
         return ARM_DMA_ERROR_BUSY;
+    }
 
     chnl_info = &dma_cfg->channel_thread[*handle].channel_info;
 
@@ -1002,11 +1020,15 @@ static int32_t DMA_Start (DMA_Handle_Type *handle, ARM_DMA_PARAMS *params,
         }
     }
 
+    /* Src: Clean the data from the cache */
     DMA_CleanDCache(&chnl_info->desc_info);
+
+    /* Dst: Invalidate the data from cache */
+    DMA_InvalidateDCache(&chnl_info->desc_info);
 
     DMA_ConstructGo (chnl_info->desc_info.sec_state,
                      chnl_info->chnl_num,
-                     (uint32_t)LocalToGlobal(mcode),
+                     LocalToGlobal(mcode),
                      &go_mcode[0]);
 
     DMA_EnableInterrupt (&dma_cfg->channel_thread[*handle], dma);
@@ -1275,7 +1297,7 @@ static int32_t DMA0_Initialize (void)
     if(dma->apb_intf)
         dma->intf_paddr = (DMA_TypeDef*)DMA0_NS_BASE;
     else
-        dma->intf_paddr = (DMA_TypeDef*)DMA0_SE_BASE;
+        dma->intf_paddr = (DMA_TypeDef*)DMA0_SEC_BASE;
 
     return DMA_Initialize (dma);
 }
@@ -1649,10 +1671,10 @@ void DMA0_IRQ31Handler (void)
 }
 
 /**
-  \fn          void  DMA0_AbortIRQHandler (void)
+  \fn          void  DMA0_IRQ_ABORT_Handler (void)
   \brief       Run the IRQ Handler for DMA0 Abort
 */
-void DMA0_AbortIRQHandler (void)
+void DMA0_IRQ_ABORT_Handler (void)
 {
     DMA_AbortIRQHandler (&DMA0);
 }
@@ -1690,7 +1712,7 @@ static int32_t DMA1_Initialize (void)
     if(dma->apb_intf)
         dma->intf_paddr = (DMA_TypeDef*)DMA1_NS_BASE;
     else
-        dma->intf_paddr = (DMA_TypeDef*)DMA1_SE_BASE;
+        dma->intf_paddr = (DMA_TypeDef*)DMA1_SEC_BASE;
 
     return DMA_Initialize (dma);
 }
@@ -2064,10 +2086,10 @@ void DMA1_IRQ31Handler (void)
 }
 
 /**
-  \fn          void  DMA1_AbortIRQHandler (void)
+  \fn          void  DMA1_IRQ_ABORT_Handler (void)
   \brief       Run the IRQ Handler for DMA1 Abort
 */
-void DMA1_AbortIRQHandler (void)
+void DMA1_IRQ_ABORT_Handler (void)
 {
     DMA_AbortIRQHandler (&DMA1);
 }
@@ -2105,7 +2127,7 @@ static int32_t DMA2_Initialize (void)
     if(dma->apb_intf)
         dma->intf_paddr = (DMA_TypeDef*)DMA2_NS_BASE;
     else
-        dma->intf_paddr = (DMA_TypeDef*)DMA2_SE_BASE;
+        dma->intf_paddr = (DMA_TypeDef*)DMA2_SEC_BASE;
 
     return DMA_Initialize (dma);
 }
@@ -2479,10 +2501,10 @@ void DMA2_IRQ31Handler (void)
 }
 
 /**
-  \fn          void  DMA2_AbortIRQHandler (void)
+  \fn          void  DMA2_IRQ_ABORT_Handler (void)
   \brief       Run the IRQ Handler for DMA2 Abort
 */
-void DMA2_AbortIRQHandler (void)
+void DMA2_IRQ_ABORT_Handler (void)
 {
     DMA_AbortIRQHandler (&DMA2);
 }

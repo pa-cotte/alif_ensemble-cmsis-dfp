@@ -24,7 +24,7 @@
 #include "stdint.h"
 #include "Driver_GPIO.h"
 #include "Driver_SPI.h"
-#include "Driver_PINMUX_AND_PINPAD.h"
+#include "pinconf.h"
 
 #include "RTE_Components.h"
 #include CMSIS_device_header
@@ -66,20 +66,20 @@
 #define DS1722_TEMPERATURE_MSB_ADDR                     0x02U
 #define DS1722_TEMPERATURE_LSB_ADDR                     0x01U
 
-#define GPIO                                            2        /* GPIO 2 */
+#define GPIO                                            12       /* GPIO 12 */
 #define SPI                                             3        /* DS1722 connected to SPI instance 3 */
 
-#define SPI_PORT                                        PORT_NUMBER_2
+#define SPI_PORT                                        PORT_12
 
-#define SPI_MISO_PIN                                    PIN_NUMBER_21
-#define SPI_MOSI_PIN                                    PIN_NUMBER_22
-#define SPI_CLOCK_PIN                                   PIN_NUMBER_23
-#define SPI_SS0_PIN                                     PIN_NUMBER_24
+#define SPI_MISO_PIN                                    PIN_4
+#define SPI_MOSI_PIN                                    PIN_5
+#define SPI_CLOCK_PIN                                   PIN_6
+#define SPI_SS0_PIN                                     PIN_7
 
-#define SPI_MISO_PIN_AF                                 PINMUX_ALTERNATE_FUNCTION_4
-#define SPI_MOSI_PIN_AF                                 PINMUX_ALTERNATE_FUNCTION_3
-#define SPI_CLOCK_PIN_AF                                PINMUX_ALTERNATE_FUNCTION_3
-#define SPI_SS0_PIN_AF                                  PINMUX_ALTERNATE_FUNCTION_0
+#define SPI_MISO_PIN_AF                                 PINMUX_ALTERNATE_FUNCTION_2
+#define SPI_MOSI_PIN_AF                                 PINMUX_ALTERNATE_FUNCTION_2
+#define SPI_CLOCK_PIN_AF                                PINMUX_ALTERNATE_FUNCTION_2
+#define SPI_SS0_PIN_AF                                  PINMUX_ALTERNATE_FUNCTION_3
 
 volatile uint32_t  Cb_status = 0;
 
@@ -140,28 +140,28 @@ static void ds1722_app ()
     ARM_SPI_STATUS var;
 
     /* Doing pinmux configuration for SPI pin's */
-    ret = PINMUX_Config(SPI_PORT, SPI_MISO_PIN, SPI_MISO_PIN_AF);
+    ret = pinconf_set(SPI_PORT, SPI_MISO_PIN, SPI_MISO_PIN_AF, 0);
     if (ret != ARM_DRIVER_OK)
     {
         printf("ERROR: Failed to configure PINMUX for SPI_MISO_PIN\n");
         return;
     }
 
-    ret = PINMUX_Config(SPI_PORT, SPI_MOSI_PIN, SPI_MOSI_PIN_AF);
+    ret = pinconf_set(SPI_PORT, SPI_MOSI_PIN, SPI_MOSI_PIN_AF, 0);
     if (ret != ARM_DRIVER_OK)
     {
         printf("ERROR: Failed to configure PINMUX for SPI_MOSI_PIN\n");
         return;
     }
 
-    ret = PINMUX_Config(SPI_PORT, SPI_CLOCK_PIN, SPI_CLOCK_PIN_AF);
+    ret = pinconf_set(SPI_PORT, SPI_CLOCK_PIN, SPI_CLOCK_PIN_AF, 0);
     if (ret != ARM_DRIVER_OK)
     {
         printf("ERROR: Failed to configure PINMUX for SPI3_CLOCK_PIN\n");
         return;
     }
 
-    ret = PINMUX_Config(SPI_PORT, SPI_SS0_PIN, SPI_SS0_PIN_AF);
+    ret = pinconf_set(SPI_PORT, SPI_SS0_PIN, SPI_SS0_PIN_AF, 0);
     if (ret != ARM_DRIVER_OK)
     {
         printf("ERROR: Failed to configure PINMUX for SPI_SS0_PIN\n");

@@ -13,7 +13,7 @@
   -->
 
   <releases>
-    <release version="1.0.0-rc2" date="2023-04-04">
+    <release version="1.0.0-rc3" date="2023-04-14">
       Initial release
     </release>
   </releases>
@@ -578,6 +578,8 @@
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/FLASH_ISSI_Baremetal.c" attr="template" select="OSPI FLASH baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/QEC_Baremetal.c" attr="template" select="QEC baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/CDC200_Baremetal.c" attr="template" select="CDC200 baremetal testApp"/>
+		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/i2c_baremetal.c" attr="template" select="I2C baremetal testApp"/>
+		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/PDM_baremetal.c" attr="template" select="PDM baremetal testApp"/>
 
 	<!--  FreeRTOS templates -->
     <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/rtc_testApp.c" attr="template" select="FreeRTOS Real Time Counter test App"/>
@@ -638,7 +640,8 @@
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/FLASH_ISSI_Baremetal.c" attr="template" select="OSPI FLASH baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/QEC_Baremetal.c" attr="template" select="QEC baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/CDC200_Baremetal.c" attr="template" select="CDC200 baremetal testApp"/>
-	
+		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/i2c_baremetal.c" attr="template" select="I2C baremetal testApp"/>
+		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/PDM_baremetal.c" attr="template" select="PDM baremetal testApp"/>
 
 	<!--  FreeRTOS templates -->
     <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/rtc_testApp.c" attr="template" select="FreeRTOS Real Time Counter test App"/>
@@ -688,6 +691,19 @@
      </files>
    </component>
 
+   <component Cclass="Device" Cgroup="SOC Peripherals" Csub="I2C" Cversion="1.0.0" condition="Ensemble CMSIS_Driver">
+     <description>I2C Driver for Alif Semiconductor SOC</description>
+     <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
+        #define RTE_Drivers_I2C   1           /* Driver I2C */
+     </RTE_Components_h>
+     <files>
+       <file category="source" name="Alif_CMSIS/Source/Driver_I2C.c"/>
+       <file category="source" name="Alif_CMSIS/Source/i2c_ll_drv.c"/>
+       <file category="header" name="Alif_CMSIS/Source/i2c_ll_drv.h"/>
+     </files>
+   </component>
+
+
    <component Cclass="BSP" Cgroup="External peripherals" Csub="Ethernet PHY" Cversion="1.0.0" condition="Ensemble CMSIS_Driver">
      <description>Generic Ethernet PHY Driver</description>
      <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
@@ -729,9 +745,20 @@
       </RTE_Components_h>
       <files>
         <file category="source" name="Alif_CMSIS/Source/Driver_GPIO.c"/>
-        <file category="source" name="Alif_CMSIS/Source/GPIO_ll_drv.c"/>
-		<file category="header" name="Alif_CMSIS/Include/Driver_GPIO.h"/>
-        <file category="header" name="Alif_CMSIS/Source/GPIO_ll_drv.h"/>
+        <file category="source" name="Alif_CMSIS/Source/Driver_GPIO_Private.h"/>
+	<file category="header" name="Alif_CMSIS/Include/Driver_GPIO.h"/>
+      </files>
+    </component>
+
+    <component Cclass="Device" Cgroup="SOC Peripherals" Csub="PDM" Cversion="1.0.0" condition="Ensemble CMSIS_Driver">
+      <description>PDM Driver for Alif Semiconductor SOC</description>
+      <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
+        #define RTE_Drivers_PDM   1           /* Driver PDM */
+      </RTE_Components_h>
+      <files>
+        <file category="source" name="Alif_CMSIS/Source/Driver_PDM.c"/>
+        <file category="source" name="Alif_CMSIS/Source/PDM_dev.h"/>
+	<file category="header" name="Alif_CMSIS/Include/Driver_PDM.h"/>
       </files>
     </component>
 
@@ -1066,7 +1093,7 @@
     <component Cclass="BSP" Cgroup="External peripherals" Csub="GT911 Touch Controller" Cversion="1.0.0" condition="Ensemble CMSIS_Driver">
       <description>External Peripherals Drivers</description>
       <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
-        #define RTE_Drivers_GT911 	1
+        #define RTE_Drivers_GT911	1
       </RTE_Components_h>
       <files>
         <file category="source" name="components/Source/GT911_touch_driver.c"/>
@@ -1084,7 +1111,7 @@
       </files>
     </component>
 
-<!--   commenting lib component 
+<!--   commenting lib component
      <component Cclass="Device" Cgroup="SE Services" Csub="SE RunTime services" Cvariant="Lib" Cversion="0.69.0" condition="SE SERVICES LIB">
       <description>SE runtime Services library for RTSS cores</description>
       <files>
@@ -1111,7 +1138,7 @@
         <file category="source" name="se_services/services_lib/services_host_system.c"/>
         <file category="source" name="se_services/services_lib/services_host_clocks.c"/>
          <!--se services example-->
-        <file category="source" name="se_services/example/common/m55_services_main.c" attr="template" select="SE Services Example"/> 
+        <file category="source" name="se_services/example/common/m55_services_main.c" attr="template" select="SE Services Example"/>
         <file category="header" name="se_services/example/common/services_lib_interface.h" attr="template" select="SE Services Example"/>
         <file category="source" name="se_services/example/common/services_lib_interface.c" attr="template" select="SE Services Example"/>
         <file category="source" name="se_services/example/common/services_test.c" attr="template" select="SE Services Example"/>

@@ -24,7 +24,7 @@
 /* System Includes */
 #include <stdio.h>
 #include "Driver_I3C.h"
-#include "Driver_PINMUX_AND_PINPAD.h"
+#include "pinconf.h"
 
 #include <RTE_Components.h>
 #include CMSIS_device_header
@@ -73,51 +73,15 @@ volatile int32_t cb_event_flag = 0;
 */
 int32_t hardware_init(void)
 {
-	int32_t ret = 0;
+	/* I3C_SDA_A */
+	pinconf_set( PORT_0, PIN_0, PINMUX_ALTERNATE_FUNCTION_3, \
+			PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP | \
+			PADCTRL_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS);
 
-	/* i3c Pin-Mux */
-
-	/* Configure GPIO Pin : P3_8 as I3C_SDA_B */
-	ret = PINMUX_Config(PORT_NUMBER_3, PIN_NUMBER_8, PINMUX_ALTERNATE_FUNCTION_3);
-	if(ret != 0)
-	{
-		printf("\r\n Error: PINMUX failed.\r\n");
-		return ARM_DRIVER_ERROR;
-	}
-
-	/* Configure GPIO Pin : P3_9 as I3C_SCL_B */
-	ret = PINMUX_Config(PORT_NUMBER_3, PIN_NUMBER_9, PINMUX_ALTERNATE_FUNCTION_4);
-	if(ret != 0)
-	{
-		printf("\r\n Error: PINMUX failed.\r\n");
-		return ARM_DRIVER_ERROR;
-	}
-
-	/* i3c Pin-Pad */
-
-	/* Pin-Pad P3_8 as I3C_SDA_B
-	 * Pad function: weak pull up(0x8) + read enable(0x01)
-	 *               + Output drive strength 4mA(0x20)
-	 */
-	ret = PINPAD_Config(PORT_NUMBER_3, PIN_NUMBER_8,  \
-                        (PAD_FUNCTION_READ_ENABLE | PAD_FUNCTION_DRIVER_DISABLE_STATE_WITH_PULL_UP | PAD_FUNCTION_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS));
-	if(ret != 0)
-	{
-		printf("\r\n Error: PINPAD failed.\r\n");
-		return ARM_DRIVER_ERROR;
-	}
-
-	/* Pin-Pad P3_9 as I3C_SCL_B
-	 * Pad function: weak pull up(0x8) + read enable(0x01)
-	 *               + Output drive strength 4mA(0x20)
-	 */
-	ret = PINPAD_Config(PORT_NUMBER_3, PIN_NUMBER_9,  \
-                        (PAD_FUNCTION_READ_ENABLE | PAD_FUNCTION_DRIVER_DISABLE_STATE_WITH_PULL_UP | PAD_FUNCTION_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS));
-	if(ret != 0)
-	{
-		printf("\r\n Error: PINPAD failed.\r\n");
-		return ARM_DRIVER_ERROR;
-	}
+	/* I3C_SCL_A */
+	pinconf_set( PORT_0, PIN_1, PINMUX_ALTERNATE_FUNCTION_3, \
+			PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP | \
+			PADCTRL_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS);
 
 	return ARM_DRIVER_OK;
 }
@@ -140,6 +104,36 @@ void I3C_callback(uint32_t event)
 	{
 		/* Transfer Error */
 		cb_event_flag = I2C_CB_EVENT_ERROR;
+	}
+
+	if (event & ARM_I3C_EVENT_MST_TX_DONE)
+	{
+		/* Transfer Success */
+		cb_event_flag = I2C_CB_EVENT_SUCCESS;
+	}
+
+	if (event & ARM_I3C_EVENT_MST_RX_DONE)
+	{
+		/* Transfer Success */
+		cb_event_flag = I2C_CB_EVENT_SUCCESS;
+	}
+
+	if (event & ARM_I3C_EVENT_SLV_TX_DONE)
+	{
+		/* Transfer Success */
+		cb_event_flag = I2C_CB_EVENT_SUCCESS;
+	}
+
+	if (event & ARM_I3C_EVENT_SLV_RX_DONE)
+	{
+		/* Transfer Success */
+		cb_event_flag = I2C_CB_EVENT_SUCCESS;
+	}
+
+	if (event & ARM_I3C_DYN_ADDR_ASSGN)
+	{
+		/* Transfer Success */
+		cb_event_flag = I2C_CB_EVENT_SUCCESS;
 	}
 }
 
@@ -409,8 +403,8 @@ void i2c_using_i3c_demo_thread_entry()
 
 			printf("\r\n ---------------------------XXX------------------------------ \r\n");
 
-			/* Delay for 2 second before attaching next slave device */
-			PMU_delay_loop_us (2000000);
+			/* delay for 1 milli sec */
+			PMU_delay_loop_us (1000);
 		}
 	}
 

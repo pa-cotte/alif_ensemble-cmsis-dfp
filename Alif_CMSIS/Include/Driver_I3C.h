@@ -1,12 +1,26 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
  * You should have received a copy of the Alif Semiconductor Software
  * License Agreement with this file. If not, please write to:
  * contact@alifsemi.com, or visit: https://alifsemi.com/license
- *
  */
+
+/**************************************************************************//**
+ * @file     Driver_I3C.h
+ * @Author   Silesh C V,
+ *           Tanay Rami,
+ *           Prabhakar kumar
+ * @email    <silesh@alifsemi.com>,
+ *           <tanay@alifsemi.com>,
+ *           <prabhakar.kumar@alifsemi.com>
+ * @version  V1.0.0
+ * @date     07-March-2023
+ * @brief    CMSIS-Driver for I3C
+ * @bug      None.
+ * @Note     None.
+ ******************************************************************************/
 
 #ifndef DRIVER_I3C_H_
 #define DRIVER_I3C_H_
@@ -24,6 +38,7 @@ extern "C"
 
 /* I3C Control Codes: Bus mode */
 #define I3C_MASTER_SET_BUS_MODE                         (1UL << 0)  ///< Set bus mode to pure i3c, mixed i3c + i2c fast etc.
+#define I3C_SET_SLAVE_ADDR                              (1UL << 1)  ///< Set slave addr and initialize slave
 
 /* I3C Control Codes: Bus mode arguments */
 #define I3C_BUS_MODE_PURE                               (0x00UL)    ///< Pure i3c device
@@ -43,8 +58,13 @@ extern "C"
 #define I3C_BUS_TLOW_OD_MIN_NS                          200
 
 /****** I3C Event *****/
-#define ARM_I3C_EVENT_TRANSFER_DONE                     (1UL << 0)  ///< Master Transmit/Receive finished
-#define ARM_I3C_EVENT_TRANSFER_ERROR                    (1UL << 1)  ///< Master Transmit/Receive Error
+#define ARM_I3C_EVENT_TRANSFER_DONE                     (1UL << 0)  /* Event Success                            */
+#define ARM_I3C_EVENT_TRANSFER_ERROR                    (1UL << 1)  /* Master and slave Transmit/Receive Error  */
+#define ARM_I3C_EVENT_MST_TX_DONE                       (1UL << 2)  /* Master Transmit Done                     */
+#define ARM_I3C_EVENT_MST_RX_DONE                       (1UL << 3)  /* Master Receive Done                      */
+#define ARM_I3C_EVENT_SLV_TX_DONE                       (1UL << 4)  /* Slave Transmit Done                      */
+#define ARM_I3C_EVENT_SLV_RX_DONE                       (1UL << 5)  /* Slave receive  Done                      */
+#define ARM_I3C_DYN_ADDR_ASSGN                          (1UL << 6)  /* Dynamic Address Assigned                 */
 
 /* I3C CCC (Common Command Codes) related definitions */
 #define I3C_CCC_DIRECT                                  BIT(7)
@@ -145,8 +165,20 @@ typedef struct _ARM_I3C_STATUS {
   \param[in]   len       Number of data bytes to receive
   \return      \ref execution_status
 
+  \fn          int32_t I3Cx_SlaveTransmit(struct i3c_dev *dev, const  uint8_t *data, uint16_t len)
+  \brief       Start transmitting data as I3C Slave.
+  \param[in]   data      Pointer to buffer with data to transmit to I3C master
+  \param[in]   len       Number of data bytes to transmit
+  \return      \ref execution_status
+
+  \fn          int32_t I3Cx_SlaveReceive(struct i3c_dev *dev, uint8_t *data, uint32_t len)
+  \brief       Start receiving data as I3C Master.
+  \param[out]  data      Pointer to buffer for data to receive from I3C master
+  \param[in]   len       Number of data bytes to receive
+  \return      \ref execution_status
+
   \fn          int32_t Control (uint32_t control, uint32_t arg)
-  \brief       Control I3C Interface.
+  \brief       Control I3C mastaer and slave Interface.
   \param[in]   control   Operation
   \param[in]   arg       Argument of operation (optional)
   \return      \ref execution_status
@@ -179,7 +211,6 @@ typedef struct _ARM_I3C_STATUS {
 
 typedef void (*ARM_I3C_SignalEvent_t) (uint32_t event);  ///< Pointer to \ref I3C_SignalEvent : Signal I3C Event.
 
-
 /**
 \brief I3C Driver Capabilities.
 */
@@ -200,7 +231,9 @@ typedef struct _ARM_DRIVER_I3C {
   int32_t              (*PowerControl)      (ARM_POWER_STATE state);                            ///< Pointer to \ref PowerControl      : Control I3C Interface Power.
   int32_t              (*MasterTransmit)    (uint8_t addr, const uint8_t *data, uint16_t len);  ///< Pointer to \ref MasterTransmit    : Start transmitting data as I3C Master.
   int32_t              (*MasterReceive)     (uint8_t addr, uint8_t *data, uint16_t len);        ///< Pointer to \ref MasterReceive     : Start receiving    data as I3C Master.
-  int32_t              (*Control)           (uint32_t control, uint32_t arg);                   ///< Pointer to \ref Control           : Control I3C Interface.
+  int32_t              (*SlaveTransmit)     (const uint8_t *data, uint16_t len);                ///< Pointer to \ref MasterTransmit    : Start transmitting data as I3C Slave.
+  int32_t              (*SlaveReceive)      (uint8_t *data, uint16_t len);                      ///< Pointer to \ref SlaveReceive      : Start receiving    data as I3C Slave.
+  int32_t              (*Control)           (uint32_t control, uint32_t arg);                   ///< Pointer to \ref Control           : Control I3C Master and slave Interface.
   int32_t              (*MasterSendCommand) (I3C_CMD *cmd);                                     ///< Pointer to \ref MasterSendCommand : Send I3C CCC
   int32_t              (*MasterAssignDA)    (uint8_t *dyn_addr, uint8_t sta_addr);              ///< Pointer to \ref MasterAssignDA    : Assign I3C Dynamic Address
   int32_t              (*AttachI2Cdev)      (uint8_t sta_addr);                                 ///< Pointer to \ref AttachI2Cdev      : Attach legacy i2c device to the i3c bus.
