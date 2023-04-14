@@ -42,9 +42,9 @@ static volatile uint32_t csi2_init_status = 0;
 static volatile uint32_t dsi_init_status = 0;
 
 /*MIPI CSI2 and DSI register base*/
-DSI_Type *dsi_reg_base = ((DSI_Type*)DSI_BASE);
+static DSI_Type * const dsi_reg_base = ((DSI_Type*)DSI_BASE);
 #if(RTE_MIPI_CSI2)
-CSI_Type *csi_reg_base = ((CSI_Type*)CSI_BASE);
+static CSI_Type * const csi_reg_base = ((CSI_Type*)CSI_BASE);
 #endif
 
 /*hsfreqrange and osc_freq_target range*/
