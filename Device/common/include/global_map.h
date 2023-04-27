@@ -161,14 +161,19 @@
 #define SRAM4_SIZE                0x00040000		/* 256K */
 #define SRAM5_BASE                0x58800000
 #define SRAM5_SIZE                0x00040000		/* 256K */
-#define SRAM6_BASE                0x62000000
-#define SRAM6_SIZE                0x00200000		/* 2M */
+#define SRAM6_A_BASE              0x62000000
+#define SRAM6_A_SIZE              0x00100000		/* 1M */
+#define SRAM6_B_BASE              0x62400000
+#define SRAM6_B_SIZE              0x00100000        /* 1M */
 #define SRAM7_BASE                0x63000000
 #define SRAM7_SIZE                0x00080000		/* 512K */
-#define SRAM8_BASE                0x63100000
+#define SRAM8_BASE                0x63200000
 #define SRAM8_SIZE                0x00200000		/* 2M */
-#define SRAM9_BASE                0x60000000
-#define SRAM9_SIZE                0x000C0000		/* 768K */
+#define SRAM9_A_BASE              0x60000000
+#define SRAM9_A_SIZE              0x00040000		/* 256K */
+#define SRAM9_B_BASE              0x60100000
+#define SRAM9_B_SIZE              0x00080000        /* 512K */
+
 /* On Chip NVM */
 #define MRAM_BASE                 0x80000000
 #define MRAM_SIZE                 0x00580000		/* 5.5M */
