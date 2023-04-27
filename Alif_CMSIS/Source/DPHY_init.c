@@ -677,7 +677,7 @@ static int32_t DPHY_MasterSetup (uint32_t clock_frequency)
 #if (RTE_MIPI_DSI)
     dsi_set_active_lanes((DSI_Type *)DSI_BASE, RTE_MIPI_DSI_N_LANES - 1);
 #else
-    dsi_set_active_lanes((DSI_Type *)DSI_BASE, RTE_MIPI_CSI2_N_LANES - 1);
+    dsi_set_active_lanes((DSI_Type *)DSI_BASE, 0);
 #endif
 
     MIPI_DSI_DPHY_Rst(DISABLE);
@@ -786,9 +786,7 @@ static int32_t DPHY_MasterSetup (uint32_t clock_frequency)
     stopstate_check |= (RTE_MIPI_DSI_N_LANES == 1 ? (DPHY_STOPSTATE_LANE0) :
                                              (DPHY_STOPSTATE_LANE0) | (DPHY_STOPSTATE_LANE1) );
 #else
-    stopstate_check |= DPHY_STOPSTATE_CLOCK;
-    stopstate_check |= (RTE_MIPI_CSI2_N_LANES == 1 ? (DPHY_STOPSTATE_LANE0) :
-                                                 (DPHY_STOPSTATE_LANE0) | (DPHY_STOPSTATE_LANE1) );
+    stopstate_check |= DPHY_STOPSTATE_CLOCK | DPHY_STOPSTATE_LANE0;
 #endif
 
 
