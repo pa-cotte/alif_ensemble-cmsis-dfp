@@ -641,7 +641,6 @@ static void MIPI_DSI_ISR (DSI_RESOURCES *dsi)
     }
 }
 
-#if (RTE_MIPI_DSI)
 
 static DSI_FRAME_INFO DPI_FRAME_INFO;
 
@@ -819,4 +818,3 @@ ARM_DRIVER_MIPI_DSI Driver_MIPI_DSI =
     ARM_MIPI_DSI_StartVideoMode,
     ARM_MIPI_DSI_Stop
 };
-#endif
