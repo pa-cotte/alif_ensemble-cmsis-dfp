@@ -35,37 +35,13 @@
 #error "MIPI DSI ILI9806E Panel not configured in RTE_Components.h!"
 #endif
 
-#if (RTE_ILI9806E_PANEL_RESET_GPIO_PORT == 1)
-extern ARM_DRIVER_GPIO Driver_GPIO1;
-static ARM_DRIVER_GPIO *GPIO_Driver_Rst = &Driver_GPIO1;
-#elif (RTE_ILI9806E_PANEL_RESET_GPIO_PORT == 2)
-extern ARM_DRIVER_GPIO Driver_GPIO2;
-static ARM_DRIVER_GPIO *GPIO_Driver_Rst = &Driver_GPIO2;
-#elif (RTE_ILI9806E_PANEL_RESET_GPIO_PORT == 3)
-extern ARM_DRIVER_GPIO Driver_GPIO3;
-static ARM_DRIVER_GPIO *GPIO_Driver_Rst = &Driver_GPIO3;
-#elif (RTE_ILI9806E_PANEL_RESET_GPIO_PORT == 4)
-extern ARM_DRIVER_GPIO Driver_GPIO4;
-static ARM_DRIVER_GPIO *GPIO_Driver_Rst = &Driver_GPIO4;
-#else
-#error "GPIO Port for display Reset not found"
-#endif
+/* ILI9806E panel reset GPIO port */
+extern ARM_DRIVER_GPIO ARM_Driver_GPIO_(RTE_ILI9806E_PANEL_RESET_GPIO_PORT);
+static ARM_DRIVER_GPIO *GPIO_Driver_Rst = &ARM_Driver_GPIO_(RTE_ILI9806E_PANEL_RESET_GPIO_PORT);
 
-#if (RTE_ILI9806E_PANEL_BL_LED_GPIO_PORT == 1)
-extern ARM_DRIVER_GPIO Driver_GPIO1;
-static ARM_DRIVER_GPIO *GPIO_Driver_BLED = &Driver_GPIO1;
-#elif (RTE_ILI9806E_PANEL_BL_LED_GPIO_PORT == 2)
-extern ARM_DRIVER_GPIO Driver_GPIO2;
-static ARM_DRIVER_GPIO *GPIO_Driver_BLED = &Driver_GPIO2;
-#elif (RTE_ILI9806E_PANEL_BL_LED_GPIO_PORT == 3)
-extern ARM_DRIVER_GPIO Driver_GPIO3;
-static ARM_DRIVER_GPIO *GPIO_Driver_BLED = &Driver_GPIO3;
-#elif (RTE_ILI9806E_PANEL_BL_LED_GPIO_PORT == 4)
-extern ARM_DRIVER_GPIO Driver_GPIO4;
-static ARM_DRIVER_GPIO *GPIO_Driver_BLED = &Driver_GPIO4;
-#else
-#error "GPIO Port for display BL LED not found"
-#endif
+/* ILI9806E panel black light LED GPIO port */
+extern ARM_DRIVER_GPIO ARM_Driver_GPIO_(RTE_ILI9806E_PANEL_BL_LED_GPIO_PORT);
+static ARM_DRIVER_GPIO *GPIO_Driver_BLED = &ARM_Driver_GPIO_(RTE_ILI9806E_PANEL_BL_LED_GPIO_PORT);
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 

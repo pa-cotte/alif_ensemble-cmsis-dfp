@@ -11,6 +11,8 @@
 #ifndef DMA_MAPPING_H
 #define DMA_MAPPING_H
 
+#include "RTE_Device.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -18,85 +20,530 @@ extern "C" {
 /******************************************************************************/
 /*                         DMA0 peripheral map                              */
 /******************************************************************************/
-#define UART0_DMA 0
-#define UART0_RX_PERIPH_REQ 0
-#define UART0_TX_PERIPH_REQ 1
 
-#define UART1_DMA 0
-#define UART1_RX_PERIPH_REQ 2
-#define UART1_TX_PERIPH_REQ 3
+/************************* DMA0 Group 0 Mapping *******************************/
 
-#define UART2_DMA 0
-#define UART2_RX_PERIPH_REQ 4
-#define UART2_TX_PERIPH_REQ 5
+#if RTE_CMP0_SEL_DMA0
+#define CMP0_DMA                       0
+#define CMP0_DMA_PERIPH_REQ            0
+#endif
 
-#define UART3_DMA 0
-#define UART3_RX_PERIPH_REQ 6
-#define UART3_TX_PERIPH_REQ 7
+#if RTE_CMP1_SEL_DMA0
+#define CMP1_DMA                       0
+#define CMP1_DMA_PERIPH_REQ            1
+#endif
 
-#define SPI0_DMA 0
-#define SPI0_RX_PERIPH_REQ 8
-#define SPI0_TX_PERIPH_REQ 9
+#if RTE_CMP2_SEL_DMA0
+#define CMP2_DMA                       0
+#define CMP2_DMA_PERIPH_REQ            2
+#endif
 
-#define SPI1_DMA 0
-#define SPI1_RX_PERIPH_REQ 10
-#define SPI1_TX_PERIPH_REQ 11
+#if RTE_CMP3_SEL_DMA0
+#define CMP3_DMA                       0
+#define CMP3_DMA_PERIPH_REQ            3
+#endif
 
-#define SPI2_DMA 0
-#define SPI2_RX_PERIPH_REQ 12
-#define SPI2_TX_PERIPH_REQ 13
+#if RTE_ADC120_SEL_DMA0
+#define ADC120_DMA                     0
+#define ADC120_DMA_DONE1_PERIPH_REQ    4
+#endif
 
-#define SPI3_DMA 0
-#define SPI3_RX_PERIPH_REQ 14
-#define SPI3_TX_PERIPH_REQ 15
+#if RTE_ADC121_SEL_DMA0
+#define ADC121_DMA                     0
+#define ADC121_DMA_DONE1_PERIPH_REQ    5
+#endif
 
-#define I3C0_DMA 0
-#define I3C0_RX_PERIPH_REQ 22
-#define I3C0_TX_PERIPH_REQ 23
+#if RTE_ADC122_SEL_DMA0
+#define ADC122_DMA                     0
+#define ADC122_DMA_DONE1_PERIPH_REQ    6
+#endif
 
+#if RTE_BOD_SEL_DMA0
+#define BOD_DMA                        0
+#define BOD_DMA_PERIPH_REQ             7
+#endif
 
-#define I2S0_DMA 0
-#define I2S0_RX_PERIPH_REQ 24
-#define I2S0_TX_PERIPH_REQ 25
+#define UART0_DMA                      0
+#define UART0_DMA_RX_PERIPH_REQ        8
+#define UART0_DMA_TX_PERIPH_REQ        16
 
-#define I2S1_DMA 0
-#define I2S1_RX_PERIPH_REQ 26
-#define I2S1_TX_PERIPH_REQ 27
+#define UART1_DMA                      0
+#define UART1_DMA_RX_PERIPH_REQ        9
+#define UART1_DMA_TX_PERIPH_REQ        17
 
-#define I2S2_DMA 0
-#define I2S2_RX_PERIPH_REQ 28
-#define I2S2_TX_PERIPH_REQ 29
+#define UART2_DMA                      0
+#define UART2_DMA_RX_PERIPH_REQ        10
+#define UART2_DMA_TX_PERIPH_REQ        18
 
-#define I2S3_DMA 0
-#define I2S3_RX_PERIPH_REQ 30
-#define I2S3_TX_PERIPH_REQ 31
+#define UART3_DMA                      0
+#define UART3_DMA_RX_PERIPH_REQ        11
+#define UART3_DMA_TX_PERIPH_REQ        19
+
+#if RTE_UART4_SEL_DMA0
+#define UART4_DMA                      0
+#define UART4_DMA_RX_PERIPH_REQ        12
+#define UART4_DMA_TX_PERIPH_REQ        20
+#endif
+
+#if RTE_UART5_SEL_DMA0
+#define UART5_DMA                      0
+#define UART5_DMA_RX_PERIPH_REQ        13
+#define UART5_DMA_TX_PERIPH_REQ        21
+#endif
+
+#if RTE_UART6_SEL_DMA0
+#define UART6_DMA                      0
+#define UART6_DMA_RX_PERIPH_REQ        14
+#define UART6_DMA_TX_PERIPH_REQ        22
+#endif
+
+#if RTE_UART7_SEL_DMA0
+#define UART7_DMA                      0
+#define UART7_DMA_RX_PERIPH_REQ        15
+#define UART7_DMA_TX_PERIPH_REQ        23
+#endif
+
+#define I2C0_DMA                       0
+#define I2C0_DMA_RX_PERIPH_REQ         24
+#define I2C0_DMA_TX_PERIPH_REQ         28
+
+#define I2C1_DMA                       0
+#define I2C1_DMA_RX_PERIPH_REQ         25
+#define I2C1_DMA_TX_PERIPH_REQ         29
+
+#define I2C2_DMA                       0
+#define I2C2_DMA_RX_PERIPH_REQ         26
+#define I2C2_DMA_TX_PERIPH_REQ         30
+
+#define I2C3_DMA                       0
+#define I2C3_DMA_RX_PERIPH_REQ         27
+#define I2C3_DMA_TX_PERIPH_REQ         31
+
+/************************* DMA0 Group 1 Mapping *******************************/
+#if RTE_LPTIMER0_SEL_DMA0
+#define LPTIMER0_DMA                   0
+#define LPTIMER0_DMA_PERIPH_REQ        0
+#endif
+
+#if RTE_LPTIMER1_SEL_DMA0
+#define LPTIMER1_DMA                   0
+#define LPTIMER1_DMA_PERIPH_REQ        1
+#endif
+
+#if RTE_LPTIMER2_SEL_DMA0
+#define LPTIMER2_DMA                   0
+#define LPTIMER2_DMA_PERIPH_REQ        2
+#endif
+
+#if RTE_LPTIMER3_SEL_DMA0
+#define LPTIMER3_DMA                   0
+#define LPTIMER3_DMA_PERIPH_REQ        3
+#endif
+
+#if RTE_QEC0_SEL_DMA0
+#define QEC0_DMA                       0
+#define QEC0_DMA_PERIPH_REQ            4
+#endif
+
+#if RTE_QEC1_SEL_DMA0
+#define QEC1_DMA                       0
+#define QEC1_DMA_PERIPH_REQ            5
+#endif
+
+#if RTE_QEC2_SEL_DMA0
+#define QEC2_DMA                       0
+#define QEC2_DMA_PERIPH_REQ            6
+#endif
+
+#if RTE_QEC3_SEL_DMA0
+#define QEC3_DMA                       0
+#define QEC3_DMA_PERIPH_REQ            7
+#endif
+
+#if RTE_DMA0_SEL_LPUART
+#define LPUART_DMA                     0
+#define LPUART_DMA_RX_PERIPH_REQ       8
+#define LPUART_DMA_TX_PERIPH_REQ       9
+#endif
+
+#if RTE_ADC24_SEL_DMA0
+#define ADC24_DMA                      0
+#define ADC24_DMA_DONE0_PERIPH_REQ     10
+#define ADC24_DMA_DONE1_PERIPH_REQ     11
+#endif
+
+#if (RTE_DMA0_SEL_LPSPI == 1)
+#define LPSPI_DMA                      0
+#define LPSPI_DMA_RX_PERIPH_REQ        12
+#define LPSPI_DMA_TX_PERIPH_REQ        13
+#endif
+
+#define OSPI0_DMA                      0
+#define OSPI0_DMA_RX_PERIPH_REQ        16
+#define OSPI0_DMA_TX_PERIPH_REQ        18
+
+#define OSPI1_DMA                      0
+#define OSPI1_DMA_RX_PERIPH_REQ        17
+#define OSPI1_DMA_TX_PERIPH_REQ        19
+
+#if RTE_I3C_SEL_DMA0
+#define I3C_DMA                        0
+#define I3C_DMA_RX_PERIPH_REQ          20
+#define I3C_DMA_TX_PERIPH_REQ          21
+#endif
+
+#if RTE_CANFD_SEL_DMA0
+#define CANFD_DMA                      0
+#define CANFD_DMA_RX_PERIPH_REQ        22
+#define CANFD_DMA_TX_PERIPH_REQ        23
+#endif
+
+#define I2S0_DMA                       0
+#define I2S0_DMA_RX_PERIPH_REQ         24
+#define I2S0_DMA_TX_PERIPH_REQ         28
+
+#define I2S1_DMA                       0
+#define I2S1_DMA_RX_PERIPH_REQ         25
+#define I2S1_DMA_TX_PERIPH_REQ         29
+
+#define I2S2_DMA                       0
+#define I2S2_DMA_RX_PERIPH_REQ         26
+#define I2S2_DMA_TX_PERIPH_REQ         30
+
+#define I2S3_DMA                       0
+#define I2S3_DMA_RX_PERIPH_REQ         27
+#define I2S3_DMA_TX_PERIPH_REQ         31
+
+/************************* DMA0 Group 2 Mapping *******************************/
+#if RTE_UT0_SEL_DMA0
+#define UT0_DMA                        0
+#define UT0_DMA_T0_PERIPH_REQ          0
+#define UT0_DMA_T1_PERIPH_REQ          1
+#endif
+
+#if RTE_UT1_SEL_DMA0
+#define UT1_DMA                        0
+#define UT1_DMA_T0_PERIPH_REQ          2
+#define UT1_DMA_T1_PERIPH_REQ          3
+#endif
+
+#if RTE_UT2_SEL_DMA0
+#define UT2_DMA                        0
+#define UT2_DMA_T0_PERIPH_REQ          4
+#define UT2_DMA_T1_PERIPH_REQ          5
+#endif
+
+#if RTE_UT3_SEL_DMA0
+#define UT3_DMA                        0
+#define UT3_DMA_T0_PERIPH_REQ          6
+#define UT3_DMA_T1_PERIPH_REQ          7
+#endif
+
+#define UT4_DMA                        0
+#define UT4_DMA_T0_PERIPH_REQ          8
+#define UT4_DMA_T1_PERIPH_REQ          9
+
+#define UT5_DMA                        0
+#define UT5_DMA_T0_PERIPH_REQ          10
+#define UT5_DMA_T1_PERIPH_REQ          11
+
+#define UT6_DMA                        0
+#define UT6_DMA_T0_PERIPH_REQ          12
+#define UT6_DMA_T1_PERIPH_REQ          13
+
+#define UT7_DMA                        0
+#define UT7_DMA_T0_PERIPH_REQ          14
+#define UT7_DMA_T1_PERIPH_REQ          15
+
+#define SPI0_DMA                       0
+#define SPI0_DMA_RX_PERIPH_REQ         16
+#define SPI0_DMA_TX_PERIPH_REQ         20
+
+#define SPI1_DMA                       0
+#define SPI1_DMA_RX_PERIPH_REQ         17
+#define SPI1_DMA_TX_PERIPH_REQ         21
+
+#define SPI2_DMA                       0
+#define SPI2_DMA_RX_PERIPH_REQ         18
+#define SPI2_DMA_TX_PERIPH_REQ         22
+
+#define SPI3_DMA                       0
+#define SPI3_DMA_RX_PERIPH_REQ         19
+#define SPI3_DMA_TX_PERIPH_REQ         23
+
+#if (RTE_DMA0_SEL_LPSPI == 2)
+#define LPSPI_DMA                      0
+#define LPSPI_DMA_RX_PERIPH_REQ        24
+#define LPSPI_DMA_TX_PERIPH_REQ        25
+#endif
+
+#define CAM_DMA                        0
+#define CAM_DMA_VSYNC_PERIPH_REQ       26
+#define CAM_DMA_HSYNC_PERIPH_REQ       27
+
+#define CDC_DMA                        0
+#define CDC_DMA_VSYNC_PERIPH_REQ       28
+#define CDC_DMA_HSYNC_PERIPH_REQ       29
+
+#if RTE_DMA0_SEL_LPPDM
+#define LPPDM_DMA                      0
+#define LPPDM_DMA_PERIPH_REQ           30
+#endif
+
+#define PDM_DMA                        0
+#define PDM_DMA_PERIPH_REQ             31
+
+/************************* DMA0 Group 3 Mapping *******************************/
+#define GPIO3_DMA                      0
+#define GPIO3_DMA_PIN0_PERIPH_REQ      0
+#define GPIO3_DMA_PIN1_PERIPH_REQ      1
+#define GPIO3_DMA_PIN2_PERIPH_REQ      2
+#define GPIO3_DMA_PIN3_PERIPH_REQ      3
+#define GPIO3_DMA_PIN4_PERIPH_REQ      4
+#define GPIO3_DMA_PIN5_PERIPH_REQ      5
+#define GPIO3_DMA_PIN6_PERIPH_REQ      6
+#define GPIO3_DMA_PIN7_PERIPH_REQ      7
+
+#define GPIO4_DMA                      0
+#define GPIO4_DMA_PIN0_PERIPH_REQ      8
+#define GPIO4_DMA_PIN1_PERIPH_REQ      9
+#define GPIO4_DMA_PIN2_PERIPH_REQ      10
+#define GPIO4_DMA_PIN3_PERIPH_REQ      11
+#define GPIO4_DMA_PIN4_PERIPH_REQ      12
+#define GPIO4_DMA_PIN5_PERIPH_REQ      13
+#define GPIO4_DMA_PIN6_PERIPH_REQ      14
+#define GPIO4_DMA_PIN7_PERIPH_REQ      15
+
+#define GPIO7_DMA                      0
+#define GPIO7_DMA_PIN0_PERIPH_REQ      16
+#define GPIO7_DMA_PIN1_PERIPH_REQ      17
+#define GPIO7_DMA_PIN2_PERIPH_REQ      18
+#define GPIO7_DMA_PIN3_PERIPH_REQ      19
+#define GPIO7_DMA_PIN4_PERIPH_REQ      20
+#define GPIO7_DMA_PIN5_PERIPH_REQ      21
+#define GPIO7_DMA_PIN6_PERIPH_REQ      22
+#define GPIO7_DMA_PIN7_PERIPH_REQ      23
+
+#define GPIO8_DMA                      0
+#define GPIO8_DMA_PIN0_PERIPH_REQ      24
+#define GPIO8_DMA_PIN1_PERIPH_REQ      25
+#define GPIO8_DMA_PIN2_PERIPH_REQ      26
+#define GPIO8_DMA_PIN3_PERIPH_REQ      27
+#define GPIO8_DMA_PIN4_PERIPH_REQ      28
+#define GPIO8_DMA_PIN5_PERIPH_REQ      29
+#define GPIO8_DMA_PIN6_PERIPH_REQ      30
+#define GPIO8_DMA_PIN7_PERIPH_REQ      31
 
 #if defined (M55_HP)
 /******************************************************************************/
 /*                         DMA1 peripheral map                              */
 /******************************************************************************/
-#define UART4_DMA 1
-#define UART4_RX_PERIPH_REQ 0
-#define UART4_TX_PERIPH_REQ 1
+#if (!RTE_CMP0_SEL_DMA0)
+#define CMP0_DMA                       1
+#define CMP0_DMA_PERIPH_REQ            0
+#endif
 
-#define UART5_DMA 1
-#define UART5_RX_PERIPH_REQ 2
-#define UART5_TX_PERIPH_REQ 3
+#if (!RTE_CMP1_SEL_DMA0)
+#define CMP1_DMA                       1
+#define CMP1_DMA_PERIPH_REQ            1
+#endif
 
-#define UART6_DMA 1
-#define UART6_RX_PERIPH_REQ 4
-#define UART6_TX_PERIPH_REQ 5
+#if (!RTE_CMP2_SEL_DMA0)
+#define CMP2_DMA                       1
+#define CMP2_DMA_PERIPH_REQ            2
+#endif
 
-#define UART7_DMA 1
-#define UART7_RX_PERIPH_REQ 6
-#define UART7_TX_PERIPH_REQ 7
+#if (!RTE_CMP3_SEL_DMA0)
+#define CMP3_DMA                       1
+#define CMP3_DMA_PERIPH_REQ            3
+#endif
+
+#if (!RTE_QEC0_SEL_DMA0)
+#define QEC0_DMA                       1
+#define QEC0_DMA_PERIPH_REQ            4
+#endif
+
+#if (!RTE_QEC1_SEL_DMA0)
+#define QEC1_DMA                       1
+#define QEC1_DMA_PERIPH_REQ            5
+#endif
+
+#if (!RTE_QEC2_SEL_DMA0)
+#define QEC2_DMA                       1
+#define QEC2_DMA_PERIPH_REQ            6
+#endif
+
+#if (!RTE_QEC3_SEL_DMA0)
+#define QEC3_DMA                       1
+#define QEC3_DMA_PERIPH_REQ            7
+#endif
+
+#if (!RTE_UT0_SEL_DMA0)
+#define UT0_DMA                        1
+#define UT0_DMA_T0_PERIPH_REQ          0
+#define UT0_DMA_T1_PERIPH_REQ          1
+#endif
+
+#if (!RTE_UT1_SEL_DMA0)
+#define UT1_DMA                        1
+#define UT1_DMA_T0_PERIPH_REQ          2
+#define UT1_DMA_T1_PERIPH_REQ          3
+#endif
+
+#if (!RTE_UT2_SEL_DMA0)
+#define UT2_DMA                        1
+#define UT2_DMA_T0_PERIPH_REQ          4
+#define UT2_DMA_T1_PERIPH_REQ          5
+#endif
+
+#if (!RTE_UT3_SEL_DMA0)
+#define UT3_DMA                        1
+#define UT3_DMA_T0_PERIPH_REQ          6
+#define UT3_DMA_T1_PERIPH_REQ          7
+#endif
+
+#if (!RTE_UART4_SEL_DMA0)
+#define UART4_DMA                      1
+#define UART4_DMA_RX_PERIPH_REQ        16
+#define UART4_DMA_TX_PERIPH_REQ        20
+#endif
+
+#if (!RTE_UART5_SEL_DMA0)
+#define UART5_DMA                      1
+#define UART5_DMA_RX_PERIPH_REQ        17
+#define UART5_DMA_TX_PERIPH_REQ        21
+#endif
+
+#if (!RTE_UART6_SEL_DMA0)
+#define UART6_DMA                      1
+#define UART6_DMA_RX_PERIPH_REQ        18
+#define UART6_DMA_TX_PERIPH_REQ        22
+#endif
+
+#if (!RTE_UART7_SEL_DMA0)
+#define UART7_DMA                      1
+#define UART7_DMA_RX_PERIPH_REQ        19
+#define UART7_DMA_TX_PERIPH_REQ        23
+#endif
+
+#define GPIO9_DMA                      1
+#define GPIO9_DMA_PIN0_PERIPH_REQ      24
+#define GPIO9_DMA_PIN1_PERIPH_REQ      25
+#define GPIO9_DMA_PIN2_PERIPH_REQ      26
+#define GPIO9_DMA_PIN3_PERIPH_REQ      27
+#define GPIO9_DMA_PIN4_PERIPH_REQ      28
+#define GPIO9_DMA_PIN5_PERIPH_REQ      29
+#define GPIO9_DMA_PIN6_PERIPH_REQ      30
+#define GPIO9_DMA_PIN7_PERIPH_REQ      31
 
 #elif defined (M55_HE)
 /******************************************************************************/
 /*                         DMA2 peripheral map                              */
 /******************************************************************************/
+#define LPI2S_DMA                      2
+#define LPI2S_DMA_RX_PERIPH_REQ        14
+#define LPI2S_DMA_TX_PERIPH_REQ        15
 
+#if (!RTE_LPTIMER0_SEL_DMA0)
+#define LPTIMER0_DMA                   2
+#define LPTIMER0_DMA_PERIPH_REQ        0
 #endif
+
+#if (!RTE_LPTIMER1_SEL_DMA0)
+#define LPTIMER1_DMA                   2
+#define LPTIMER1_DMA_PERIPH_REQ        1
+#endif
+
+#if (!RTE_LPTIMER2_SEL_DMA0)
+#define LPTIMER2_DMA                   2
+#define LPTIMER2_DMA_PERIPH_REQ        2
+#endif
+
+#if (!RTE_LPTIMER3_SEL_DMA0)
+#define LPTIMER3_DMA                   2
+#define LPTIMER3_DMA_PERIPH_REQ        3
+#endif
+
+#if (!RTE_ADC120_SEL_DMA0)
+#define ADC120_DMA                     2
+#define ADC120_DMA_DONE1_PERIPH_REQ    4
+#endif
+
+#if (!RTE_ADC121_SEL_DMA0)
+#define ADC121_DMA                     2
+#define ADC121_DMA_DONE1_PERIPH_REQ    5
+#endif
+
+#if (!RTE_ADC122_SEL_DMA0)
+#define ADC122_DMA                     2
+#define ADC122_DMA_DONE1_PERIPH_REQ    6
+#endif
+
+#if (!RTE_BOD_SEL_DMA0)
+#define BOD_DMA                        2
+#define BOD_DMA_PERIPH_REQ             7
+#endif
+
+#if (!RTE_DMA0_SEL_LPUART)
+#define LPUART_DMA                     2
+#define LPUART_DMA_RX_PERIPH_REQ       8
+#define LPUART_DMA_TX_PERIPH_REQ       9
+#endif
+
+#if (!RTE_ADC24_SEL_DMA0)
+#define ADC24_DMA                      2
+#define ADC24_DMA_DONE0_PERIPH_REQ     10
+#define ADC24_DMA_DONE1_PERIPH_REQ     11
+#endif
+
+#if (RTE_DMA0_SEL_LPSPI == 0)
+#define LPSPI_DMA                      2
+#define LPSPI_DMA_RX_PERIPH_REQ        12
+#define LPSPI_DMA_TX_PERIPH_REQ        13
+#endif
+
+#if (!RTE_DMA0_SEL_LPI2S)
+#define LPI2S_DMA                      2
+#define LPI2S_DMA_RX_PERIPH_REQ        14
+#define LPI2S_DMA_TX_PERIPH_REQ        15
+#endif
+
+#define LPCAM_DMA                      2
+#define LPCAM_DMA_VSYNC_PERIPH_REQ     16
+#define LPCAM_DMA_HSYNC_PERIPH_REQ     17
+
+#define LPCMP_DMA                      2
+#define LPCMP_DMA_PERIPH_REQ           18
+
+#if (!RTE_DMA0_SEL_LPPDM)
+#define LPPDM_DMA                      2
+#define LPPDM_DMA_PERIPH_REQ           19
+#endif
+
+#if (!RTE_I3C_SEL_DMA0)
+#define I3C_DMA                        2
+#define I3C_DMA_RX_PERIPH_REQ          20
+#define I3C_DMA_TX_PERIPH_REQ          21
+#endif
+
+#if (!RTE_CANFD_SEL_DMA0)
+#define CANFD_DMA                      2
+#define CANFD_DMA_RX_PERIPH_REQ        22
+#define CANFD_DMA_TX_PERIPH_REQ        23
+#endif
+
+#define LPGPIO_DMA                     2
+#define LPGPIO_DMA_PIN0_PERIPH_REQ     24
+#define LPGPIO_DMA_PIN1_PERIPH_REQ     25
+#define LPGPIO_DMA_PIN2_PERIPH_REQ     26
+#define LPGPIO_DMA_PIN3_PERIPH_REQ     27
+#define LPGPIO_DMA_PIN4_PERIPH_REQ     28
+#define LPGPIO_DMA_PIN5_PERIPH_REQ     29
+#define LPGPIO_DMA_PIN6_PERIPH_REQ     30
+#define LPGPIO_DMA_PIN7_PERIPH_REQ     31
+
+#endif /* M55_HE */
+
 #ifdef __cplusplus
 }
 #endif

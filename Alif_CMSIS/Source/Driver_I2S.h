@@ -27,6 +27,7 @@
 #include "RTE_Components.h"
 #include CMSIS_device_header
 #include <stdbool.h>
+#include "sys_ctrl_i2s.h"
 
 #ifdef  __cplusplus
 extern "C"
@@ -44,31 +45,7 @@ extern "C"
 /*!< FIFO Depth for Tx & Rx  */
 #define I2S_FIFO_DEPTH           16
 
-/* I2S Clock Address */
-#define I2S0_CLK_ADDR            (CFGMST0_BASE + 0x10)
-#define I2S1_CLK_ADDR            (CFGMST0_BASE + 0x14)
-#define I2S2_CLK_ADDR            (CFGMST0_BASE + 0x18)
-#define I2S3_CLK_ADDR            (CFGMST0_BASE + 0x1C)
-
-
-/*!< Clock divisor max/min value  */
-#define I2S_CLK_DIVISOR_MAX      0x3FF
-#define I2S_CLK_DIVISOR_MIN      2
-
-/*!< I2S Input Clock Source */
-#define I2S_CLK_38P4MHZ          38400000.0
-#define I2S_CLK_160MHZ           160000000.0
-
 /* Register fields and masks */
-
-/* I2S CLKREG.DIV: Clock Divider */
-#define I2S_CLKREG_DIVISOR_Pos   0U
-#define I2S_CLKREG_DIVISOR_Msk   (0x3FFUL << I2S_CLKREG_DIVISOR_Pos)
-
-/* I2S CLKREG.CLKSRC: Clock Source */
-#define I2S_CLKREG_CLKSOURCE_Pos 16U
-#define I2S_CLKREG_CLKSOURCE_Msk (0x1UL << I2S_CLKREG_CLKSOURCE_Pos)
-
 
 /* I2S IER.IEN: Global Enable */
 #define I2S_IER_IEN_Pos          0U
@@ -223,13 +200,6 @@ typedef enum {
 } I2S_TRANSFER_Type;
 
 typedef enum {
-    I2S_CLK_SOURCE_0,         /*!< I2S 38.4Mhz Clock Source */
-    I2S_CLK_SOURCE_1,         /*!< I2S 160Mhz Clock Source */
-
-    I2S_CLK_SOURCE_MAX
-} I2S_CLK_SOURCE_Type;
-
-typedef enum {
     I2S_FIFO_TRIGGER_LEVEL_1 = 0,         /*!< I2S FIFO Trigger level 1 */
     I2S_FIFO_TRIGGER_LEVEL_2,             /*!< I2S FIFO Trigger level 1 */
     I2S_FIFO_TRIGGER_LEVEL_3,             /*!< I2S FIFO Trigger level 1 */
@@ -329,8 +299,8 @@ typedef struct _I2S_CONFIG_INFO {
     /*!< I2S word length */
     I2S_WLEN_Type wlen;
 
-    /*!< I2S clock source */
-    const I2S_CLK_SOURCE_Type clk_source;
+    /*!< I2S clock source in Hz */
+    const float clk_source;
 
     /*!< I2S Rx FIFO Trigger Level */
     const I2S_FIFO_TRIGGER_LEVEL_Type rx_fifo_trg_lvl;
@@ -346,6 +316,9 @@ typedef struct _I2S_CONFIG_INFO {
 
     /*!< I2S irq priority number */
     const uint32_t irq_priority;
+
+    /*!< I2S External audio clock source */
+    const bool ext_clk_src_enable;
 } I2S_CONFIG_INFO;
 
 typedef struct _I2S_DMA_HW_CONFIG {
@@ -379,8 +352,8 @@ typedef struct _I2S_DRV_INFO {
     /*!< I2S physical address */
     I2S_TypeDef *paddr;
 
-    /*!< I2S Clock physical address */
-    __IOM uint32_t *clkreg_paddr;
+    /*!< I2S Instance number */
+    const I2S_INSTANCE instance;
 
     /*!< I2S irq number */
     const IRQn_Type irq;

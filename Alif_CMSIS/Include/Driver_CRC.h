@@ -126,7 +126,7 @@ typedef struct ARM_Driver_CRC
     int32_t               (*Control)         (uint32_t control, uint32_t arg);                        /* Pointer to CRC_Control : Control CRC Interface */
     int32_t               (*Seed)            (uint32_t seed_value);                                   /* Pointer to CRC_Seed : used to give the seed value*/
     int32_t               (*PolyCustom)      (uint32_t polynomial);                                   /* Pointer to CRC_PolyCustom : used to give the poly custom value*/
-    int32_t               (*Compute)         (void *data_in, uint32_t len, uint32_t *data_out);       /* Pointer to CRC_Compute : used to give the input data and output data */
+    int32_t               (*Compute)         (const void *data_in, uint32_t len, uint32_t *data_out); /* Pointer to CRC_Compute : used to give the input data and output data */
 }const ARM_DRIVER_CRC;
 
 #ifdef __cplusplus

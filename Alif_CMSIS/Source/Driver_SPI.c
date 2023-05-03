@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -13,13 +13,16 @@
  * @author   Girish BN
  * @email    girish.bn@alifsemi.com
  * @version  V1.0.0
- * @date     14-Jun-2021
+ * @date     20-04-2023
  * @brief    CMSIS-Driver for SPI.
  * @bug      None.
  * @Note     None
  ******************************************************************************/
 
-#include "SPI_ll_drv.h"
+#include "Driver_SPI.h"
+#include "Driver_SPI_Private.h"
+#include "spi.h"
+#include "sys_ctrl_spi.h"
 
 #ifdef RTE_Drivers_SPI_MultiSlave
 #include "SPI_MultiSlave.h"
@@ -75,18 +78,6 @@ __STATIC_INLINE ARM_SPI_CAPABILITIES ARM_SPI_GetCapabilities(void)
 }
 
 /**
- * @fn      void SPI_IRQHandler(SPI_RESOURCES *SPI)
- * @brief   Spi interrupt handler
- * @note    none
- * @param   SPI : Pointer to spi resources structure
- * @retval  none
- */
-static void SPI_IRQHandler(SPI_RESOURCES *SPI)
-{
-    SPI_ll_IRQHandler(SPI);
-}
-
-/**
  * @fn      int32_t ARM_SPI_Initialize(SPI_RESOURCES *SPI, ARM_SPI_SignalEvent_t cb_event).
  * @brief   Initialize the Spi for communication.
  * @note    none.
@@ -96,53 +87,45 @@ static void SPI_IRQHandler(SPI_RESOURCES *SPI)
  */
 static int32_t ARM_SPI_Initialize(SPI_RESOURCES *SPI, ARM_SPI_SignalEvent_t cb_event)
 {
-    int32_t ret = ARM_DRIVER_OK;
-
-    /* Validating Instance already Initialized */
-    if (SPI->flag.initialized == 1)
+    if (SPI->state.initialized == 1)
     {
         return ARM_DRIVER_OK;
     }
 
-    /* Not supporting the poling mode, call back is mandatory. */
     if (cb_event == NULL)
     {
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    /* Validating the tx fifo configuration */
     if ((SPI->tx_fifo_threshold > SPI_TX_FIFO_DEPTH) || (SPI->tx_fifo_start_level > SPI_TX_FIFO_DEPTH))
     {
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    /* Validating the rx fifo configuration */
     if (SPI->rx_fifo_threshold > SPI_RX_FIFO_DEPTH)
     {
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    /* Loading call back function for global pointer. */
+    /* Reset the transfer structure for this instance */
+    SPI->transfer.tx_buff            = NULL;
+    SPI->transfer.rx_buff            = NULL;
+
+    SPI->transfer.tx_default_val     = 0;
+    SPI->transfer.tx_default_enable  = false;
+
+    SPI->transfer.total_cnt          = 0;
+    SPI->transfer.tx_current_cnt     = 0;
+    SPI->transfer.rx_current_cnt     = 0;
+    SPI->transfer.status             = SPI_TRANSFER_STATUS_NONE;
+
     SPI->cb_event = cb_event;
 
-    /* Loading default value Tx and RX resource. */
-    SPI->tx_buff            = NULL;
-    SPI->rx_buff            = NULL;
+    spi_mask_interrupts(SPI->regs);
 
-    SPI->tx_default_buff    = 0;
-    SPI->tx_default_enable  = 0;
+    SPI->state.initialized = 1;
 
-    SPI->total_cnt          = 0;
-    SPI->tx_current_cnt     = 0;
-    SPI->rx_current_cnt     = 0;
-
-    /* Mask all interrupt */
-    SPI_ll_MaskAllInterrupt(SPI);
-
-    /* Updating the initialize status */
-    SPI->flag.initialized = 1;
-
-    return ret;
+    return ARM_DRIVER_OK;
 }
 
 /**
@@ -154,42 +137,30 @@ static int32_t ARM_SPI_Initialize(SPI_RESOURCES *SPI, ARM_SPI_SignalEvent_t cb_e
  */
 static int32_t ARM_SPI_Uninitialize(SPI_RESOURCES *SPI)
 {
-    int32_t ret = ARM_DRIVER_OK;
-
-    /* Validating Instance already Un-initialized */
-    if (SPI->flag.initialized == 0)
+    if (SPI->state.initialized == 0)
     {
         return ARM_DRIVER_OK;
     }
 
-    /* Validating Instance still powered */
-    if (SPI->flag.powered == 1)
+    if (SPI->state.powered == 1)
     {
         return ARM_DRIVER_ERROR;
     }
 
-    /* Loading default value Call back pointer */
-    SPI->cb_event = NULL;
+    SPI->cb_event                   = NULL;
 
-    /* Loading default value Tx and Rx resource. */
-    SPI->tx_buff            = NULL;
-    SPI->rx_buff            = NULL;
+    SPI->transfer.tx_buff           = NULL;
+    SPI->transfer.rx_buff           = NULL;
+    SPI->transfer.tx_default_val    = 0;
+    SPI->transfer.tx_default_enable = false;
+    SPI->transfer.total_cnt         = 0;
+    SPI->transfer.tx_current_cnt    = 0;
+    SPI->transfer.rx_current_cnt    = 0;
+    SPI->transfer.status            = SPI_TRANSFER_STATUS_NONE;
 
-    SPI->tx_default_buff    = 0;
-    SPI->tx_default_enable  = 0;
+    SPI->state.initialized = 0;
 
-
-    SPI->total_cnt          = 0;
-    SPI->tx_current_cnt     = 0;
-    SPI->rx_current_cnt     = 0;
-
-    /* Un-Initialize Hardware */
-    ret = SPI_ll_Uninitialize(SPI);
-
-    /* Updating the Un-initialize status */
-    SPI->flag.initialized = 0;
-
-    return ret;
+    return ARM_DRIVER_OK;
 }
 
 /**
@@ -202,8 +173,7 @@ static int32_t ARM_SPI_Uninitialize(SPI_RESOURCES *SPI)
  */
 static int32_t ARM_SPI_PowerControl(SPI_RESOURCES *SPI, ARM_POWER_STATE state)
 {
-    /* Validating Instance initialized to power Up/Off */
-    if (SPI->flag.initialized == 0)
+    if (SPI->state.initialized == 0)
     {
         return ARM_DRIVER_ERROR;
     }
@@ -212,38 +182,40 @@ static int32_t ARM_SPI_PowerControl(SPI_RESOURCES *SPI, ARM_POWER_STATE state)
     {
         case ARM_POWER_OFF:
         {
-            /* Validating Instance already powered off*/
-            if (SPI->flag.powered == 0)
+            if (SPI->state.powered == 0)
             {
                 return ARM_DRIVER_OK;
             }
 
-            SPI_ll_Irq_Disable(SPI);
+            NVIC_ClearPendingIRQ(SPI_IRQ_NUM(SPI->drv_instance));
+            NVIC_DisableIRQ(SPI_IRQ_NUM(SPI->drv_instance));
 
-            /* Updating Instance powered off status */
-            SPI->flag.powered = 0;
+            ctrl_spi_clk(SPI->drv_instance, 0);
+
+            SPI->state.powered = 0;
 
             break;
         }
 
         case ARM_POWER_FULL:
         {
-            /* Validating Instance already powered Full*/
-            if( SPI->flag.powered == 1)
+            if( SPI->state.powered == 1)
             {
                 return ARM_DRIVER_OK;
             }
 
-            SPI_ll_Irq_Enable(SPI);
+            NVIC_ClearPendingIRQ(SPI_IRQ_NUM(SPI->drv_instance));
+            NVIC_SetPriority(SPI_IRQ_NUM(SPI->drv_instance), SPI->irq_priority);
+            NVIC_EnableIRQ(SPI_IRQ_NUM(SPI->drv_instance));
 
-            /* Updating Instance powered Full status */
-            SPI->flag.powered = 1;
+            ctrl_spi_clk(SPI->drv_instance, 1);
+
+            SPI->state.powered = 1;
 
             break;
         }
 
         case ARM_POWER_LOW:
-        default :
         {
             return ARM_DRIVER_ERROR_UNSUPPORTED;
         }
@@ -257,41 +229,44 @@ static int32_t ARM_SPI_PowerControl(SPI_RESOURCES *SPI, ARM_POWER_STATE state)
  * @note    none.
  * @param   SPI : Pointer to spi resources structure.
  * @param   data : Pointer to the data to send.
- * @param   num : Number of data byte to send.
+ * @param   num : Number of data frames to send.
  * @retval  \ref execution_status
  */
 static int32_t ARM_SPI_Send(SPI_RESOURCES *SPI, const void *data, uint32_t num)
 {
-    int32_t ret = ARM_DRIVER_OK;
-
-    /* Validating Instance initialized and powered */
-    if ((SPI->flag.initialized == 0) || (SPI->flag.powered == 0))
+    if (SPI->state.powered == 0)
     {
         return ARM_DRIVER_ERROR;
     }
 
-    /* Validating function Argument */
-    if ((SPI->tx_default_enable == 0) && (data == NULL))
+    if ((data == NULL) && (SPI->transfer.tx_default_enable == false))
     {
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    /* Validating function Argument */
     if (num == 0)
     {
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    /* Checking the driver busy status */
     if (SPI->status.busy)
     {
         return ARM_DRIVER_ERROR_BUSY;
     }
 
-    /* Calling hardware configuration for SPI receive */
-    ret = SPI_ll_Send(SPI, data, num);
+    SPI->status.busy = 1;
 
-    return ret;
+    spi_set_tx_fifo_start_level(SPI->regs, SPI->tx_fifo_start_level);
+    spi_set_tx_threshold(SPI->regs, SPI->tx_fifo_threshold);
+
+    SPI->transfer.tx_buff        = (const uint8_t *) data;
+    SPI->transfer.total_cnt      = num;
+    SPI->transfer.tx_current_cnt = 0;
+    SPI->transfer.status         = SPI_TRANSFER_STATUS_NONE;
+
+    spi_send(SPI->regs);
+
+    return ARM_DRIVER_OK;
 }
 
 /**
@@ -300,35 +275,37 @@ static int32_t ARM_SPI_Send(SPI_RESOURCES *SPI, const void *data, uint32_t num)
  * @note    none.
  * @param   SPI : Pointer to spi resources structure.
  * @param   data : Pointer to the data received.
- * @param   num : Number of data byte to receive.
+ * @param   num : Number of data frames to receive.
  * @retval  \ref execution_status
  */
 static int32_t ARM_SPI_Receive(SPI_RESOURCES *SPI, void *data, uint32_t num)
 {
-    int32_t ret = ARM_DRIVER_OK;
-
-    /* Validating Instance initialized and powered */
-    if ((SPI->flag.initialized == 0) || (SPI->flag.powered == 0))
+    if (SPI->state.powered == 0)
     {
         return ARM_DRIVER_ERROR;
     }
 
-    /* Validating function Argument */
     if ((data == NULL) || (num == 0))
     {
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    /* Checking the driver busy status */
     if (SPI->status.busy)
     {
         return ARM_DRIVER_ERROR_BUSY;
     }
 
-    /* Calling hardware configuration for SPI receive */
-    ret = SPI_ll_Receive(SPI, data, num);
+    SPI->status.busy = 1;
 
-    return ret;
+    SPI->transfer.rx_buff         = data;
+    SPI->transfer.total_cnt       = num;
+    SPI->transfer.rx_current_cnt  = 0;
+    SPI->transfer.status          = SPI_TRANSFER_STATUS_NONE;
+
+    spi_set_rx_threshold(SPI->regs, SPI->rx_fifo_threshold);
+    spi_receive(SPI->regs, &(SPI->transfer));
+
+    return ARM_DRIVER_OK;
 }
 
 /**
@@ -338,41 +315,47 @@ static int32_t ARM_SPI_Receive(SPI_RESOURCES *SPI, void *data, uint32_t num)
  * @param   SPI : Pointer to spi resources structure.
  * @param   data_out : Pointer to the data send.
  * @param   data_in : Pointer to the data received.
- * @param   num : Number of data byte to transfer.
+ * @param   num : Number of data frames to transfer.
  * @retval  \ref execution_status
  */
 static int32_t ARM_SPI_Transfer(SPI_RESOURCES *SPI, const void *data_out, void *data_in, uint32_t num)
 {
-    int32_t ret = ARM_DRIVER_OK;
-
-    /* Validating Instance initialized and powered */
-    if ((SPI->flag.initialized == 0) || (SPI->flag.powered == 0))
+    if (SPI->state.powered == 0)
     {
         return ARM_DRIVER_ERROR;
     }
 
-    /* If default value transfer is enabled, data_out NUll is also OK */
-    if ((SPI->tx_default_enable == 0) && (data_out == NULL))
+    if ((data_out == NULL) && (SPI->transfer.tx_default_enable == false))
     {
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    /* Validating function Argument */
     if ((data_out == NULL) || (data_in == NULL) || (num == 0))
     {
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    /* Checking the driver busy status */
     if (SPI->status.busy)
     {
         return ARM_DRIVER_ERROR_BUSY;
     }
 
-    /* Calling hardware configuration for SPI transfer */
-    ret = SPI_ll_Transfer(SPI, data_out, data_in, num);
+    SPI->status.busy = 1;
 
-    return ret;
+    SPI->transfer.tx_buff        = (const uint8_t *) data_out;
+    SPI->transfer.rx_buff        = data_in;
+    SPI->transfer.total_cnt      = num;
+    SPI->transfer.tx_current_cnt = 0;
+    SPI->transfer.rx_current_cnt = 0;
+    SPI->transfer.status         = SPI_TRANSFER_STATUS_NONE;
+
+    spi_set_tx_fifo_start_level(SPI->regs, SPI->tx_fifo_start_level);
+    spi_set_tx_threshold(SPI->regs, SPI->tx_fifo_threshold);
+    spi_set_rx_threshold(SPI->regs, SPI->rx_fifo_threshold);
+
+    spi_transfer(SPI->regs, &(SPI->transfer));
+
+    return ARM_DRIVER_OK;
 }
 
 /**
@@ -384,28 +367,25 @@ static int32_t ARM_SPI_Transfer(SPI_RESOURCES *SPI, const void *data_out, void *
  */
 static uint32_t ARM_SPI_GetDataCount(SPI_RESOURCES *SPI)
 {
-    uint32_t count_value;
-    SPI_RegInfo *reg_ptr = (SPI_RegInfo*)SPI->reg_base;
+    uint32_t count = 0;
 
-    /* SPI send count */
-    if((reg_ptr->ctrlr0 & SPI_CTRLR0_TMOD_MASK) == SPI_CTRLR0_TMOD_SEND_ONLY)
+    SPI_TMOD tmod = spi_get_tmod(SPI->regs);
+
+    switch (tmod)
     {
-        count_value = SPI->tx_current_cnt;
+        case SPI_TMOD_TX:
+            count = SPI->transfer.tx_current_cnt;
+            break;
+        case SPI_TMOD_RX:
+        case SPI_TMOD_TX_AND_RX:
+            count = SPI->transfer.rx_current_cnt;
+            break;
+        case SPI_TMOD_EEPROM_READ:
+        default:
+            break;
     }
 
-    /* SPI receive count */
-    if((reg_ptr->ctrlr0 & SPI_CTRLR0_TMOD_MASK) == SPI_CTRLR0_TMOD_RECEIVE_ONLY)
-    {
-        count_value = SPI->rx_current_cnt;
-    }
-
-    /* SPI transfer count : take either tx current count value or rx current count value */
-    if((reg_ptr->ctrlr0 & SPI_CTRLR0_TMOD_MASK) == SPI_CTRLR0_TMOD_TRANSFER)
-    {
-        count_value = SPI->rx_current_cnt;
-    }
-
-    return count_value;
+    return count;
 }
 
 /**
@@ -419,31 +399,21 @@ static uint32_t ARM_SPI_GetDataCount(SPI_RESOURCES *SPI)
  */
 static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t arg)
 {
-    SPI_RegInfo *reg_ptr = (SPI_RegInfo*)SPI->reg_base;
     int32_t ret = ARM_DRIVER_OK;
+    uint32_t clk;
 
-    /* Validating Instance initialized and powered */
-    if ((SPI->flag.initialized == 0) || (SPI->flag.powered == 0))
+    if (SPI->state.powered == 0)
     {
         return ARM_DRIVER_ERROR;
     }
 
-    reg_ptr->ctrlr0 = 0;
-
     switch (control & ARM_SPI_CONTROL_Msk)
     {
-        /* SPI Inactive */
         case ARM_SPI_MODE_INACTIVE:
         {
-            if( control == 0)
+            if(control == 0)
             {
-                /* Disable the SPI core clock */
-                SPI_ll_CoreClock(SPI, 0);
-
-                /* Disable the SPI */
-                SPI_ll_Disable(SPI);
-
-                return ARM_DRIVER_OK;
+                spi_disable(SPI->regs);
             }
             break;
         }
@@ -451,21 +421,20 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
         /* SPI Master (Output on MOSI, Input on MISO); arg = Bus Speed in bps */
         case ARM_SPI_MODE_MASTER:
         {
-            SPI_ll_SetMasterMode(SPI);
-
-            ret = SPI_ll_SetBusSpeed(SPI, arg);
+            spi_mode_master(SPI->regs);
+            clk = getSpiCoreClock();
+            spi_set_bus_speed(SPI->regs, arg, clk);
             break;
         }
 
-        /* SPI Slave  (Output on MISO, Input on MOSI) */
+        /* SPI Slave  (Output on MISO, Input on MOSI) arg = Bus speed in bps */
         case ARM_SPI_MODE_SLAVE:
         {
-            SPI_ll_SetSlaveMode(SPI);
-
-            ret = SPI_ll_SetBusSpeed(SPI, arg);
+            spi_mode_slave(SPI->regs);
+            clk = getSpiCoreClock();
+            spi_set_bus_speed(SPI->regs, arg, clk);
             break;
         }
-
         /* SPI Master (Output/Input on MOSI); arg = Bus Speed in bps */
         case ARM_SPI_MODE_MASTER_SIMPLEX:
         {
@@ -476,108 +445,119 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
         /* SPI Slave  (Output/Input on MISO) */
         case ARM_SPI_SET_BUS_SPEED:
         {
-            ret = SPI_ll_SetBusSpeed(SPI, arg);
-            return ARM_DRIVER_OK;
+            clk = getSpiCoreClock();
+            spi_set_bus_speed(SPI->regs, arg, clk);
+            break;
         }
 
         /* Get Bus Speed in bps */
         case ARM_SPI_GET_BUS_SPEED:
         {
-            return (int32_t)SPI_ll_GetBusSpeed(SPI);
+            clk = getSpiCoreClock();
+            return (int32_t) spi_get_bus_speed(SPI->regs, clk);
         }
 
         /* Set the default transmission value */
         case ARM_SPI_SET_DEFAULT_TX_VALUE:
         {
-            SPI->tx_default_buff = arg;
-            SPI->tx_default_enable = 1;
-
-            return ARM_DRIVER_OK;
+            SPI->transfer.tx_default_val = arg;
+            SPI->transfer.tx_default_enable = true;
+            break;
         }
 
         /* Control the Slave Select signal */
         case ARM_SPI_CONTROL_SS:
         {
-            if (SPI->sw_slave_select == 1)
+            if (arg == 1)
             {
-                SPI_ll_Control_SlaveSelect(SPI, SPI->chip_selection_pin, arg);
-                return ARM_DRIVER_OK;
+                spi_control_ss(SPI->regs, SPI->slave_select, SPI_SS_STATE_ENABLE);
             }
-            return ARM_DRIVER_ERROR;
+            else if (arg == 0)
+            {
+                spi_control_ss(SPI->regs, SPI->slave_select, SPI_SS_STATE_DISABLE);
+            }
+            else
+            {
+                return ARM_DRIVER_ERROR_PARAMETER;
+            }
+            return ARM_DRIVER_OK;
         }
 
         /* Abort the current data transfer */
         case ARM_SPI_ABORT_TRANSFER:
         {
-            /* Loading default value Tx and Rxresource. */
-            SPI->tx_buff            = NULL;
-            SPI->rx_buff            = NULL;
+            spi_mask_interrupts(SPI->regs);
 
+            SPI->transfer.tx_buff            = NULL;
+            SPI->transfer.rx_buff            = NULL;
+            SPI->transfer.tx_default_val     = 0;
+            SPI->transfer.tx_default_enable  = false;
+            SPI->transfer.total_cnt          = 0;
+            SPI->transfer.tx_current_cnt     = 0;
+            SPI->transfer.rx_current_cnt     = 0;
+            SPI->status.busy                 = 0;
 
-            SPI->tx_default_buff    = 0;
-            SPI->tx_default_enable  = 0;
-
-
-            SPI->total_cnt          = 0;
-            SPI->tx_current_cnt     = 0;
-            SPI->rx_current_cnt     = 0;
-            SPI->status.busy        = 0;
-
-            /* Masking all Interrupts */
-            SPI_ll_MaskAllInterrupt(SPI);
-
-            /* Disable SPI */
-            SPI_ll_Disable(SPI);
-
-            /* Enable SPI */
-            SPI_ll_Enable(SPI);
-
-            return ARM_DRIVER_OK;
+            spi_disable(SPI->regs);
+            spi_enable(SPI->regs);
+            break;
         }
 
         default:
-            return ARM_DRIVER_ERROR_UNSUPPORTED;
+        {
+            ret = ARM_DRIVER_ERROR_UNSUPPORTED;
+            break;
+        }
     }
 
     switch (control & ARM_SPI_FRAME_FORMAT_Msk)
     {
         /* SPI Mode configuration */
         case ARM_SPI_CPOL0_CPHA0:
+        {
+            spi_set_mode(SPI->regs, SPI_MODE_0);
+            break;
+        }
         case ARM_SPI_CPOL0_CPHA1:
+        {
+            spi_set_mode(SPI->regs, SPI_MODE_1);
+            break;
+        }
         case ARM_SPI_CPOL1_CPHA0:
+        {
+            spi_set_mode(SPI->regs, SPI_MODE_2);
+            break;
+        }
         case ARM_SPI_CPOL1_CPHA1:
         {
-            ret = SPI_ll_SetSpiMode(SPI, ((control & ARM_SPI_FRAME_FORMAT_Msk) >> ARM_SPI_FRAME_FORMAT_Pos));
+            spi_set_mode(SPI->regs, SPI_MODE_3);
             break;
         }
 
         /* Texas Instruments Frame Format */
         case ARM_SPI_TI_SSI:
         {
-            ret = SPI_ll_SetTiMode(SPI);
+            spi_set_protocol(SPI->regs, SPI_PROTO_SSP);
             break;
         }
 
         /* National Microwire Frame Format */
         case ARM_SPI_MICROWIRE:
         {
-            ret = SPI_ll_SetMicroWireMode(SPI);
+            spi_set_protocol(SPI->regs, SPI_PROTO_MICROWIRE);
             break;
         }
 
         default:
-            return ARM_DRIVER_ERROR_UNSUPPORTED;
+        {
+            ret = ARM_DRIVER_ERROR_UNSUPPORTED;
+            break;
+        }
     }
 
     /* Configure frame size */
     if (control & ARM_SPI_DATA_BITS_Msk)
     {
-        ret = SPI_ll_SetDataFrameSize(SPI, ((control & ARM_SPI_DATA_BITS_Msk) >> ARM_SPI_DATA_BITS_Pos));
-
-        if (ret != ARM_DRIVER_OK)
-        {
-            return ARM_DRIVER_ERROR_PARAMETER;
-        }
+        spi_set_dfs(SPI->regs, ((control & ARM_SPI_DATA_BITS_Msk) >> ARM_SPI_DATA_BITS_Pos));
     }
 
     switch (control & ARM_SPI_BIT_ORDER_Msk)
@@ -599,7 +579,6 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
         /* SPI Slave Select when Master: Not used (default) */
         case ARM_SPI_SS_MASTER_UNUSED:
         {
-            SPI_ll_Control_SlaveSelect(SPI, 0XF, 0);
             break;
         }
 
@@ -609,16 +588,15 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
             if((control & ARM_SPI_CONTROL_Msk) == ARM_SPI_MODE_MASTER )
             {
                 SPI->sw_slave_select = 1;
-                return ARM_DRIVER_OK;
             }
-            return ARM_DRIVER_ERROR;
+            break;
         }
 
         /* SPI Slave Select when Master: Hardware controlled Output */
         case ARM_SPI_SS_MASTER_HW_OUTPUT:
         {
             /* This is the default state in the IP, No need to configure */
-            return ARM_DRIVER_OK;
+            break;
         }
 
         /* SPI Slave Select when Master: Hardware monitored Input */
@@ -657,29 +635,29 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
  * @param   ss_state : Set to active or inactive.
  * @retval  \ref execution_status
  */
+#ifdef RTE_Drivers_SPI_MultiSlave
 static int32_t ARM_SPI_Control_SlaveSelect(SPI_RESOURCES *SPI, uint32_t device, uint32_t ss_state)
 {
-    /* Validating the instance initialized and powered */
-    if ((SPI->flag.initialized == 0) || (SPI->flag.powered == 0))
+    if (SPI->state.powered == 0)
     {
         return ARM_DRIVER_ERROR;
     }
 
-    /* Validating the function parameters */
     if ((device & SPI_SLAVE_SELECT_PIN_MASK) || (ss_state > ARM_SPI_SS_ACTIVE))
     {
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    /* Validating the SPI driver status */
     if (SPI->status.busy == 1)
     {
         return ARM_DRIVER_ERROR_BUSY;
     }
 
-    return SPI_ll_Control_SlaveSelect(SPI, device, ss_state);
-}
+    spi_control_ss(SPI->regs, device, ss_state);
 
+    return ARM_DRIVER_OK;
+}
+#endif
 /**
  * @fn      ARM_SPI_STATUS ARM_SPI_GetStatus(SPI_RESOURCES *SPI)
  * @brief   Used to get spi status.
@@ -694,12 +672,12 @@ __STATIC_INLINE ARM_SPI_STATUS ARM_SPI_GetStatus(SPI_RESOURCES *SPI)
 
 /* SPI0 driver instance */
 #if RTE_SPI0
-SPI_RESOURCES SPI0_RES = {
-    .reg_base               = (SPI_RegInfo*) SPI0_BASE,
+static SPI_RESOURCES SPI0_RES = {
+    .regs                   = (SPI_Type*) SPI0_BASE,
     .cb_event               = NULL,
     .irq_priority           = RTE_SPI0_IRQ_PRIORITY,
     .drv_instance           = SPI_INSTANCE_0,
-    .chip_selection_pin     = RTE_SPI0_CHIP_SELECTION_PIN,
+    .slave_select           = RTE_SPI0_CHIP_SELECTION_PIN,
     .spi_frf                = RTE_SPI0_SPI_FRAME_FORMAT,
     .tx_fifo_threshold      = RTE_SPI0_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_SPI0_TX_FIFO_LEVEL_TO_START_TRANSFER,
@@ -709,7 +687,24 @@ SPI_RESOURCES SPI0_RES = {
 extern void SPI0_IRQHandler(void);
 void SPI0_IRQHandler(void)
 {
-    SPI_IRQHandler(&SPI0_RES);
+    spi_transfer_t *transfer = &(SPI0_RES.transfer);
+
+    spi_irq_handler(SPI0_RES.regs, transfer);
+
+    if (transfer->status == SPI_TRANSFER_STATUS_COMPLETE)
+    {
+        transfer->status = SPI_TRANSFER_STATUS_NONE;
+        SPI0_RES.status.busy = 0;
+        SPI0_RES.cb_event(ARM_SPI_EVENT_TRANSFER_COMPLETE);
+    }
+
+    if (transfer->status == SPI_TRANSFER_STATUS_OVERFLOW)
+    {
+        transfer->status = SPI_TRANSFER_STATUS_NONE;
+        SPI0_RES.status.data_lost = 1;
+        SPI0_RES.status.busy = 0;
+        SPI0_RES.cb_event(ARM_SPI_EVENT_DATA_LOST);
+    }
 }
 
 static int32_t ARM_SPI0_Initialize(ARM_SPI_SignalEvent_t cb_event)
@@ -784,12 +779,12 @@ ARM_DRIVER_SPI Driver_SPI0 = {
 
 /* SPI1 driver instance */
 #if RTE_SPI1
-SPI_RESOURCES SPI1_RES = {
-    .reg_base               = (SPI_RegInfo*) SPI1_BASE,
+static SPI_RESOURCES SPI1_RES = {
+    .regs                   = (SPI_Type*) SPI1_BASE,
     .cb_event               = NULL,
     .irq_priority           = RTE_SPI1_IRQ_PRIORITY,
     .drv_instance           = SPI_INSTANCE_1,
-    .chip_selection_pin     = RTE_SPI1_CHIP_SELECTION_PIN,
+    .slave_select           = RTE_SPI1_CHIP_SELECTION_PIN,
     .spi_frf                = RTE_SPI1_SPI_FRAME_FORMAT,
     .tx_fifo_threshold      = RTE_SPI1_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_SPI1_TX_FIFO_LEVEL_TO_START_TRANSFER,
@@ -799,7 +794,23 @@ SPI_RESOURCES SPI1_RES = {
 extern void SPI1_IRQHandler(void);
 void SPI1_IRQHandler(void)
 {
-    SPI_IRQHandler(&SPI1_RES);
+    spi_transfer_t *transfer = &(SPI1_RES.transfer);
+
+    spi_irq_handler(SPI1_RES.regs, transfer);
+
+    if (transfer->status == SPI_TRANSFER_STATUS_COMPLETE)
+    {
+        transfer->status = SPI_TRANSFER_STATUS_NONE;
+        SPI1_RES.status.busy = 0;
+        SPI1_RES.cb_event(ARM_SPI_EVENT_TRANSFER_COMPLETE);
+    }
+
+    if (transfer->status == SPI_TRANSFER_STATUS_OVERFLOW)
+    {
+        transfer->status = SPI_TRANSFER_STATUS_NONE;
+        SPI1_RES.status.data_lost = 1;
+        SPI1_RES.cb_event(ARM_SPI_EVENT_DATA_LOST);
+    }
 }
 
 static int32_t ARM_SPI1_Initialize(ARM_SPI_SignalEvent_t cb_event)
@@ -874,12 +885,12 @@ ARM_DRIVER_SPI Driver_SPI1 = {
 
 /* SPI2 driver instance */
 #if RTE_SPI2
-SPI_RESOURCES SPI2_RES = {
-    .reg_base               = (SPI_RegInfo*) SPI2_BASE,
+static SPI_RESOURCES SPI2_RES = {
+    .regs                   = (SPI_Type*) SPI2_BASE,
     .cb_event               = NULL,
     .irq_priority           = RTE_SPI2_IRQ_PRIORITY,
     .drv_instance           = SPI_INSTANCE_2,
-    .chip_selection_pin     = RTE_SPI2_CHIP_SELECTION_PIN,
+    .slave_select           = RTE_SPI2_CHIP_SELECTION_PIN,
     .spi_frf                = RTE_SPI2_SPI_FRAME_FORMAT,
     .tx_fifo_threshold      = RTE_SPI2_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_SPI2_TX_FIFO_LEVEL_TO_START_TRANSFER,
@@ -889,7 +900,23 @@ SPI_RESOURCES SPI2_RES = {
 extern void SPI2_IRQHandler(void);
 void SPI2_IRQHandler(void)
 {
-    SPI_IRQHandler(&SPI2_RES);
+    spi_transfer_t *transfer = &(SPI2_RES.transfer);
+
+    spi_irq_handler(SPI2_RES.regs, transfer);
+
+    if (transfer->status == SPI_TRANSFER_STATUS_COMPLETE)
+    {
+        transfer->status = SPI_TRANSFER_STATUS_NONE;
+        SPI2_RES.status.busy = 0;
+        SPI2_RES.cb_event(ARM_SPI_EVENT_TRANSFER_COMPLETE);
+    }
+
+    if (transfer->status == SPI_TRANSFER_STATUS_OVERFLOW)
+    {
+        transfer->status = SPI_TRANSFER_STATUS_NONE;
+        SPI2_RES.status.data_lost = 1;
+        SPI2_RES.cb_event(ARM_SPI_EVENT_DATA_LOST);
+    }
 }
 
 static int32_t ARM_SPI2_Initialize(ARM_SPI_SignalEvent_t cb_event)
@@ -964,12 +991,12 @@ ARM_DRIVER_SPI Driver_SPI2 = {
 
 /* SPI3 driver instance */
 #if RTE_SPI3
-SPI_RESOURCES SPI3_RES = {
-    .reg_base               = (SPI_RegInfo*) SPI3_BASE,
+static SPI_RESOURCES SPI3_RES = {
+    .regs                   = (SPI_Type*) SPI3_BASE,
     .cb_event               = NULL,
     .irq_priority           = RTE_SPI3_IRQ_PRIORITY,
     .drv_instance           = SPI_INSTANCE_3,
-    .chip_selection_pin     = RTE_SPI3_CHIP_SELECTION_PIN,
+    .slave_select           = RTE_SPI3_CHIP_SELECTION_PIN,
     .spi_frf                = RTE_SPI3_SPI_FRAME_FORMAT,
     .tx_fifo_threshold      = RTE_SPI3_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_SPI3_TX_FIFO_LEVEL_TO_START_TRANSFER,
@@ -979,7 +1006,23 @@ SPI_RESOURCES SPI3_RES = {
 extern void SPI3_IRQHandler(void);
 void SPI3_IRQHandler(void)
 {
-    SPI_IRQHandler(&SPI3_RES);
+    spi_transfer_t *transfer = &(SPI3_RES.transfer);
+
+    spi_irq_handler(SPI3_RES.regs, transfer);
+
+    if (transfer->status == SPI_TRANSFER_STATUS_COMPLETE)
+    {
+        transfer->status = SPI_TRANSFER_STATUS_NONE;
+        SPI3_RES.status.busy = 0;
+        SPI3_RES.cb_event(ARM_SPI_EVENT_TRANSFER_COMPLETE);
+    }
+
+    if (transfer->status == SPI_TRANSFER_STATUS_OVERFLOW)
+    {
+        transfer->status = SPI_TRANSFER_STATUS_NONE;
+        SPI3_RES.status.data_lost = 1;
+        SPI3_RES.cb_event(ARM_SPI_EVENT_DATA_LOST);
+    }
 }
 
 static int32_t ARM_SPI3_Initialize(ARM_SPI_SignalEvent_t cb_event)

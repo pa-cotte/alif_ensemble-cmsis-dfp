@@ -8,7 +8,7 @@
  *
  */
 
-/****************************************************************************
+/******************************************************************************
  * @file     PDM_baremetal.c
  * @author   Nisarga A M
  * @email    nisarga.am@alifsemi.com
@@ -79,12 +79,6 @@
 /* channel number used for channel configuration and status register */
 #define CHANNEL_0  0
 #define CHANNEL_1  1
-#define CHANNEL_2  2
-#define CHANNEL_3  3
-#define CHANNEL_4  4
-#define CHANNEL_5  5
-#define CHANNEL_6  6
-#define CHANNEL_7  7
 
 /* PDM driver instance */
 extern ARM_DRIVER_PDM Driver_PDM;
@@ -169,35 +163,11 @@ void pdm_demo()
     version = PDMdrv->GetVersion();
     printf("\r\n PDM version api:%X driver:%X...\r\n",version.api, version.drv);
 
-    retval = pinconf_set(PORT_3, PIN_0, PINMUX_ALTERNATE_FUNCTION_3, PADCTRL_READ_ENABLE);
+    retval = pinconf_set(PORT_0, PIN_4, PINMUX_ALTERNATE_FUNCTION_3, PADCTRL_READ_ENABLE);
     if (retval)
         printf("pinconf_set failed\n");
 
-    retval = pinconf_set(PORT_3, PIN_2, PINMUX_ALTERNATE_FUNCTION_2, PADCTRL_READ_ENABLE);
-    if (retval)
-        printf("pinconf_set failed\n");
-
-    retval = pinconf_set(PORT_5, PIN_4, PINMUX_ALTERNATE_FUNCTION_3, PADCTRL_READ_ENABLE);
-    if (retval)
-        printf("pinconf_set failed\n");
-
-    retval = pinconf_set(PORT_5, PIN_5, PINMUX_ALTERNATE_FUNCTION_3, PADCTRL_READ_ENABLE);
-    if (retval)
-        printf("pinconf_set failed\n");
-
-    retval = pinconf_set(PORT_3, PIN_1, PINMUX_ALTERNATE_FUNCTION_3, 0x0);
-    if (retval)
-        printf("pinconf_set failed\n");
-
-    retval = pinconf_set(PORT_3, PIN_3, PINMUX_ALTERNATE_FUNCTION_2, 0x0);
-    if (retval)
-        printf("pinconf_set failed\n");
-
-    retval = pinconf_set(PORT_11, PIN_4, PINMUX_ALTERNATE_FUNCTION_3, 0x0);
-    if (retval)
-        printf("pinconf_set failed\n");
-
-    retval = pinconf_set(PORT_11, PIN_5, PINMUX_ALTERNATE_FUNCTION_3, 0x0);
+    retval = pinconf_set(PORT_0, PIN_5, PINMUX_ALTERNATE_FUNCTION_3, 0x0);
     if (retval)
         printf("pinconf_set failed\n");
 
@@ -216,7 +186,7 @@ void pdm_demo()
     }
 
     /* Select Wide band width audio PDM mode */
-    ret = PDMdrv->Control(ARM_PDM_MODE, ARM_PDM_MODE_WIDE_BANDWIDTH_AUDIO_1536_CLK_FRQ);
+    ret = PDMdrv->Control(ARM_PDM_MODE, ARM_PDM_MODE_STANDARD_VOICE_512_CLK_FRQ);
     if(ret != ARM_DRIVER_OK){
         printf("\r\n Error: PDM Wide band width audio control failed\n");
         goto error_poweroff;

@@ -64,11 +64,8 @@
 #define MHU_M55HP_M55HE_0_TX_BASE   0x40090000UL
 #define MHU_M55HE_M55HP_1_RX_BASE   0x400A0000UL
 #define MHU_M55HP_M55HE_1_TX_BASE   0x400B0000UL
-#define DMA1_SEC_BASE               0x400C0000UL
-#define DMA1_NS_BASE                0x400E0000UL
 #define NPU_HP_BASE                 0x400E1000UL
 #define EVTRTR1_BASE                0x400E2000UL
-#define M55HP_CFG_BASE              0x400F0000UL
 #define WDT_HP_CTRL_BASE            0x40100000UL
 #define WDT_HP_REFRESH_BASE         0x40101000UL
 #define LPRTC_BASE                  0x42000000UL
@@ -176,9 +173,9 @@
 #define SRAM2_SIZE                0x00040000		/* 256K */
 #define SRAM3_BASE                0x50800000
 #define SRAM3_SIZE                0x00100000		/* 1M */
-#define SRAM4_BASE                0x60000000
+#define SRAM4_BASE                0x58000000
 #define SRAM4_SIZE                0x00040000		/* 256K */
-#define SRAM5_BASE                0x60800000
+#define SRAM5_BASE                0x58800000
 #define SRAM5_SIZE                0x00040000		/* 256K */
 #define SRAM6_BASE                0x62000000
 #define SRAM6_SIZE                0x00200000		/* 2M */
@@ -186,7 +183,7 @@
 #define SRAM7_SIZE                0x00080000		/* 512K */
 #define SRAM8_BASE                0x63100000
 #define SRAM8_SIZE                0x00200000		/* 2M */
-#define SRAM9_BASE                0x64000000
+#define SRAM9_BASE                0x60000000
 #define SRAM9_SIZE                0x000C0000		/* 768K */
 /* On Chip NVM */
 #define MRAM_BASE                 0x80000000

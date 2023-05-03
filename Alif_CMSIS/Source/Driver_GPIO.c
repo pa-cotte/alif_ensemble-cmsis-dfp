@@ -22,11 +22,16 @@
 #include "Driver_GPIO.h"
 #include "Driver_GPIO_Private.h"
 #include "gpio.h"
+#include "sys_ctrl_gpio.h"
 
 #if !(RTE_GPIO0 || RTE_GPIO1 || RTE_GPIO2 || RTE_GPIO3 || RTE_GPIO4  || RTE_GPIO5 || RTE_GPIO6 || RTE_GPIO7 || \
       RTE_GPIO8 || RTE_GPIO9 || RTE_GPIO10 || RTE_GPIO11 || RTE_GPIO12  || RTE_GPI13 || RTE_GPI14 || RTE_GPI15)
 #error "GPIO is not enabled in the RTE_Device.h"
 #endif
+
+//#if !defined(RTE_Drivers_GPIO)
+//#error "GPIO is not enabled in the RTE_Components.h"
+//#endif
 
 /**
   \fn      int32_t GPIO_Initialize (GPIO_RESOURCES *GPIO, ARM_GPIO_SignalEvent_t cb_event, uint8_t pin_no)
@@ -290,16 +295,19 @@ static int32_t GPIO_Control (GPIO_RESOURCES *GPIO, uint8_t pin_no, GPIO_OPERATIO
 
             if(*arg)
             {
-                /* Enable Debounce Control from EXPMST0 */
-                GPIO_Debounce_Enable (GPIO);
+                /* Enable Debounce clock from EXPMST0 */
+                enable_gpio_debounce_clk (GPIO->gpio_id);
+
+                /* Set Debounce clock divider from EXPMST0 */
+                set_gpio_debounce_clkdiv (GPIO->db_clkdiv, GPIO->gpio_id);
 
                 /* Enable De-bounce operation */
                 gpio_enable_debounce (GPIO->reg_base, pin_no);
             }
             else
             {
-                /* Disable Debounce Control from EXPMST0 */
-                GPIO_Debounce_Enable (GPIO);
+                /* Disable Debounce clock from EXPMST0 */
+                disable_gpio_debounce_clk (GPIO->gpio_id);
 
                 /* Disable De-bounce operation */
                 gpio_disable_debounce (GPIO->reg_base, pin_no);
@@ -445,7 +453,7 @@ static void GPIO_IRQ_Handler (GPIO_RESOURCES *GPIO, uint8_t pin_no)
 static GPIO_RESOURCES GPIO0_RES = {
     .reg_base = (LPGPIO_Type*) GPIO0_BASE,
     .IRQ_base_num = GPIO0_IRQ0_IRQn,
-    .gpio_id = GPIO0_NUM,
+    .gpio_id = GPIO0_INSTANCE,
     .db_clkdiv = RTE_GPIO0_DB_CLK_DIV,
     .IRQ_priority = {
         RTE_GPIO0_PIN0_IRQ_PRIORITY,
@@ -543,7 +551,7 @@ ARM_DRIVER_GPIO Driver_GPIO0 = {
 static GPIO_RESOURCES GPIO1_RES = {
     .reg_base = (LPGPIO_Type*) GPIO1_BASE,
     .IRQ_base_num = GPIO1_IRQ0_IRQn,
-    .gpio_id = GPIO1_NUM,
+    .gpio_id = GPIO1_INSTANCE,
     .db_clkdiv = RTE_GPIO1_DB_CLK_DIV,
     .IRQ_priority = {
         RTE_GPIO1_PIN0_IRQ_PRIORITY,
@@ -640,7 +648,7 @@ ARM_DRIVER_GPIO Driver_GPIO1 = {
 static GPIO_RESOURCES GPIO2_RES = {
     .reg_base = (LPGPIO_Type*) GPIO2_BASE,
     .IRQ_base_num = GPIO2_IRQ0_IRQn,
-    .gpio_id = GPIO2_NUM,
+    .gpio_id = GPIO2_INSTANCE,
     .db_clkdiv = RTE_GPIO2_DB_CLK_DIV,
     .IRQ_priority = {
         RTE_GPIO2_PIN0_IRQ_PRIORITY,
@@ -737,7 +745,7 @@ ARM_DRIVER_GPIO Driver_GPIO2 = {
 static GPIO_RESOURCES GPIO3_RES = {
     .reg_base = (LPGPIO_Type*) GPIO3_BASE,
     .IRQ_base_num = GPIO3_IRQ0_IRQn,
-    .gpio_id = GPIO3_NUM,
+    .gpio_id = GPIO3_INSTANCE,
     .db_clkdiv = RTE_GPIO3_DB_CLK_DIV,
     .IRQ_priority = {
         RTE_GPIO3_PIN0_IRQ_PRIORITY,
@@ -834,7 +842,7 @@ ARM_DRIVER_GPIO Driver_GPIO3 = {
 static GPIO_RESOURCES GPIO4_RES = {
     .reg_base = (LPGPIO_Type*) GPIO4_BASE,
     .IRQ_base_num = GPIO4_IRQ0_IRQn,
-    .gpio_id = GPIO4_NUM,
+    .gpio_id = GPIO4_INSTANCE,
     .db_clkdiv = RTE_GPIO4_DB_CLK_DIV,
     .IRQ_priority = {
             RTE_GPIO4_PIN0_IRQ_PRIORITY,
@@ -932,7 +940,7 @@ ARM_DRIVER_GPIO Driver_GPIO4 = {
 static GPIO_RESOURCES GPIO5_RES = {
     .reg_base = (LPGPIO_Type*) GPIO5_BASE,
     .IRQ_base_num = GPIO5_IRQ0_IRQn,
-    .gpio_id = GPIO5_NUM,
+    .gpio_id = GPIO5_INSTANCE,
     .db_clkdiv = RTE_GPIO5_DB_CLK_DIV,
     .IRQ_priority = {
             RTE_GPIO5_PIN0_IRQ_PRIORITY,
@@ -1030,7 +1038,7 @@ ARM_DRIVER_GPIO Driver_GPIO5 = {
 static GPIO_RESOURCES GPIO6_RES = {
     .reg_base = (LPGPIO_Type*) GPIO6_BASE,
     .IRQ_base_num = GPIO6_IRQ0_IRQn,
-    .gpio_id = GPIO6_NUM,
+    .gpio_id = GPIO6_INSTANCE,
     .db_clkdiv = RTE_GPIO6_DB_CLK_DIV,
     .IRQ_priority = {
             RTE_GPIO6_PIN0_IRQ_PRIORITY,
@@ -1128,7 +1136,7 @@ ARM_DRIVER_GPIO Driver_GPIO6 = {
 static GPIO_RESOURCES GPIO7_RES = {
     .reg_base = (LPGPIO_Type*) GPIO7_BASE,
     .IRQ_base_num = GPIO7_IRQ0_IRQn,
-    .gpio_id = GPIO7_NUM,
+    .gpio_id = GPIO7_INSTANCE,
     .db_clkdiv = RTE_GPIO7_DB_CLK_DIV,
     .IRQ_priority = {
             RTE_GPIO7_PIN0_IRQ_PRIORITY,
@@ -1225,7 +1233,7 @@ ARM_DRIVER_GPIO Driver_GPIO7 = {
 static GPIO_RESOURCES GPIO8_RES = {
     .reg_base = (LPGPIO_Type*) GPIO8_BASE,
     .IRQ_base_num = GPIO8_IRQ0_IRQn,
-    .gpio_id = GPIO8_NUM,
+    .gpio_id = GPIO8_INSTANCE,
     .db_clkdiv = RTE_GPIO8_DB_CLK_DIV,
     .IRQ_priority = {
             RTE_GPIO8_PIN0_IRQ_PRIORITY,
@@ -1322,7 +1330,7 @@ ARM_DRIVER_GPIO Driver_GPIO8 = {
 static GPIO_RESOURCES GPIO9_RES = {
     .reg_base = (LPGPIO_Type*) GPIO9_BASE,
     .IRQ_base_num = GPIO9_IRQ0_IRQn,
-    .gpio_id = GPIO9_NUM,
+    .gpio_id = GPIO9_INSTANCE,
     .db_clkdiv = RTE_GPIO9_DB_CLK_DIV,
     .IRQ_priority = {
             RTE_GPIO9_PIN0_IRQ_PRIORITY,
@@ -1419,7 +1427,7 @@ ARM_DRIVER_GPIO Driver_GPIO9 = {
 static GPIO_RESOURCES GPIO10_RES = {
     .reg_base = (LPGPIO_Type*) GPIO10_BASE,
     .IRQ_base_num = GPIO10_IRQ0_IRQn,
-    .gpio_id = GPIO10_NUM,
+    .gpio_id = GPIO10_INSTANCE,
     .db_clkdiv = RTE_GPIO10_DB_CLK_DIV,
     .IRQ_priority = {
             RTE_GPIO10_PIN0_IRQ_PRIORITY,
@@ -1516,7 +1524,7 @@ ARM_DRIVER_GPIO Driver_GPIO10 = {
 static GPIO_RESOURCES GPIO11_RES = {
     .reg_base = (LPGPIO_Type*) GPIO11_BASE,
     .IRQ_base_num = GPIO11_IRQ0_IRQn,
-    .gpio_id = GPIO11_NUM,
+    .gpio_id = GPIO11_INSTANCE,
     .db_clkdiv = RTE_GPIO11_DB_CLK_DIV,
     .IRQ_priority = {
             RTE_GPIO11_PIN0_IRQ_PRIORITY,
@@ -1613,7 +1621,7 @@ ARM_DRIVER_GPIO Driver_GPIO11 = {
 static GPIO_RESOURCES GPIO12_RES = {
     .reg_base = (LPGPIO_Type*) GPIO12_BASE,
     .IRQ_base_num = GPIO12_IRQ0_IRQn,
-    .gpio_id = GPIO12_NUM,
+    .gpio_id = GPIO12_INSTANCE,
     .db_clkdiv = RTE_GPIO12_DB_CLK_DIV,
     .IRQ_priority = {
             RTE_GPIO12_PIN0_IRQ_PRIORITY,
@@ -1710,7 +1718,7 @@ ARM_DRIVER_GPIO Driver_GPIO12 = {
 static GPIO_RESOURCES GPIO13_RES = {
     .reg_base = (LPGPIO_Type*) GPIO13_BASE,
     .IRQ_base_num = GPIO13_IRQ0_IRQn,
-    .gpio_id = GPIO13_NUM,
+    .gpio_id = GPIO13_INSTANCE,
     .db_clkdiv = RTE_GPIO13_DB_CLK_DIV,
     .IRQ_priority = {
             RTE_GPIO13_PIN0_IRQ_PRIORITY,
@@ -1807,7 +1815,7 @@ ARM_DRIVER_GPIO Driver_GPIO13 = {
 static GPIO_RESOURCES GPIO14_RES = {
     .reg_base = (LPGPIO_Type*) GPIO14_BASE,
     .IRQ_base_num = GPIO14_IRQ0_IRQn,
-    .gpio_id = GPIO14_NUM,
+    .gpio_id = GPIO14_INSTANCE,
     .db_clkdiv = RTE_GPIO14_DB_CLK_DIV,
     .IRQ_priority = {
             RTE_GPIO14_PIN0_IRQ_PRIORITY,
@@ -1903,7 +1911,7 @@ ARM_DRIVER_GPIO Driver_GPIO14 = {
 #if RTE_GPIO15
 static GPIO_RESOURCES GPIO15_RES = {
     .reg_base = (LPGPIO_Type*) LPGPIO_BASE,
-    .gpio_id = GPIO15_NUM,
+    .gpio_id = GPIO15_INSTANCE,
     .IRQ_base_num = LPGPIO_IRQ0_IRQn,
     .IRQ_priority = {
             RTE_GPIO15_PIN0_IRQ_PRIORITY,

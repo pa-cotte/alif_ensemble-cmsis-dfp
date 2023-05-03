@@ -13,10 +13,10 @@
  * @author   Manoj A Murudi
  * @email    manoj.murudi@alifsemi.com
  * @version  V1.0.0
- * @date     13-June-2022
- * @brief    Baremetal Test Application for I2S for Carrier board.
- *           I2S0 is configured as master transmitter with MCLK 24.576Mhz and 24bit
- *           I2S2 is configured as master receiver SPH0645LM4H-1 device 24bit
+ * @date     3-May-2023
+ * @brief    Test Application for I2S for Devkit
+ *           I2S2 is configured as master transmitter (DAC).
+ *           I2S3(ADC) is configured as master receiver SPH0645LM4H-1 device 24bit
  * @bug      None.
  * @Note	 None
  ******************************************************************************/
@@ -27,7 +27,7 @@
 
 /* Project Includes */
 #include <Driver_SAI.h>
-#include <Driver_PINMUX_AND_PINPAD.h>
+#include <pinconf.h>
 
 /*Audio samples */
 #include "i2s_samples.h"
@@ -54,23 +54,28 @@ void Receiver ();
     }
 #endif
 
-/* Enable this to feed the predefined hello sample in the TX path and RX path is disabled */
-//#define DAC_PREDEFINED_SAMPLES
-
 /* 1 to send the data stream continuously , 0 to send data only once */
 #define REPEAT_TX 1
 
 #define ERROR  -1
 #define SUCCESS 0
 
-#define I2S_DAC 0                    /* DAC I2S Controller 0 */
-#define I2S_ADC 2                    /* ADC I2S Controller 2 */
+#if defined (M55_HE)
+#define I2S_DAC LP            /* DAC LPI2S Controller */
+#else
+/* Enable this to feed the predefined hello sample in the
+ * Send function. Receive will be disabled.
+ */
+//#define DAC_PREDEFINED_SAMPLES
+#define I2S_DAC 2             /* DAC I2S Controller 2 */
+#endif
+#define I2S_ADC 3             /* ADC I2S Controller 3 */
 
 #define DAC_SEND_COMPLETE_EVENT    (1U << 0)
 #define ADC_RECEIVE_COMPLETE_EVENT (1U << 1)
 #define ADC_RECEIVE_OVERFLOW_EVENT (1U << 2)
 
-#define NUM_SAMPLES                 51200
+#define NUM_SAMPLES                 40000
 
 uint32_t    buf_len2 = 0;
 volatile int32_t event_flag = 0;
@@ -110,20 +115,38 @@ int32_t dac_pinmux_config(void)
 {
     int32_t status;
 
-    /* Configure I2S0 SDO */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_29, PINMUX_ALTERNATE_FUNCTION_3);
+#if (I2S_DAC == LP)
+    /* Configure LPI2S_C SDO */
+    status = pinconf_set(PORT_13, PIN_5, PINMUX_ALTERNATE_FUNCTION_2, 0);
     if(status)
         return ERROR;
 
-    /* Configure I2S0 WS */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_31, PINMUX_ALTERNATE_FUNCTION_3);
+    /* Configure LPI2S_C WS */
+    status = pinconf_set(PORT_13, PIN_7, PINMUX_ALTERNATE_FUNCTION_2, 0);
     if(status)
         return ERROR;
 
-    /* Configure I2S0 SCLK */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_30, PINMUX_ALTERNATE_FUNCTION_2);
+    /* Configure LPI2S_C SCLK */
+    status = pinconf_set(PORT_13, PIN_6, PINMUX_ALTERNATE_FUNCTION_2, 0);
     if(status)
         return ERROR;
+#else
+    /* Configure I2S2_A SDO */
+    status = pinconf_set(PORT_8, PIN_2, PINMUX_ALTERNATE_FUNCTION_1, 0);
+    if(status)
+        return ERROR;
+
+    /* Configure I2S2_A WS */
+    status = pinconf_set(PORT_8, PIN_4, PINMUX_ALTERNATE_FUNCTION_1, 0);
+    if(status)
+        return ERROR;
+
+    /* Configure I2S2_A SCLK */
+    status = pinconf_set(PORT_8, PIN_3, PINMUX_ALTERNATE_FUNCTION_1, 0);
+    if(status)
+        return ERROR;
+
+#endif
 
     return SUCCESS;
 }
@@ -309,18 +332,18 @@ int32_t adc_pinmux_config(void)
 {
     int32_t  status;
 
-    /* Configure I2S2 WS */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_4, PINMUX_ALTERNATE_FUNCTION_2);
+    /* Configure I2S3_B WS */
+    status = pinconf_set(PORT_8, PIN_7, PINMUX_ALTERNATE_FUNCTION_2, 0);
     if(status)
         return ERROR;
 
-    /* Configure I2S2 SCLK */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_3, PINMUX_ALTERNATE_FUNCTION_3);
+    /* Configure I2S3_B SCLK */
+    status = pinconf_set(PORT_8, PIN_6, PINMUX_ALTERNATE_FUNCTION_2, 0);
     if(status)
         return ERROR;
 
-    /* Configure I2S2 SDI */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_1, PINMUX_ALTERNATE_FUNCTION_3);
+    /* Configure I2S3_B SDI */
+    status = pinconf_set(PORT_9, PIN_0, PINMUX_ALTERNATE_FUNCTION_2, PADCTRL_READ_ENABLE);
     if(status)
         return ERROR;
 

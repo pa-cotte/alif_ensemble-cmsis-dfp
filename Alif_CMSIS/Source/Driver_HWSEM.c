@@ -20,21 +20,22 @@
  ******************************************************************************/
 
 /* Driver specific include */
-#include "HWSEM_dev.h"
+#include "hwsem.h"
+#include "Driver_HWSEM_Private.h"
 
 #define ARM_HWSEM_DRV_VERSION    ARM_DRIVER_VERSION_MAJOR_MINOR(1, 0) /* Driver version */
 
 /* Driver Version */
 static const ARM_DRIVER_VERSION DriverVersion = {
-	ARM_HWSEM_API_VERSION,
-	ARM_HWSEM_DRV_VERSION
+    ARM_HWSEM_API_VERSION,
+    ARM_HWSEM_DRV_VERSION
 };
 
 /* Driver Capabilities */
 static const ARM_HWSEM_CAPABILITIES DriverCapabilities =
 {
-	1,         /* Supports HWSEM callback */
-	0
+    1,         /* Supports HWSEM callback */
+    0
 };
 
 
@@ -46,7 +47,7 @@ static const ARM_HWSEM_CAPABILITIES DriverCapabilities =
  */
 static ARM_DRIVER_VERSION Hwsem_GetVersion(void)
 {
-	return DriverVersion;
+    return DriverVersion;
 }
 
 /**
@@ -57,200 +58,208 @@ static ARM_DRIVER_VERSION Hwsem_GetVersion(void)
  */
 static ARM_HWSEM_CAPABILITIES Hwsem_GetCapabilities(void)
 {
-	return DriverCapabilities;
+    return DriverCapabilities;
 }
 
 /**
   \fn           static int32_t Initialize(ARM_HWSEM_SignalEvent_t cb_event,
-                uint8_t HWSEM_DEV *dev)
+                uint8_t HWSEM_RESOURCES *hwsem)
   \brief        Initializes the driver instance with semaphore id and call back event
   \param[in]    cb_event : call back function provided by user
   \param[in]    sem_id   : Semaphore id provided by user
-  \param[in]    dev      : Pointer to Resources of the particular driver instance
+  \param[in]    hwsem    : Pointer to Resources of the particular driver instance
   \return       ARM_DRIVER_OK : If no error is there
   \             ARM_DRIVER_ERROR_BUSY : Already initialized
  */
-static int32_t Initialize(ARM_HWSEM_SignalEvent_t cb_event, HWSEM_DEV * dev)
+static int32_t Initialize(ARM_HWSEM_SignalEvent_t cb_event, HWSEM_RESOURCES *hwsem)
 {
-	/* Confirm that driver is not already in use */
-	if(dev->flags == HWSEM_INITIALIZED)
-		return ARM_DRIVER_ERROR_BUSY;
+    /* Confirm that driver is not already in use */
+    if (hwsem->state.initialized)
+    {
+        return ARM_DRIVER_ERROR_BUSY;
+    }
 
-	if(cb_event != NULL)
-	{
-		dev->cb_event = cb_event;
-	}
+    if (cb_event != NULL)
+    {
+        hwsem->cb_event = cb_event;
+    }
 
-	dev->flags |= HWSEM_INITIALIZED;
+    hwsem->state.initialized = 1;
 
-	return ARM_DRIVER_OK;
+    return ARM_DRIVER_OK;
 }
 
 /**
-  \fn           static int32_t Uninitialize(uint8_t HWSEM_DEV *dev)
+  \fn           static int32_t Uninitialize(uint8_t HWSEM_RESOURCES *hwsem)
   \brief        Uninitializes the driver instance
   \param[in]    sem_id   : Semaphore id provided by user
-  \param[in]    dev      : Pointer to Resources of the particular driver instance
+  \param[in]    hwsem    : Pointer to Resources of the particular driver instance
   \return       ARM_DRIVER_OK : If no error, otherwise ARM_DRIVER_ERROR_PARAMETER
  */
-static int32_t Uninitialize(HWSEM_DEV *dev)
+static int32_t Uninitialize(HWSEM_RESOURCES *hwsem)
 {
-	/* Confirm that driver is initialized */
-	if(!(dev->flags & HWSEM_INITIALIZED))
-		return ARM_DRIVER_ERROR;
+    /* Confirm that driver is initialized */
+    if (!(hwsem->state.initialized))
+    {
+        return ARM_DRIVER_ERROR;
+    }
 
-	dev->cb_event = NULL;
-	dev->flags &= ~HWSEM_INITIALIZED;
+    hwsem->cb_event = NULL;
 
-	return ARM_DRIVER_OK;
+    hwsem->state.initialized = 0;
+
+    return ARM_DRIVER_OK;
 }
 
 /**
-  \fn           static int32_t Lock(uint8_t HWSEM_DEV *dev)
+  \fn           static int32_t Lock(uint8_t HWSEM_RESOURCES *hwsem)
   \brief        Acquire lock of the semaphore
   \param[in]    sem_id   : Semaphore id provided by user
-  \param[in]    dev      : Pointer to Resources of the particular driver instance
+  \param[in]    hwsem    : Pointer to Resources of the particular driver instance
   \return       ARM_DRIVER_OK : If no error
   \             ARM_DRIVER_ERROR_BUSY : if semaphore is not available
   \             ARM_DRIVER_ERROR : If Driver is not initialized
  */
-static int32_t Lock(HWSEM_DEV *dev)
+static int32_t Lock(HWSEM_RESOURCES *hwsem)
 {
-	/* Confirm that driver is initialized */
-	if(!(dev->flags & HWSEM_INITIALIZED))
-		return ARM_DRIVER_ERROR;
+    /* Confirm that driver is initialized */
+    if (!(hwsem->state.initialized))
+    {
+        return ARM_DRIVER_ERROR;
+    }
 
-	/* Try to acquire semaphore by writing Master ID to the register */
-	dev->regs->ACQ_SEM = HWSEM_MASTERID ;
+    if (hwsem_request(hwsem->regs, hwsem->sem_id, HWSEM_MASTERID) == HWSEM_MASTERID)
+    {
+        return ARM_DRIVER_OK;
+    }
 
-	/* Read the register to check if the semaphore is acquired */
-	if(dev->regs->ACQ_SEM == HWSEM_MASTERID)
-	{
-		return ARM_DRIVER_OK;
-	}
-
-	/* If the semaphore is not available, enable the IRQ */
-	if(dev->cb_event != NULL)
-	{
-		/* Enable Hw Sem IRQ*/
-		NVIC_ClearPendingIRQ(dev->irq);
-		NVIC_SetPriority(dev->irq, dev->irq_priority);
-		NVIC_EnableIRQ(dev->irq);
-	}
-	return ARM_DRIVER_ERROR_BUSY;
+    /* If the semaphore is not available, enable the IRQ */
+    if (hwsem->cb_event != NULL)
+    {
+        /* Enable Hw Sem IRQ*/
+        NVIC_ClearPendingIRQ(hwsem->irq);
+        NVIC_SetPriority(hwsem->irq, hwsem->irq_priority);
+        NVIC_EnableIRQ(hwsem->irq);
+    }
+    return ARM_DRIVER_ERROR_BUSY;
 }
 
 /**
-  \fn           static int32_t UnLock(uint8_t HWSEM_DEV *dev)
+  \fn           static int32_t UnLock(uint8_t HWSEM_RESOURCES *hwsem)
   \brief        Release the semaphore
   \param[in]    sem_id   : Semaphore id provided by user
-  \param[in]    dev      : Pointer to Resources of the particular driver instance
+  \param[in]    hwsem    : Pointer to Resources of the particular driver instance
   \return       ARM_DRIVER_OK : If no error
   \             ARM_DRIVER_ERROR : if semaphore id is not same or driver is not initialized
  */
-static int32_t UnLock(HWSEM_DEV *dev)
+static int32_t UnLock(HWSEM_RESOURCES *hwsem)
 {
-	/* Confirm that driver is initialized */
-	if(!(dev->flags & HWSEM_INITIALIZED))
-		return ARM_DRIVER_ERROR;
+    /* Confirm that driver is initialized */
+    if (!(hwsem->state.initialized))
+    {
+        return ARM_DRIVER_ERROR;
+    }
 
-	/* Check if semaphore is locked */
-	if(dev->regs->REL_SEM > 0)
-	{
-		/* Release the semaphore */
-		dev->regs->REL_SEM = HWSEM_MASTERID;
-		return ARM_DRIVER_OK;
-	}
-	else
-	{
-		return ARM_DRIVER_ERROR;
-	}
+    /* Check if semaphore is locked */
+    if (hwsem_getcount(hwsem->regs, hwsem->sem_id) > 0)
+    {
+        /* Release the semaphore */
+        hwsem_release(hwsem->regs, hwsem->sem_id, HWSEM_MASTERID);
+
+        return ARM_DRIVER_OK;
+    }
+    else
+    {
+        return ARM_DRIVER_ERROR;
+    }
 }
+
 /**
-  \fn           static uint32_t GetCount(uint8_t HWSEM_DEV * dev)
+  \fn           static uint32_t GetCount(uint8_t HWSEM_RESOURCES *hwsem)
   \brief        Get the semaphore count
-  \param[in]    sem_id   : Semaphore id provided by user
-  \param[in]    dev      : Pointer to Resources of the particular driver instance
+  \param[in]    hwsem      : Pointer to Resources of the particular driver instance
   \return       Semaphore count : If no error
   \             ARM_DRIVER_ERROR : if driver is not initialized
  */
-static int32_t GetCount(HWSEM_DEV * dev)
+static int32_t GetCount(HWSEM_RESOURCES *hwsem)
 {
-	/* Confirm that driver is initialized */
-	if(!(dev->flags & HWSEM_INITIALIZED))
-		return ARM_DRIVER_ERROR;
+    /* Confirm that driver is initialized */
+    if (!(hwsem->state.initialized))
+    {
+        return ARM_DRIVER_ERROR;
+    }
 
-	return dev->regs->REL_SEM;
+    return hwsem_getcount(hwsem->regs, hwsem->sem_id);
 }
 
 /**
-  \fn          void HWSEM_IRQHandler(HWSEM_DEV *dev)
+  \fn          void HWSEM_IRQHandler(HWSEM_RESOURCES *hwsem)
   \brief       HWSEM instance specific part of Hw Semaphore Interrupt handler.
-  \param[in]   dev    :   Pointer to the HWSEM device instance
+  \param[in]   hwsem    :   Pointer to the HWSEM device instance
  */
-static void ARM_HWSEM_IRQHandler(HWSEM_DEV *dev)
+static void ARM_HWSEM_IRQHandler(HWSEM_RESOURCES *hwsem)
 {
-	/* Disable Hw Sem IRQ*/
-	NVIC_DisableIRQ(dev->irq);
-	NVIC_ClearPendingIRQ(dev->irq);
+    /* Disable Hw Sem IRQ*/
+    NVIC_DisableIRQ(hwsem->irq);
+    NVIC_ClearPendingIRQ(hwsem->irq);
 
-	/* Call the user provided call back function */
-	dev->cb_event(HWSEM_AVAILABLE_CB_EVENT, dev->sem_id);
+    /* Call the user provided call back function */
+    hwsem->cb_event(HWSEM_AVAILABLE_CB_EVENT, hwsem->sem_id);
 }
 
 /* HWSEM0 Driver Instance */
 #if (RTE_HWSEM0)
 
 /* HWSEM0 Resources */
-static HWSEM_DEV HwSem0 = {
-	.regs =(HWSEM_REGS *)HWSEM0_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM0_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM0_IRQPRIORITY,
-	.sem_id = HWSEMID0,
+static HWSEM_RESOURCES HWSEM0 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ0_IRQn,
+    .irq_priority =(uint8_t)RTE_HWSEM0_IRQPRIORITY,
+    .sem_id = HWSEMID0,
 };
 
 /* HWSEM0 Interrupt Handler */
-void HWSEM0_IRQHandler(void)
+void HWSEM_IRQ0Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem0);
+    ARM_HWSEM_IRQHandler(&HWSEM0);
 }
 
 static int32_t Hwsem0_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem0);
+    return Initialize(cb_event, &HWSEM0);
 }
 
 static int32_t Hwsem0_Uninitialize(void)
 {
-	return Uninitialize(&HwSem0);
+    return Uninitialize(&HWSEM0);
 }
 
 static int32_t Hwsem0_Lock(void)
 {
-	return Lock(&HwSem0);
+    return Lock(&HWSEM0);
 }
 
 static int32_t Hwsem0_UnLock(void)
 {
-	return UnLock(&HwSem0);
+    return UnLock(&HWSEM0);
 }
 
 static int32_t Hwsem0_GetCount(void)
 {
-	return GetCount(&HwSem0);
+    return GetCount(&HWSEM0);
 }
 
 /* HWSEM0 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM0 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem0_Initialize ,
-	Hwsem0_Uninitialize,
-	Hwsem0_Lock,
-	Hwsem0_UnLock,
-	Hwsem0_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem0_Initialize ,
+    Hwsem0_Uninitialize,
+    Hwsem0_Lock,
+    Hwsem0_UnLock,
+    Hwsem0_GetCount
 };
 
 #endif
@@ -259,55 +268,55 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM0 =
 #if (RTE_HWSEM1)
 
 /* HWSEM1 Resources */
-static HWSEM_DEV HwSem1 = {
-	.regs =(HWSEM_REGS *)HWSEM1_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM1_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM1_IRQPRIORITY,
-	.sem_id = HWSEMID1,
+static HWSEM_RESOURCES HWSEM1 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ1_IRQn,
+    .irq_priority =(uint8_t) RTE_HWSEM1_IRQPRIORITY,
+    .sem_id = HWSEMID1,
 };
 
 /* HWSEM1 Interrupt Handler */
-void HWSEM1_IRQHandler(void)
+void HWSEM_IRQ1Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem1);
+    ARM_HWSEM_IRQHandler(&HWSEM1);
 }
 
 static int32_t Hwsem1_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem1);
+    return Initialize(cb_event, &HWSEM1);
 }
 
 static int32_t Hwsem1_Uninitialize(void)
 {
-	return Uninitialize(&HwSem1);
+    return Uninitialize(&HWSEM1);
 }
 
 static int32_t Hwsem1_Lock(void)
 {
-	return Lock(&HwSem1);
+    return Lock(&HWSEM1);
 }
 
 static int32_t Hwsem1_UnLock(void)
 {
-	return UnLock(&HwSem1);
+    return UnLock(&HWSEM1);
 }
 
 static int32_t Hwsem1_GetCount(void)
 {
-	return GetCount(&HwSem1);
+    return GetCount(&HWSEM1);
 }
 
 /* HWSEM1 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM1 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem1_Initialize ,
-	Hwsem1_Uninitialize,
-	Hwsem1_Lock,
-	Hwsem1_UnLock,
-	Hwsem1_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem1_Initialize ,
+    Hwsem1_Uninitialize,
+    Hwsem1_Lock,
+    Hwsem1_UnLock,
+    Hwsem1_GetCount
 };
 
 #endif
@@ -316,55 +325,55 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM1 =
 #if (RTE_HWSEM2)
 
 /* HWSEM2 Resources */
-static HWSEM_DEV HwSem2 = {
-	.regs =(HWSEM_REGS *)HWSEM2_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM2_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM2_IRQPRIORITY,
-	.sem_id = HWSEMID2,
+static HWSEM_RESOURCES HWSEM2 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ2_IRQn,
+    .irq_priority =(uint8_t) RTE_HWSEM2_IRQPRIORITY,
+    .sem_id = HWSEMID2,
 };
 
 /* HWSEM2 Interrupt Handler */
-void HWSEM2_IRQHandler(void)
+void HWSEM_IRQ2Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem2);
+    ARM_HWSEM_IRQHandler(&HWSEM2);
 }
 
 static int32_t Hwsem2_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem2);
+    return Initialize(cb_event, &HWSEM2);
 }
 
 static int32_t Hwsem2_Uninitialize(void)
 {
-	return Uninitialize(&HwSem2);
+    return Uninitialize(&HWSEM2);
 }
 
 static int32_t Hwsem2_Lock(void)
 {
-	return Lock(&HwSem2);
+    return Lock(&HWSEM2);
 }
 
 static int32_t Hwsem2_UnLock(void)
 {
-	return UnLock(&HwSem2);
+    return UnLock(&HWSEM2);
 }
 
 static int32_t Hwsem2_GetCount(void)
 {
-	return GetCount(&HwSem2);
+    return GetCount(&HWSEM2);
 }
 
 /* HWSEM2 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM2 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem2_Initialize ,
-	Hwsem2_Uninitialize,
-	Hwsem2_Lock,
-	Hwsem2_UnLock,
-	Hwsem2_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem2_Initialize ,
+    Hwsem2_Uninitialize,
+    Hwsem2_Lock,
+    Hwsem2_UnLock,
+    Hwsem2_GetCount
 };
 
 #endif
@@ -373,55 +382,55 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM2 =
 #if (RTE_HWSEM3)
 
 /* HWSEM3 Resources */
-static HWSEM_DEV HwSem3 = {
-	.regs =(HWSEM_REGS *)HWSEM3_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM3_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM3_IRQPRIORITY,
-	.sem_id = HWSEMID3,
+static HWSEM_RESOURCES HWSEM3 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ3_IRQn,
+    .irq_priority =(uint8_t) RTE_HWSEM3_IRQPRIORITY,
+    .sem_id = HWSEMID3,
 };
 
 /* HWSEM3 Interrupt Handler */
-void HWSEM3_IRQHandler(void)
+void HWSEM_IRQ3Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem3);
+    ARM_HWSEM_IRQHandler(&HWSEM3);
 }
 
 static int32_t Hwsem3_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem3);
+    return Initialize(cb_event, &HWSEM3);
 }
 
 static int32_t Hwsem3_Uninitialize(void)
 {
-	return Uninitialize(&HwSem3);
+    return Uninitialize(&HWSEM3);
 }
 
 static int32_t Hwsem3_Lock(void)
 {
-	return Lock(&HwSem3);
+    return Lock(&HWSEM3);
 }
 
 static int32_t Hwsem3_UnLock(void)
 {
-	return UnLock(&HwSem3);
+    return UnLock(&HWSEM3);
 }
 
 static int32_t Hwsem3_GetCount(void)
 {
-	return GetCount(&HwSem3);
+    return GetCount(&HWSEM3);
 }
 
 /* HWSEM3 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM3 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem3_Initialize ,
-	Hwsem3_Uninitialize,
-	Hwsem3_Lock,
-	Hwsem3_UnLock,
-	Hwsem3_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem3_Initialize ,
+    Hwsem3_Uninitialize,
+    Hwsem3_Lock,
+    Hwsem3_UnLock,
+    Hwsem3_GetCount
 };
 
 #endif
@@ -430,55 +439,55 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM3 =
 #if (RTE_HWSEM4)
 
 /* HWSEM4 Resources */
-static HWSEM_DEV HwSem4 = {
-	.regs =(HWSEM_REGS *)HWSEM4_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM4_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM4_IRQPRIORITY,
-	.sem_id = HWSEMID4,
+static HWSEM_RESOURCES HWSEM4 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ4_IRQn,
+    .irq_priority =(uint8_t) RTE_HWSEM4_IRQPRIORITY,
+    .sem_id = HWSEMID4,
 };
 
 /* HWSEM4 Interrupt Handler */
-void HWSEM4_IRQHandler(void)
+void HWSEM_IRQ4Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem4);
+    ARM_HWSEM_IRQHandler(&HWSEM4);
 }
 
 static int32_t Hwsem4_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem4);
+    return Initialize(cb_event, &HWSEM4);
 }
 
 static int32_t Hwsem4_Uninitialize(void)
 {
-	return Uninitialize(&HwSem4);
+    return Uninitialize(&HWSEM4);
 }
 
 static int32_t Hwsem4_Lock(void)
 {
-	return Lock(&HwSem4);
+    return Lock(&HWSEM4);
 }
 
 static int32_t Hwsem4_UnLock(void)
 {
-	return UnLock(&HwSem4);
+    return UnLock(&HWSEM4);
 }
 
 static int32_t Hwsem4_GetCount(void)
 {
-	return GetCount(&HwSem4);
+    return GetCount(&HWSEM4);
 }
 
 /* HWSEM4 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM4 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem4_Initialize ,
-	Hwsem4_Uninitialize,
-	Hwsem4_Lock,
-	Hwsem4_UnLock,
-	Hwsem4_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem4_Initialize ,
+    Hwsem4_Uninitialize,
+    Hwsem4_Lock,
+    Hwsem4_UnLock,
+    Hwsem4_GetCount
 };
 
 #endif
@@ -487,55 +496,55 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM4 =
 #if (RTE_HWSEM5)
 
 /* HWSEM5 Resources */
-static HWSEM_DEV HwSem5 = {
-	.regs =(HWSEM_REGS *)HWSEM5_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM5_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM5_IRQPRIORITY,
-	.sem_id = HWSEMID5,
+static HWSEM_RESOURCES HWSEM5 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ5_IRQn,
+    .irq_priority =(uint8_t) RTE_HWSEM5_IRQPRIORITY,
+    .sem_id = HWSEMID5,
 };
 
 /* HWSEM5 Interrupt Handler */
-void HWSEM5_IRQHandler(void)
+void HWSEM_IRQ5Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem5);
+    ARM_HWSEM_IRQHandler(&HWSEM5);
 }
 
 static int32_t Hwsem5_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem5);
+    return Initialize(cb_event, &HWSEM5);
 }
 
 static int32_t Hwsem5_Uninitialize(void)
 {
-	return Uninitialize(&HwSem5);
+    return Uninitialize(&HWSEM5);
 }
 
 static int32_t Hwsem5_Lock(void)
 {
-	return Lock(&HwSem5);
+    return Lock(&HWSEM5);
 }
 
 static int32_t Hwsem5_UnLock(void)
 {
-	return UnLock(&HwSem5);
+    return UnLock(&HWSEM5);
 }
 
 static int32_t Hwsem5_GetCount(void)
 {
-	return GetCount(&HwSem5);
+    return GetCount(&HWSEM5);
 }
 
 /* HWSEM5 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM5 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem5_Initialize ,
-	Hwsem5_Uninitialize,
-	Hwsem5_Lock,
-	Hwsem5_UnLock,
-	Hwsem5_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem5_Initialize ,
+    Hwsem5_Uninitialize,
+    Hwsem5_Lock,
+    Hwsem5_UnLock,
+    Hwsem5_GetCount
 };
 
 #endif
@@ -544,55 +553,55 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM5 =
 #if (RTE_HWSEM6)
 
 /* HWSEM6 Resources */
-static HWSEM_DEV HwSem6 = {
-	.regs =(HWSEM_REGS *)HWSEM6_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM6_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM6_IRQPRIORITY,
-	.sem_id = HWSEMID6,
+static HWSEM_RESOURCES HWSEM6 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ6_IRQn,
+    .irq_priority =(uint8_t) RTE_HWSEM6_IRQPRIORITY,
+    .sem_id = HWSEMID6,
 };
 
 /* HWSEM6 Interrupt Handler */
-void HWSEM6_IRQHandler(void)
+void HWSEM_IRQ6Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem6);
+    ARM_HWSEM_IRQHandler(&HWSEM6);
 }
 
 static int32_t Hwsem6_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem6);
+    return Initialize(cb_event, &HWSEM6);
 }
 
 static int32_t Hwsem6_Uninitialize(void)
 {
-	return Uninitialize(&HwSem6);
+    return Uninitialize(&HWSEM6);
 }
 
 static int32_t Hwsem6_Lock(void)
 {
-	return Lock(&HwSem6);
+    return Lock(&HWSEM6);
 }
 
 static int32_t Hwsem6_UnLock(void)
 {
-	return UnLock(&HwSem6);
+    return UnLock(&HWSEM6);
 }
 
 static int32_t Hwsem6_GetCount(void)
 {
-	return GetCount(&HwSem6);
+    return GetCount(&HWSEM6);
 }
 
 /* HWSEM6 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM6 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem6_Initialize ,
-	Hwsem6_Uninitialize,
-	Hwsem6_Lock,
-	Hwsem6_UnLock,
-	Hwsem6_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem6_Initialize ,
+    Hwsem6_Uninitialize,
+    Hwsem6_Lock,
+    Hwsem6_UnLock,
+    Hwsem6_GetCount
 };
 
 #endif
@@ -601,55 +610,55 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM6 =
 #if (RTE_HWSEM7)
 
 /* HWSEM7 Resources */
-static HWSEM_DEV HwSem7 = {
-	.regs =(HWSEM_REGS *)HWSEM7_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM7_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM7_IRQPRIORITY,
-	.sem_id = HWSEMID7,
+static HWSEM_RESOURCES HWSEM7 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ7_IRQn,
+    .irq_priority =(uint8_t) RTE_HWSEM7_IRQPRIORITY,
+    .sem_id = HWSEMID7,
 };
 
 /* HWSEM7 Interrupt Handler */
-void HWSEM7_IRQHandler(void)
+void HWSEM_IRQ7Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem7);
+    ARM_HWSEM_IRQHandler(&HWSEM7);
 }
 
 static int32_t Hwsem7_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem7);
+    return Initialize(cb_event, &HWSEM7);
 }
 
 static int32_t Hwsem7_Uninitialize(void)
 {
-	return Uninitialize(&HwSem7);
+    return Uninitialize(&HWSEM7);
 }
 
 static int32_t Hwsem7_Lock(void)
 {
-	return Lock(&HwSem7);
+    return Lock(&HWSEM7);
 }
 
 static int32_t Hwsem7_UnLock(void)
 {
-	return UnLock(&HwSem7);
+    return UnLock(&HWSEM7);
 }
 
 static int32_t Hwsem7_GetCount(void)
 {
-	return GetCount(&HwSem7);
+    return GetCount(&HWSEM7);
 }
 
 /* HWSEM7 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM7 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem7_Initialize ,
-	Hwsem7_Uninitialize,
-	Hwsem7_Lock,
-	Hwsem7_UnLock,
-	Hwsem7_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem7_Initialize ,
+    Hwsem7_Uninitialize,
+    Hwsem7_Lock,
+    Hwsem7_UnLock,
+    Hwsem7_GetCount
 };
 
 #endif
@@ -658,55 +667,55 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM7 =
 #if (RTE_HWSEM8)
 
 /* HWSEM8 Resources */
-static HWSEM_DEV HwSem8 = {
-	.regs =(HWSEM_REGS *)HWSEM8_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM8_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM8_IRQPRIORITY,
-	.sem_id = HWSEMID8,
+static HWSEM_RESOURCES HWSEM8 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ8_IRQn,
+    .irq_priority =(uint8_t) RTE_HWSEM8_IRQPRIORITY,
+    .sem_id = HWSEMID8,
 };
 
 /* HWSEM8 Interrupt Handler */
-void HWSEM8_IRQHandler(void)
+void HWSEM_IRQ8Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem8);
+    ARM_HWSEM_IRQHandler(&HWSEM8);
 }
 
 static int32_t Hwsem8_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem8);
+    return Initialize(cb_event, &HWSEM8);
 }
 
 static int32_t Hwsem8_Uninitialize(void)
 {
-	return Uninitialize(&HwSem8);
+    return Uninitialize(&HWSEM8);
 }
 
 static int32_t Hwsem8_Lock(void)
 {
-	return Lock(&HwSem8);
+    return Lock(&HWSEM8);
 }
 
 static int32_t Hwsem8_UnLock(void)
 {
-	return UnLock(&HwSem8);
+    return UnLock(&HWSEM8);
 }
 
 static int32_t Hwsem8_GetCount(void)
 {
-	return GetCount(&HwSem8);
+    return GetCount(&HWSEM8);
 }
 
 /* HWSEM8 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM8 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem8_Initialize ,
-	Hwsem8_Uninitialize,
-	Hwsem8_Lock,
-	Hwsem8_UnLock,
-	Hwsem8_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem8_Initialize ,
+    Hwsem8_Uninitialize,
+    Hwsem8_Lock,
+    Hwsem8_UnLock,
+    Hwsem8_GetCount
 };
 
 #endif
@@ -715,55 +724,55 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM8 =
 #if (RTE_HWSEM9)
 
 /* HWSEM9 Resources */
-static HWSEM_DEV HwSem9 = {
-	.regs =(HWSEM_REGS *)HWSEM9_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM9_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM9_IRQPRIORITY,
-	.sem_id = HWSEMID9,
+static HWSEM_RESOURCES HWSEM9 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ9_IRQn,
+    .irq_priority =(uint8_t) RTE_HWSEM9_IRQPRIORITY,
+    .sem_id = HWSEMID9,
 };
 
 /* HWSEM9 Interrupt Handler */
-void HWSEM9_IRQHandler(void)
+void HWSEM_IRQ9Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem9);
+    ARM_HWSEM_IRQHandler(&HWSEM9);
 }
 
 static int32_t Hwsem9_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem9);
+    return Initialize(cb_event, &HWSEM9);
 }
 
 static int32_t Hwsem9_Uninitialize(void)
 {
-	return Uninitialize(&HwSem9);
+    return Uninitialize(&HWSEM9);
 }
 
 static int32_t Hwsem9_Lock(void)
 {
-	return Lock(&HwSem9);
+    return Lock(&HWSEM9);
 }
 
 static int32_t Hwsem9_UnLock(void)
 {
-	return UnLock(&HwSem9);
+    return UnLock(&HWSEM9);
 }
 
 static int32_t Hwsem9_GetCount(void)
 {
-	return GetCount(&HwSem9);
+    return GetCount(&HWSEM9);
 }
 
 /* HWSEM9 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM9 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem9_Initialize ,
-	Hwsem9_Uninitialize,
-	Hwsem9_Lock,
-	Hwsem9_UnLock,
-	Hwsem9_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem9_Initialize ,
+    Hwsem9_Uninitialize,
+    Hwsem9_Lock,
+    Hwsem9_UnLock,
+    Hwsem9_GetCount
 };
 
 #endif
@@ -772,55 +781,55 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM9 =
 #if (RTE_HWSEM10)
 
 /* HWSEM10 Resources */
-static HWSEM_DEV HwSem10 = {
-	.regs =(HWSEM_REGS *)HWSEM10_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM10_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM10_IRQPRIORITY,
-	.sem_id = HWSEMID10,
+static HWSEM_RESOURCES HWSEM10 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ10_IRQn,
+    .irq_priority =(uint8_t) RTE_HWSEM10_IRQPRIORITY,
+    .sem_id = HWSEMID10,
 };
 
 /* HWSEM10 Interrupt Handler */
-void HWSEM10_IRQHandler(void)
+void HWSEM_IRQ10Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem10);
+    ARM_HWSEM_IRQHandler(&HWSEM10);
 }
 
 static int32_t Hwsem10_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem10);
+    return Initialize(cb_event, &HWSEM10);
 }
 
 static int32_t Hwsem10_Uninitialize(void)
 {
-	return Uninitialize(&HwSem10);
+    return Uninitialize(&HWSEM10);
 }
 
 static int32_t Hwsem10_Lock(void)
 {
-	return Lock(&HwSem10);
+    return Lock(&HWSEM10);
 }
 
 static int32_t Hwsem10_UnLock(void)
 {
-	return UnLock(&HwSem10);
+    return UnLock(&HWSEM10);
 }
 
 static int32_t Hwsem10_GetCount(void)
 {
-	return GetCount(&HwSem10);
+    return GetCount(&HWSEM10);
 }
 
 /* HWSEM10 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM10 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem10_Initialize ,
-	Hwsem10_Uninitialize,
-	Hwsem10_Lock,
-	Hwsem10_UnLock,
-	Hwsem10_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem10_Initialize ,
+    Hwsem10_Uninitialize,
+    Hwsem10_Lock,
+    Hwsem10_UnLock,
+    Hwsem10_GetCount
 };
 
 #endif
@@ -829,55 +838,55 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM10 =
 #if (RTE_HWSEM11)
 
 /* HWSEM11 Resources */
-static HWSEM_DEV HwSem11 = {
-	.regs =(HWSEM_REGS *)HWSEM11_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM11_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM11_IRQPRIORITY,
-	.sem_id = HWSEMID11,
+static HWSEM_RESOURCES HWSEM11 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ11_IRQn,
+    .irq_priority =(uint8_t) RTE_HWSEM11_IRQPRIORITY,
+    .sem_id = HWSEMID11,
 };
 
 /* HWSEM11 Interrupt Handler */
-void HWSEM11_IRQHandler(void)
+void HWSEM_IRQ11Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem11);
+    ARM_HWSEM_IRQHandler(&HWSEM11);
 }
 
 static int32_t Hwsem11_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem11);
+    return Initialize(cb_event, &HWSEM11);
 }
 
 static int32_t Hwsem11_Uninitialize(void)
 {
-	return Uninitialize(&HwSem11);
+    return Uninitialize(&HWSEM11);
 }
 
 static int32_t Hwsem11_Lock(void)
 {
-	return Lock(&HwSem11);
+    return Lock(&HWSEM11);
 }
 
 static int32_t Hwsem11_UnLock(void)
 {
-	return UnLock(&HwSem11);
+    return UnLock(&HWSEM11);
 }
 
 static int32_t Hwsem11_GetCount(void)
 {
-	return GetCount(&HwSem11);
+    return GetCount(&HWSEM11);
 }
 
 /* HWSEM11 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM11 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem11_Initialize ,
-	Hwsem11_Uninitialize,
-	Hwsem11_Lock,
-	Hwsem11_UnLock,
-	Hwsem11_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem11_Initialize ,
+    Hwsem11_Uninitialize,
+    Hwsem11_Lock,
+    Hwsem11_UnLock,
+    Hwsem11_GetCount
 };
 
 #endif
@@ -886,55 +895,55 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM11 =
 #if (RTE_HWSEM12)
 
 /* HWSEM12 Resources */
-static HWSEM_DEV HwSem12 = {
-	.regs =(HWSEM_REGS *)HWSEM12_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM12_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM12_IRQPRIORITY,
-	.sem_id = HWSEMID12,
+static HWSEM_RESOURCES HWSEM12 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ12_IRQn,
+    .irq_priority =(uint8_t) RTE_HWSEM12_IRQPRIORITY,
+    .sem_id = HWSEMID12,
 };
 
 /* HWSEM12 Interrupt Handler */
-void HWSEM12_IRQHandler(void)
+void HWSEM_IRQ12Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem12);
+    ARM_HWSEM_IRQHandler(&HWSEM12);
 }
 
 static int32_t Hwsem12_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem12);
+    return Initialize(cb_event, &HWSEM12);
 }
 
 static int32_t Hwsem12_Uninitialize(void)
 {
-	return Uninitialize(&HwSem12);
+    return Uninitialize(&HWSEM12);
 }
 
 static int32_t Hwsem12_Lock(void)
 {
-	return Lock(&HwSem12);
+    return Lock(&HWSEM12);
 }
 
 static int32_t Hwsem12_UnLock(void)
 {
-	return UnLock(&HwSem12);
+    return UnLock(&HWSEM12);
 }
 
 static int32_t Hwsem12_GetCount(void)
 {
-	return GetCount(&HwSem12);
+    return GetCount(&HWSEM12);
 }
 
 /* HWSEM12 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM12 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem12_Initialize ,
-	Hwsem12_Uninitialize,
-	Hwsem12_Lock,
-	Hwsem12_UnLock,
-	Hwsem12_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem12_Initialize ,
+    Hwsem12_Uninitialize,
+    Hwsem12_Lock,
+    Hwsem12_UnLock,
+    Hwsem12_GetCount
 };
 
 #endif
@@ -943,55 +952,55 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM12 =
 #if (RTE_HWSEM13)
 
 /* HWSEM13 Resources */
-static HWSEM_DEV HwSem13 = {
-	.regs =(HWSEM_REGS *)HWSEM13_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM13_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM13_IRQPRIORITY,
-	.sem_id = HWSEMID13,
+static HWSEM_RESOURCES HWSEM13 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ13_IRQn,
+    .irq_priority =(uint8_t) RTE_HWSEM13_IRQPRIORITY,
+    .sem_id = HWSEMID13,
 };
 
 /* HWSEM13 Interrupt Handler */
-void HWSEM13_IRQHandler(void)
+void HWSEM_IRQ13Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem13);
+    ARM_HWSEM_IRQHandler(&HWSEM13);
 }
 
 static int32_t Hwsem13_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem13);
+    return Initialize(cb_event, &HWSEM13);
 }
 
 static int32_t Hwsem13_Uninitialize(void)
 {
-	return Uninitialize(&HwSem13);
+    return Uninitialize(&HWSEM13);
 }
 
 static int32_t Hwsem13_Lock(void)
 {
-	return Lock(&HwSem13);
+    return Lock(&HWSEM13);
 }
 
 static int32_t Hwsem13_UnLock(void)
 {
-	return UnLock(&HwSem13);
+    return UnLock(&HWSEM13);
 }
 
 static int32_t Hwsem13_GetCount(void)
 {
-	return GetCount(&HwSem13);
+    return GetCount(&HWSEM13);
 }
 
 /* HWSEM13 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM13 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem13_Initialize ,
-	Hwsem13_Uninitialize,
-	Hwsem13_Lock,
-	Hwsem13_UnLock,
-	Hwsem13_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem13_Initialize ,
+    Hwsem13_Uninitialize,
+    Hwsem13_Lock,
+    Hwsem13_UnLock,
+    Hwsem13_GetCount
 };
 
 #endif
@@ -1000,55 +1009,55 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM13 =
 #if (RTE_HWSEM14)
 
 /* HWSEM14 Resources */
-static HWSEM_DEV HwSem14 = {
-	.regs =(HWSEM_REGS *)HWSEM14_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM14_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM14_IRQPRIORITY,
-	.sem_id = HWSEMID14,
+static HWSEM_RESOURCES HWSEM14 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ14_IRQn,
+    .irq_priority =(uint8_t) RTE_HWSEM14_IRQPRIORITY,
+    .sem_id = HWSEMID14,
 };
 
 /* HWSEM14 Interrupt Handler */
-void HWSEM14_IRQHandler(void)
+void HWSEM_IRQ14Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem14);
+    ARM_HWSEM_IRQHandler(&HWSEM14);
 }
 
 static int32_t Hwsem14_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem14);
+    return Initialize(cb_event, &HWSEM14);
 }
 
 static int32_t Hwsem14_Uninitialize(void)
 {
-	return Uninitialize(&HwSem14);
+    return Uninitialize(&HWSEM14);
 }
 
 static int32_t Hwsem14_Lock(void)
 {
-	return Lock(&HwSem14);
+    return Lock(&HWSEM14);
 }
 
 static int32_t Hwsem14_UnLock(void)
 {
-	return UnLock(&HwSem14);
+    return UnLock(&HWSEM14);
 }
 
 static int32_t Hwsem14_GetCount(void)
 {
-	return GetCount(&HwSem14);
+    return GetCount(&HWSEM14);
 }
 
 /* HWSEM14 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM14 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem14_Initialize ,
-	Hwsem14_Uninitialize,
-	Hwsem14_Lock,
-	Hwsem14_UnLock,
-	Hwsem14_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem14_Initialize ,
+    Hwsem14_Uninitialize,
+    Hwsem14_Lock,
+    Hwsem14_UnLock,
+    Hwsem14_GetCount
 };
 
 #endif
@@ -1057,55 +1066,55 @@ ARM_DRIVER_HWSEM DRIVER_HWSEM14 =
 #if (RTE_HWSEM15)
 
 /* HWSEM15 Resources */
-static HWSEM_DEV HwSem15 = {
-	.regs =(HWSEM_REGS *)HWSEM15_BASE,
-	.cb_event = NULL,
-	.irq =(IRQn_Type) HWSEM15_IRQ,
-	.irq_priority =(uint8_t)RTE_HWSEM15_IRQPRIORITY,
-	.sem_id = HWSEMID15,
+static HWSEM_RESOURCES HWSEM15 = {
+    .regs =(HWSEM_Type *) HWSEM_BASE,
+    .cb_event = NULL,
+    .irq =(IRQn_Type) HWSEM_IRQ15_IRQn,
+    .irq_priority =(uint8_t) RTE_HWSEM15_IRQPRIORITY,
+    .sem_id = HWSEMID15,
 };
 
 /* HWSEM15 Interrupt Handler */
-void HWSEM15_IRQHandler(void)
+void HWSEM_IRQ15Handler(void)
 {
-	ARM_HWSEM_IRQHandler(&HwSem15);
+    ARM_HWSEM_IRQHandler(&HWSEM15);
 }
 
 static int32_t Hwsem15_Initialize(ARM_HWSEM_SignalEvent_t cb_event)
 {
-	return Initialize(cb_event, &HwSem15);
+    return Initialize(cb_event, &HWSEM15);
 }
 
 static int32_t Hwsem15_Uninitialize(void)
 {
-	return Uninitialize(&HwSem15);
+    return Uninitialize(&HWSEM15);
 }
 
 static int32_t Hwsem15_Lock(void)
 {
-	return Lock(&HwSem15);
+    return Lock(&HWSEM15);
 }
 
 static int32_t Hwsem15_UnLock(void)
 {
-	return UnLock(&HwSem15);
+    return UnLock(&HWSEM15);
 }
 
 static int32_t Hwsem15_GetCount(void)
 {
-	return GetCount(&HwSem15);
+    return GetCount(&HWSEM15);
 }
 
 /* HWSEM15 Access Struct */
 ARM_DRIVER_HWSEM DRIVER_HWSEM15 =
 {
-	Hwsem_GetVersion,
-	Hwsem_GetCapabilities,
-	Hwsem15_Initialize ,
-	Hwsem15_Uninitialize,
-	Hwsem15_Lock,
-	Hwsem15_UnLock,
-	Hwsem15_GetCount
+    Hwsem_GetVersion,
+    Hwsem_GetCapabilities,
+    Hwsem15_Initialize ,
+    Hwsem15_Uninitialize,
+    Hwsem15_Lock,
+    Hwsem15_UnLock,
+    Hwsem15_GetCount
 };
 
 #endif

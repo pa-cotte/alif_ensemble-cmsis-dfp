@@ -84,8 +84,8 @@
 \brief DSI Configuration control
 */
 typedef enum _ARM_MIPI_DSI_CONTROL {
-	DSI_CONFIGURE_HOST,
-	DSI_CONFIGURE_DPI,
+    DSI_CONFIGURE_HOST,
+    DSI_CONFIGURE_DPI,
 } ARM_MIPI_DSI_CONTROL;
 
 /**
@@ -97,25 +97,25 @@ typedef void (*ARM_MIPI_DSI_SignalEvent_t) (uint32_t  int_event); ///< Pointer t
 \brief MIPI DSI driver capabilities.
 */
 typedef struct {
-	uint32_t reentrant_operation         :1;    ///< Support for reentrant calls
-	uint32_t dpi_interface               :1;    ///< Support video mode Interface
-	uint32_t dbi_interface               :1;    ///< Support command mode Interface
-	uint32_t reserved                    :29;   ///< Reserved (must be zero)
+    uint32_t reentrant_operation         :1;    ///< Support for reentrant calls
+    uint32_t dpi_interface               :1;    ///< Support video mode Interface
+    uint32_t dbi_interface               :1;    ///< Support command mode Interface
+    uint32_t reserved                    :29;   ///< Reserved (must be zero)
 }ARM_MIPI_DSI_CAPABILITIES;
 
 /**
 \brief Access structure of the MIPI DSI Driver.
 */
 typedef struct {
-	ARM_DRIVER_VERSION                  (*GetVersion)      (void);                                        ///< Pointer to \ref ARM_MIPI_DSI_GetVersion : Get driver version.
-	ARM_MIPI_DSI_CAPABILITIES           (*GetCapabilities) (void);                                        ///< Pointer to \ref ARM_MIPI_DSI_GetCapabilities : Get MIPI DSI driver capabilities.
-	int32_t                             (*Initialize)      (ARM_MIPI_DSI_SignalEvent_t cb_event);         ///< Pointer to \ref ARM_MIPI_DSI_Initialize : Initialize MIPI DSI Interface.
-	int32_t                             (*Uninitialize)    (void);                                        ///< Pointer to \ref ARM_MIPI_DSI_Uninitialize : Uninitialize MIPI DSI Interface.
-	int32_t                             (*PowerControl)    (ARM_POWER_STATE state);                       ///< Pointer to \ref ARM_MIPI_DSI_PowerControl : Control MIPI DSI Interface Power.
-	int32_t                             (*Control)         (ARM_MIPI_DSI_CONTROL control, uint32_t arg);  ///< Pointer to \ref ARM_MIPI_DSI_Control: Control DSI Interface.
-	int32_t                             (*StartCommandMode)(void);                                        ///< Pointer to \ref ARM_MIPI_DSI_StartCommandMode : Configure DSI to start Command mode.
-	int32_t                             (*StartVideoMode)  (void);                                        ///< Pointer to \ref ARM_MIPI_DSI_StartVideoMode : Configure DSI to start Video mode.
-	int32_t                             (*Stop)            (void);                                        ///< Pointer to \ref ARM_MIPI_DSI_Stop: Shutdown DSI.
+    ARM_DRIVER_VERSION                  (*GetVersion)      (void);                                        ///< Pointer to \ref ARM_MIPI_DSI_GetVersion : Get driver version.
+    ARM_MIPI_DSI_CAPABILITIES           (*GetCapabilities) (void);                                        ///< Pointer to \ref ARM_MIPI_DSI_GetCapabilities : Get MIPI DSI driver capabilities.
+    int32_t                             (*Initialize)      (ARM_MIPI_DSI_SignalEvent_t cb_event);         ///< Pointer to \ref ARM_MIPI_DSI_Initialize : Initialize MIPI DSI Interface.
+    int32_t                             (*Uninitialize)    (void);                                        ///< Pointer to \ref ARM_MIPI_DSI_Uninitialize : Uninitialize MIPI DSI Interface.
+    int32_t                             (*PowerControl)    (ARM_POWER_STATE state);                       ///< Pointer to \ref ARM_MIPI_DSI_PowerControl : Control MIPI DSI Interface Power.
+    int32_t                             (*Control)         (ARM_MIPI_DSI_CONTROL control, uint32_t arg);  ///< Pointer to \ref ARM_MIPI_DSI_Control: Control DSI Interface.
+    int32_t                             (*StartCommandMode)(void);                                        ///< Pointer to \ref ARM_MIPI_DSI_StartCommandMode : Configure DSI to start Command mode.
+    int32_t                             (*StartVideoMode)  (void);                                        ///< Pointer to \ref ARM_MIPI_DSI_StartVideoMode : Configure DSI to start Video mode.
+    int32_t                             (*Stop)            (void);                                        ///< Pointer to \ref ARM_MIPI_DSI_Stop: Shutdown DSI.
 }ARM_DRIVER_MIPI_DSI;
 
 #endif /* DRIVER_MIPI_DSI_H_ */

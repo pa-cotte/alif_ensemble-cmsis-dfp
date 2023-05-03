@@ -46,6 +46,44 @@
 extern "C" {
 #endif
 
+/* -------------------------  Aliases for Local Resources  ------------------------ */
+/* ----------  Local DMA IRQ Handler Aliases  ---------- */
+#define DMALOCAL_IRQ0Handler        DMA1_IRQ0Handler
+#define DMALOCAL_IRQ1Handler        DMA1_IRQ1Handler
+#define DMALOCAL_IRQ2Handler        DMA1_IRQ2Handler
+#define DMALOCAL_IRQ3Handler        DMA1_IRQ3Handler
+#define DMALOCAL_IRQ4Handler        DMA1_IRQ4Handler
+#define DMALOCAL_IRQ5Handler        DMA1_IRQ5Handler
+#define DMALOCAL_IRQ6Handler        DMA1_IRQ6Handler
+#define DMALOCAL_IRQ7Handler        DMA1_IRQ7Handler
+#define DMALOCAL_IRQ8Handler        DMA1_IRQ8Handler
+#define DMALOCAL_IRQ9Handler        DMA1_IRQ9Handler
+#define DMALOCAL_IRQ10Handler       DMA1_IRQ10Handler
+#define DMALOCAL_IRQ11Handler       DMA1_IRQ11Handler
+#define DMALOCAL_IRQ12Handler       DMA1_IRQ12Handler
+#define DMALOCAL_IRQ13Handler       DMA1_IRQ13Handler
+#define DMALOCAL_IRQ14Handler       DMA1_IRQ14Handler
+#define DMALOCAL_IRQ15Handler       DMA1_IRQ15Handler
+#define DMALOCAL_IRQ16Handler       DMA1_IRQ16Handler
+#define DMALOCAL_IRQ17Handler       DMA1_IRQ17Handler
+#define DMALOCAL_IRQ18Handler       DMA1_IRQ18Handler
+#define DMALOCAL_IRQ19Handler       DMA1_IRQ19Handler
+#define DMALOCAL_IRQ20Handler       DMA1_IRQ20Handler
+#define DMALOCAL_IRQ21Handler       DMA1_IRQ21Handler
+#define DMALOCAL_IRQ22Handler       DMA1_IRQ22Handler
+#define DMALOCAL_IRQ23Handler       DMA1_IRQ23Handler
+#define DMALOCAL_IRQ24Handler       DMA1_IRQ24Handler
+#define DMALOCAL_IRQ25Handler       DMA1_IRQ25Handler
+#define DMALOCAL_IRQ26Handler       DMA1_IRQ26Handler
+#define DMALOCAL_IRQ27Handler       DMA1_IRQ27Handler
+#define DMALOCAL_IRQ28Handler       DMA1_IRQ28Handler
+#define DMALOCAL_IRQ29Handler       DMA1_IRQ29Handler
+#define DMALOCAL_IRQ30Handler       DMA1_IRQ30Handler
+#define DMALOCAL_IRQ31Handler       DMA1_IRQ31Handler
+#define DMALOCAL_IRQ_ABORT_Handler  DMA1_IRQ_ABORT_Handler
+
+/* ----------  Local DMA IRQ Number Aliases  ---------- */
+#define DMALOCAL_IRQ0_IRQn          DMA1_IRQ0_IRQn
 
 /* -------------------------  Interrupt Number Definition  ------------------------ */
 
@@ -596,6 +634,7 @@ typedef enum {
 #include "dma_mapping.h"                    /* DMA mapping */
 #include "mpu_M55.h"                        /* MPU functions */
 #include "peripheral_types.h"               /* peripheral types*/
+#include "pm.h"                             /* Power Management functions */
 
 /* --------  End of section using anonymous unions and disabling warnings  -------- */
 #if   defined (__CC_ARM)

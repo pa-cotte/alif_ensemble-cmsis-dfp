@@ -17,7 +17,7 @@ extern "C"
 
 #include "Driver_Common.h"
 
-#define ARM_DMA_API_VERSION ARM_DRIVER_VERSION_MAJOR_MINOR(3,2)  /* API version */
+#define ARM_DMA_API_VERSION ARM_DRIVER_VERSION_MAJOR_MINOR(4,0)  /* API version */
 
 
 #define _ARM_Driver_DMA_(n)      Driver_DMA##n
@@ -170,6 +170,7 @@ typedef struct _ARM_DRIVER_DMA {
   ARM_DMA_CAPABILITIES (*GetCapabilities) (void);                                            ///< Pointer to \ref ARM_DMA_GetCapabilities : Get driver capabilities.
   int32_t              (*Initialize)      (void);                                            ///< Pointer to \ref ARM_DMA_Initialize : Initialize DMA Interface.
   int32_t              (*Uninitialize)    (void);                                            ///< Pointer to \ref ARM_DMA_Uninitialize : De-initialize DMA Interface.
+  int32_t              (*PowerControl)    (ARM_POWER_STATE state);                           ///< Pointer to \ref ARM_DMA_PowerControl : Control DMA Interface Power.
   int32_t              (*Allocate)        (DMA_Handle_Type *handle);                         ///< Pointer to \ref ARM_DMA_Allocate : Allocate a DMA handle
   int32_t              (*Control)         (DMA_Handle_Type *handle, uint32_t control, uint32_t arg);  ///< Pointer to \ref ARM_DMA_Control : Control DMA operation
   int32_t              (*Start)           (DMA_Handle_Type *handle, ARM_DMA_PARAMS *params); ///< Pointer to \ref ARM_DMA_Start : Start DMA operation

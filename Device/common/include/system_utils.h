@@ -51,7 +51,11 @@ extern "C" {
 #endif
 
 #ifndef MASK
-#define MASK(h,l)                           (((~(0U)) << (l)) & (~(0U) >> (32 - 1 - (h))))
+/**
+ * @Note : 1st arg should be higher bit & 2nd arg should be lower i.e. (h > l)
+ */
+#define MASK(h,l)           (((~(0U)) << (l)) &  (~(0U) >> (32 - 1 - (h))))
+#define MASK64(h,l)         (((~(0UL)) << (l)) &  (~(0UL) >> (32 - 1 - (h))))
 #endif
 
 #define BIT(nr)                             (1UL << (nr))
@@ -61,6 +65,26 @@ extern "C" {
 #define CLEAR_REG(REG)                      ((REG) = (0x0))
 #define WRITE_REG(REG, VAL)                 ((REG) = (VAL))
 #define READ_REG(REG)                       ((REG))
+
+/*Below Macros are helpful for bitwise operator (input argument 1 means bit 0)*/
+#define BIT64(n)                            ((1ULL) << n)
+#define REG64_SET_ONE_BIT(src, n)           (src |=  (BIT64(n)))
+#define REG64_CLR_ONE_BIT(src, n)           (src &= ~(BIT64(n)))
+#define REG32_SET_ONE_BIT(src, n)           (src |=  (  BIT(n)))
+#define REG32_CLR_ONE_BIT(src, n)           (src &= ~(  BIT(n)))
+
+#define REG64_SET_M_AND_N_BIT(src, m, n)    (src |=  ( (BIT64(m) |  BIT64(n)) ))
+#define REG64_CLR_M_AND_N_BIT(src, m, n)    (src &=  (~(BIT64(m) |  BIT64(n)) ))
+#define REG32_SET_M_AND_N_BIT(src, m, n)    (src |=  ( (  BIT(m) |    BIT(n)) ))
+#define REG32_CLR_M_AND_N_BIT(src, m, n)    (src &=  (~(  BIT(m) |    BIT(n)) ))
+
+#define REG64_SET_M_TO_N_BIT(src, h, l)     (src |=  MASK64(h, l))
+#define REG64_CLR_M_TO_N_BIT(src, h, l)     (src &= ~MASK64(h, l))
+#define REG32_SET_M_TO_N_BIT(src, h, l)     (src |=    MASK(h, l))
+#define REG32_CLR_M_TO_N_BIT(src, h, l)     (src &=   ~MASK(h, l))
+
+#define REG32_TOGGLE_BIT(src, m)            (src ^=   BIT(m))
+#define REG64_TOGGLE_BIT(src, m)            (src ^= BIT64(m))
 
 #define RTSS_FORCE_GLOBAL_CLEAN_INVALIDATE_THRESHOLD_SIZE (128*1024)
 

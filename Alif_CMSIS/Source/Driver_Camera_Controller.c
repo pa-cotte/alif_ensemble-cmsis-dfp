@@ -101,29 +101,23 @@ __STATIC_INLINE void cam_ctrl_disable_interrupt(CAMERA_CTRL_DEV *cam_ctrl)
 }
 
 /**
-  \fn           void cam_ctrl_enable_interrupt(CAMERA_CTRL_DEV *cam_ctrl)
+  \fn           static void cam_ctrl_enable_interrupt(CAMERA_CTRL_DEV *cam_ctrl, uint32_t events)
   \brief        enable Camera Controller interrupt.
-  \param[in]    cam_ctrl  : Pointer to Camera Controller resources structure
+  \param[in]    cam_ctrl    : Pointer to Camera Controller resources structure
+  \param[in]    events      : possible camera events
   \return       none
 */
-static void cam_ctrl_enable_interrupt(CAMERA_CTRL_DEV *cam_ctrl)
+static void cam_ctrl_enable_interrupt(CAMERA_CTRL_DEV *cam_ctrl, uint32_t events)
 {
   uint32_t reg_val = 0;
 
-#if !(RTE_MIPI_DSI)
-  /* Enable all Interrupt. */
-  reg_val = CAMERA_CTRL_IRQ_CAPTURE_STOP    | \
-            CAMERA_CTRL_IRQ_VSYNC_DETECT    | \
-            CAMERA_CTRL_IRQ_FIFO_OVERRUN    | \
-            CAMERA_CTRL_IRQ_FIFO_UNDERRUN   | \
-            CAMERA_CTRL_IRQ_BUS_ERR         | \
-            CAMERA_CTRL_IRQ_HBP_ERR         | \
-            CAMERA_CTRL_IRQ_HFP_ERR;
-#else
-  reg_val = CAMERA_CTRL_IRQ_FIFO_OVERRUN    | \
-            CAMERA_CTRL_IRQ_FIFO_UNDERRUN   | \
-            CAMERA_CTRL_IRQ_VSYNC_DETECT;
-#endif
+  reg_val |= (events & ARM_CAMERA_CONTROLLER_EVENT_CAMERA_CAPTURE_STOPPED) ? CAMERA_CTRL_IRQ_CAPTURE_STOP : 0;
+  reg_val |= (events & ARM_CAMERA_CONTROLLER_EVENT_CAMERA_FRAME_VSYNC_DETECTED) ? CAMERA_CTRL_IRQ_VSYNC_DETECT : 0;
+  reg_val |= (events & ARM_CAMERA_CONTROLLER_EVENT_ERR_CAMERA_FIFO_OVERRUN) ? CAMERA_CTRL_IRQ_FIFO_OVERRUN : 0;
+  reg_val |= (events & ARM_CAMERA_CONTROLLER_EVENT_ERR_CAMERA_FIFO_UNDERRUN) ? CAMERA_CTRL_IRQ_FIFO_UNDERRUN : 0;
+  reg_val |= (events & ARM_CAMERA_CONTROLLER_EVENT_ERR_HARDWARE) ? CAMERA_CTRL_IRQ_BUS_ERR : 0;
+  reg_val |= (events & ARM_CAMERA_CONTROLLER_EVENT_ERR_CAMERA_HBP) ? CAMERA_CTRL_IRQ_HBP_ERR : 0;
+  reg_val |= (events & ARM_CAMERA_CONTROLLER_EVENT_ERR_CAMERA_HFP) ? CAMERA_CTRL_IRQ_HFP_ERR : 0;
 
   cam_ctrl->reg_base->intr_ena = reg_val;
 }
@@ -687,9 +681,6 @@ static int32_t cam_ctrl_start(CAMERA_CTRL_DEV *cam_ctrl)
   /* Clear Camera Controller status variable. */
   cam_ctrl->status.cam_ctrl_status = 0;
 
-  /* Enable Camera Controller Interrupt. */
-  cam_ctrl_enable_interrupt(cam_ctrl);
-
   /* Clear Camera Controller control register*/
   cam_ctrl->reg_base->cam_ctrl = 0;
 
@@ -960,17 +951,6 @@ static int32_t CAMERAx_CaptureFrame(CAMERA_CTRL_DEV       *cam_ctrl,
   if(ret != ARM_DRIVER_OK)
     return ret;
 
-#if (RTE_MIPI_CSI2)
-  /*Wait till frame completes capturing and check for any error occurred while capturing*/
-  while(cam_ctrl_get_capture_status(cam_ctrl) == CAMERA_CTRL_CAPTURE_STATUS_CAPTURING)
-  {
-    if(lp_count++ < 1000000)
-      PMU_delay_loop_us(1);
-    else
-      return ARM_DRIVER_ERROR;
-  }
-#endif
-
   return ARM_DRIVER_OK;
 }
 
@@ -1092,6 +1072,10 @@ static int32_t CAMERAx_Control(CAMERA_CTRL_DEV       *cam_ctrl,
       /* Camera Sensor configure*/
       cam_sensor_control = 1;
       break;
+      /* Camera Events configure*/
+    case CAMERA_EVENTS_CONFIGURE:
+      cam_ctrl_enable_interrupt(cam_ctrl, arg);
+      break;
     default:
       return ARM_DRIVER_ERROR_UNSUPPORTED;
   }
@@ -1184,12 +1168,14 @@ static void CAMERAx_IRQHandler(CAMERA_CTRL_DEV *cam_ctrl)
   if(intrpt_status & CAMERA_CTRL_IRQ_HBP_ERR)
   {
     reg_val |= CAMERA_CTRL_IRQ_HBP_ERR;
+    event |= ARM_CAMERA_CONTROLLER_EVENT_ERR_CAMERA_HBP;
   }
 
   /* received HFP error interrupt? */
   if(intrpt_status & CAMERA_CTRL_IRQ_HFP_ERR)
   {
     reg_val |= CAMERA_CTRL_IRQ_HFP_ERR;
+    event |= ARM_CAMERA_CONTROLLER_EVENT_ERR_CAMERA_HFP;
   }
 
   /* call the user callback if any event occurs */

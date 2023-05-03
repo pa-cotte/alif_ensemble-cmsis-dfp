@@ -29,9 +29,9 @@
 #include <RTE_Components.h>
 #include CMSIS_device_header
 
-/* i3c Driver instance 0 */
-extern ARM_DRIVER_I3C Driver_I3C0;
-static ARM_DRIVER_I3C *I3Cdrv = &Driver_I3C0;
+/* i3c Driver */
+extern ARM_DRIVER_I3C Driver_I3C;
+static ARM_DRIVER_I3C *I3Cdrv = &Driver_I3C;
 
 /* Comment this if output is to be observed on debugger console via semihosting */
 #define DISABLE_PRINTF
@@ -74,12 +74,12 @@ volatile int32_t cb_event_flag = 0;
 int32_t hardware_init(void)
 {
 	/* I3C_SDA_A */
-	pinconf_set( PORT_0, PIN_0, PINMUX_ALTERNATE_FUNCTION_3, \
+	pinconf_set( PORT_7, PIN_6, PINMUX_ALTERNATE_FUNCTION_6, \
 			PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP | \
 			PADCTRL_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS);
 
 	/* I3C_SCL_A */
-	pinconf_set( PORT_0, PIN_1, PINMUX_ALTERNATE_FUNCTION_3, \
+	pinconf_set( PORT_7, PIN_7, PINMUX_ALTERNATE_FUNCTION_6, \
 			PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP | \
 			PADCTRL_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS);
 
@@ -130,7 +130,7 @@ void I3C_callback(uint32_t event)
 		cb_event_flag = I2C_CB_EVENT_SUCCESS;
 	}
 
-	if (event & ARM_I3C_DYN_ADDR_ASSGN)
+	if (event & ARM_I3C_EVENT_SLV_DYN_ADDR_ASSGN)
 	{
 		/* Transfer Success */
 		cb_event_flag = I2C_CB_EVENT_SUCCESS;

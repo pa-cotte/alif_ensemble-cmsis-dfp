@@ -7,21 +7,6 @@
  * contact@alifsemi.com, or visit: https://alifsemi.com/license
  */
 
-/**************************************************************************//**
- * @file     Driver_I3C.h
- * @Author   Silesh C V,
- *           Tanay Rami,
- *           Prabhakar kumar
- * @email    <silesh@alifsemi.com>,
- *           <tanay@alifsemi.com>,
- *           <prabhakar.kumar@alifsemi.com>
- * @version  V1.0.0
- * @date     07-March-2023
- * @brief    CMSIS-Driver for I3C
- * @bug      None.
- * @Note     None.
- ******************************************************************************/
-
 #ifndef DRIVER_I3C_H_
 #define DRIVER_I3C_H_
 
@@ -38,7 +23,7 @@ extern "C"
 
 /* I3C Control Codes: Bus mode */
 #define I3C_MASTER_SET_BUS_MODE                         (1UL << 0)  ///< Set bus mode to pure i3c, mixed i3c + i2c fast etc.
-#define I3C_SET_SLAVE_ADDR                              (1UL << 1)  ///< Set slave addr and initialize slave
+#define I3C_SLAVE_SET_ADDR                              (1UL << 1)  ///< Set slave addr and initialize slave
 
 /* I3C Control Codes: Bus mode arguments */
 #define I3C_BUS_MODE_PURE                               (0x00UL)    ///< Pure i3c device
@@ -49,14 +34,6 @@ extern "C"
 
 #define I3C_BUS_MAX_DEVS                                11
 
-/* Clock rates and periods */
-#define I3C_BUS_MAX_I3C_SCL_RATE                        12900000
-#define I3C_BUS_TYP_I3C_SCL_RATE                        12500000
-#define I3C_BUS_I2C_FM_PLUS_SCL_RATE                    1000000
-#define I3C_BUS_I2C_FM_SCL_RATE                         400000
-#define I3C_BUS_I2C_SS_SCL_RATE                         100000
-#define I3C_BUS_TLOW_OD_MIN_NS                          200
-
 /****** I3C Event *****/
 #define ARM_I3C_EVENT_TRANSFER_DONE                     (1UL << 0)  /* Event Success                            */
 #define ARM_I3C_EVENT_TRANSFER_ERROR                    (1UL << 1)  /* Master and slave Transmit/Receive Error  */
@@ -64,7 +41,7 @@ extern "C"
 #define ARM_I3C_EVENT_MST_RX_DONE                       (1UL << 3)  /* Master Receive Done                      */
 #define ARM_I3C_EVENT_SLV_TX_DONE                       (1UL << 4)  /* Slave Transmit Done                      */
 #define ARM_I3C_EVENT_SLV_RX_DONE                       (1UL << 5)  /* Slave receive  Done                      */
-#define ARM_I3C_DYN_ADDR_ASSGN                          (1UL << 6)  /* Dynamic Address Assigned                 */
+#define ARM_I3C_EVENT_SLV_DYN_ADDR_ASSGN                (1UL << 6)  /* Dynamic Address Assigned                 */
 
 /* I3C CCC (Common Command Codes) related definitions */
 #define I3C_CCC_DIRECT                                  BIT(7)

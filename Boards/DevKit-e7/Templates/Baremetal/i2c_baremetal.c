@@ -27,8 +27,27 @@
 #include CMSIS_device_header
 
 #include "Driver_I2C.h"
-#include "i2c_ll_drv.h"
+#include "i2c.h"
 #include "pinconf.h"
+
+/* For Release build disable printf and semihosting */
+#define DISABLE_PRINTF
+
+#ifdef DISABLE_PRINTF
+    #define printf(fmt, ...) (0)
+    /* Also Disable Semihosting */
+    #if __ARMCC_VERSION >= 6000000
+            __asm(".global __use_no_semihosting");
+    #elif __ARMCC_VERSION >= 5000000
+            #pragma import(__use_no_semihosting)
+    #else
+            #error Unsupported compiler
+    #endif
+
+    void _sys_exit(int return_code) {
+            while (1);
+    }
+#endif
 
 /* I2C Driver instance */
 extern ARM_DRIVER_I2C Driver_I2C0;
@@ -58,8 +77,8 @@ int slv_xfer_compare;
 /* Master TX Data (Any random value). */
 uint8_t MST_TX_BUF[MST_BYTE_TO_TRANSMIT] =
 {
-    0XFF,0xCE,0xAB,0xDE,0x4A,
-    0X22,0X55,0X89,0X46,0X78
+    0XAF,0xCE,0xAB,0xDE,0x4A,
+    0X22,0X55,0X89,0X46,0X88
 };
 
 /* master receive buffer */
@@ -76,9 +95,9 @@ uint8_t SLV_RX_BUF[MST_BYTE_TO_TRANSMIT];
 /* Slave TX Data (Any random value). */
 uint8_t SLV_TX_BUF[SLV_BYTE_TO_TRANSMIT] =
 {
-    0X44,0xCD,0x6F,0x5E,0x49,
+    0X84,0xCD,0x6F,0x5E,0x49,
     0X42,0X2B,0X23,0X46,0X78,
-    0X67,0XCC,0xDD,0XAB,0XEE
+    0X67,0XCC,0xDD,0XAB,0XAE
 };
 
 /* Slave parameter set END */

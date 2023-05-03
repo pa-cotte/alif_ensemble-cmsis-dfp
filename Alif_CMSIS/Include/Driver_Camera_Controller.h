@@ -33,6 +33,7 @@ extern "C"
 /****** CAMERA_CONTROLLER Control Codes *****/
 #define CAMERA_CONTROLLER_SOFTRESET                                (0x01UL)    ///< CAMERA CONTROLLER Software Reset; arg: 0=disable, 1=enable
 #define CAMERA_SENSOR_CONFIGURE                                    (0x02UL)    ///< CAMERA SENSOR configure; arg: 0=disable, 1=enable
+#define CAMERA_EVENTS_CONFIGURE                                    (0x03UL)    ///< CAMERA EVENTS configure; arg: list of events to enable (ARM_CAMERA_CONTROLLER_EVENT_..)
 
 /****** CAMERA_CONTROLLER Event *****/
 #define ARM_CAMERA_CONTROLLER_EVENT_CAMERA_CAPTURE_STOPPED         (1UL << 0)  ///< Camera Capture Stopped
@@ -41,6 +42,8 @@ extern "C"
 #define ARM_CAMERA_CONTROLLER_EVENT_ERR_CAMERA_FIFO_UNDERRUN       (1UL << 3)  ///< Camera FIFO under run Error
 #define ARM_CAMERA_CONTROLLER_EVENT_ERR_HARDWARE                   (1UL << 4)  ///< Hardware Bus Error
 #define ARM_CAMERA_CONTROLLER_EVENT_MIPI_CSI2_ERROR                (1UL << 5)  ///< MIPI CSI2 Error
+#define ARM_CAMERA_CONTROLLER_EVENT_ERR_CAMERA_HBP                 (1UL << 6)  ///< Camera FIFO under run Error
+#define ARM_CAMERA_CONTROLLER_EVENT_ERR_CAMERA_HFP                 (1UL << 7)  ///< Camera FIFO under run Error
 
 // Function documentation
 /**

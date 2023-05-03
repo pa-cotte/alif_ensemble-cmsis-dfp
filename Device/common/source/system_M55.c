@@ -183,9 +183,32 @@ void SystemInit (void)
 
   SystemCoreClock = SYSTEM_CLOCK;
 
+  // Enable Trace so PMU can be enabled
+  DCB->DEMCR |= DCB_DEMCR_TRCENA_Msk;
+
   //Enable the PMU
   ARM_PMU_Enable();
 
   //Enable PMU Cycle Counter
   ARM_PMU_CNTR_Enable(PMU_CNTENSET_CCNTR_ENABLE_Msk);
+
+  /* Add a feature to enable all the cgu clocks and bypass
+   * the clock gating in the EXPMST0.
+   *
+   * Note: This will be removed in the future release
+   */
+#define FORCE_ENABLE_SYSTEM_CLOCKS 1
+#if FORCE_ENABLE_SYSTEM_CLOCKS
+  /* Bypass clock gating */
+  enable_force_peripheral_functional_clk();
+
+  /* Bypass clock gating */
+  enable_force_apb_interface_clk();
+
+  /* Enable all the clocks required for the peripherals */
+  enable_cgu_clk38p4m();
+  enable_cgu_clk160m();
+  enable_cgu_clk100m();
+  enable_cgu_clk20m();
+#endif
 }

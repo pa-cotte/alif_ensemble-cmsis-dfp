@@ -15,7 +15,7 @@
  * @version  V1.0.0
  * @date     22-March-2022
  * @brief    baremetal demo application for lptimer.
- *           - Configuring the lptimer channel 0 for 500micro second.
+ *           - Configuring the lptimer channel 0 for 5 seconds.
  * @bug      None.
  * @Note     None
  ******************************************************************************/
@@ -30,7 +30,7 @@
 extern ARM_DRIVER_LPTIMER DRIVER_LPTIMER0;
 ARM_DRIVER_LPTIMER *ptrDrv = &DRIVER_LPTIMER0;
 
-#define LPTIMER_CHANNEL_0    0;
+#define LPTIMER_CHANNEL_0    0
 
 volatile uint32_t Cb_status  =  0;
 
@@ -63,27 +63,27 @@ static void lptimer_cb_fun (uint8_t event)
 
 static void lptimer_Thread ()
 {
-    /* Configuring the lptimer channel 0 for 500micro second
+    /* Configuring the lptimer channel 0 for 5 seconds
      *Clock Source is depends on RTE_LPTIMER_CHANNEL_CLK_SRC in RTE_Device.h
-     *RTE_LPTIMER_CHANNEL_CLK_SRC = 0 : 32KHz freq (Default)
+     *RTE_LPTIMER_CHANNEL_CLK_SRC = 0 : 32.768KHz freq (Default)
      *RTE_LPTIMER_CHANNEL_CLK_SRC = 1 : 128KHz freq.
      *
-     * Selected clock frequency (F)= 32Khz
+     * Selected clock frequency (F)= 32.768KHz
      *
-     * time for 1 count T = 1/F = 1/(32*10^3) = 31.25 * 10^-6
+     * time for 1 count T = 1/F = 1/(32.768*10^3) = 30.51 * 10^-6
      *
-     * To increment timer by 1 count, takes 31.25 micro sec
+     * To increment timer by 1 count, takes 30.51 micro sec
      *
-     * So count for 500us = (500*(10^-6))/(31.25 *(10^-6)) = 16
+     * So count for 5sec = 5/(30.51 *(10^-6)) = 163880
      *
-     * DEC = 16
-     * HEX = 0x10
+     * DEC = 163880
+     * HEX = 0x28028
     */
 
-    /*Timer channel configured 500 usec*/
+    /* Timer channel configured 5 sec */
 
     int32_t ret;
-    uint32_t count = 0x10;
+    uint32_t count = 0x28028;
     uint8_t channel = LPTIMER_CHANNEL_0;
 
     ret = ptrDrv->Initialize (channel, lptimer_cb_fun);
@@ -108,7 +108,7 @@ static void lptimer_Thread ()
         goto error_poweroff;
     }
 
-    printf("demo application: lptimer channel '%d' configured for 500 us \r\n\n", channel);
+    printf("demo application: lptimer channel '%d' configured for 5 sec \r\n\n", channel);
 
     ret = ptrDrv->Start (channel);
     if (ret != ARM_DRIVER_OK)
@@ -121,10 +121,11 @@ static void lptimer_Thread ()
         printf("timer started\r\n");
     }
 
-    PMU_delay_loop_us (10000);
+    /* delay for 6sec */
+    PMU_delay_loop_us (6000000);
     if (Cb_status)
     {
-        printf("500us timer expired \r\n");
+        printf("5 seconds timer expired \r\n");
         Cb_status = 0;
     }
     else

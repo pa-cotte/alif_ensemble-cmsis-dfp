@@ -48,8 +48,14 @@ extern "C"
 #define DMA_IRQ_ABORT_OFFSET 32               /*!< Abort irq offset */
 
 typedef enum {
-    DMA_DRV_UNINITIALIZED,                         /*!< DMA driver UnInitialized */
-    DMA_DRV_INIT_DONE,                             /*!< DMA Driver Initialized */
+    DMA_INSTANCE_0,
+    DMA_INSTANCE_LOCAL,
+}DMA_INSTANCE_Type;
+
+typedef enum {
+    DMA_DRV_UNINITIALIZED = (0U << 0),             /*!< DMA driver UnInitialized */
+    DMA_DRV_INIT_DONE     = (1U << 0),             /*!< DMA Driver Initialized   */
+    DMA_DRV_POWERED       = (1U << 1),             /*!< DMA Driver is Powered    */
 } DMA_DRV_FLAG_Type;
 
 typedef enum {
@@ -258,13 +264,15 @@ typedef struct
 } DMA_TypeDef;
 
 typedef struct _DMA_DRV_INFO {
-    DMA_CONFIG_INFO       *cfg;                    /*!< DMA Controller configuration */
-    DMA_SECURE_STATUS     apb_intf;                /*!< DMA interface to be used */
-    DMA_TypeDef           *intf_paddr;             /*!< DMA interface physical address */
-    DMA_DRV_STATUS        drv_status;              /*!< DMA Driver Status */
-    uint8_t               flags;                   /*!< DMA Driver Flags */
-    const IRQn_Type       irq_start;               /*!< DMA irq0 start index */
-    const uint32_t        abort_irq_priority;      /*!< DMA Abort IRQ priority */
+    DMA_CONFIG_INFO          *cfg;                    /*!< DMA Controller configuration   */
+    DMA_SECURE_STATUS        apb_intf;                /*!< DMA interface to be used       */
+    DMA_TypeDef              *intf_paddr;             /*!< DMA interface physical address */
+    DMA_DRV_STATUS           drv_status;              /*!< DMA Driver Status              */
+    uint8_t                  flags;                   /*!< DMA Driver Flags               */
+    uint8_t                  consumer_cnt;            /*!< DMA Consumer Counter           */
+    const IRQn_Type          irq_start;               /*!< DMA irq0 start index           */
+    const uint32_t           abort_irq_priority;      /*!< DMA Abort IRQ priority         */
+    const DMA_INSTANCE_Type  instance;                /*!< DMA controller instance        */
 } DMA_DRV_INFO;
 
 #ifdef  __cplusplus
