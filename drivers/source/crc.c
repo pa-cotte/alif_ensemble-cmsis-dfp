@@ -63,8 +63,8 @@ uint32_t crc_bit_reflect(uint32_t input)
 @param[in]  poly  : Standard polynomial or the user entered polynomial depending upon the CRC algorithm
 @return     Calculated CRC output for unaligned data
 */
-uint32_t crc_calculate_unaligned(uint32_t key, uint8_t *input,
-                                 uint8_t length, uint32_t poly)
+uint32_t crc_calculate_unaligned(uint32_t key, const uint8_t *input,
+                                 const uint8_t length, uint32_t poly)
 {
     uint32_t crc, check_bit, polynomial;
     uint8_t data;
@@ -104,7 +104,7 @@ uint32_t crc_calculate_unaligned(uint32_t key, uint8_t *input,
  @param[in]    data_out : 8 bit CRC output
  @return       None
  */
-void crc_calculate_8bit(CRC_Type *crc, void *data_in,
+void crc_calculate_8bit(CRC_Type *crc, const void *data_in,
                         uint32_t len, uint32_t *data_out)
 {
     for (uint32_t count = 0; count < len; count ++)
@@ -127,7 +127,7 @@ void crc_calculate_8bit(CRC_Type *crc, void *data_in,
  @param[in]    data_out : 16 bit CRC output
  @return       None
  */
- void crc_calculate_16bit(CRC_Type *crc, void *data_in,
+ void crc_calculate_16bit(CRC_Type *crc, const void *data_in,
                           uint32_t len, uint32_t *data_out)
 {
     for (uint32_t count = 0; count < len; count ++)
@@ -150,7 +150,7 @@ void crc_calculate_8bit(CRC_Type *crc, void *data_in,
   @param[in]    data_out : 32 bit CRC output
   @return       None
   */
-void crc_calculate_32bit(CRC_Type *crc, void *data_in,
+void crc_calculate_32bit(CRC_Type *crc, const void *data_in,
                          uint32_t len, uint32_t *data_out)
 {
     uint32_t *data32;

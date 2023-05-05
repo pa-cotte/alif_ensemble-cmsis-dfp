@@ -79,8 +79,8 @@ typedef struct _ARM_DMA_PARAMS {
   uint8_t                   burst_len;
   ARM_DMA_BS_Type           burst_size;
   ARM_DMA_DATA_DIR          dir;
-  void                      *src_addr;
-  void                      *dst_addr;
+  volatile const void       *src_addr;
+  volatile void             *dst_addr;
   uint32_t                  num_bytes;
   uint32_t                  irq_priority;
   ARM_DMA_SignalEvent_t     cb_event;

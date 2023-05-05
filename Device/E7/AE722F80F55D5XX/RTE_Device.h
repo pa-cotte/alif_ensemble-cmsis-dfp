@@ -2216,7 +2216,9 @@
 // <h> LPTIMER (Low power timer)
 // <e> LPTIMER (Low power timer) [Driver_LPTIMER]
 // <i> Configuration settings for Driver_LPTIMER in component ::Drivers:LPTIMER
+#if RTE_RTSS_M55_HE
 #define RTE_LPTIMER    1
+#endif
 
 #if RTE_LPTIMER
 
