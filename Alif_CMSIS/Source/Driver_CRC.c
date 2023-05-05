@@ -249,8 +249,16 @@ static int32_t CRC_Control (uint32_t control,
                         return ret;
                     }
 
+                    ret = CRC->dma_cfg->dma_drv->PowerControl(ARM_POWER_FULL);
+                    if (ret != ARM_DRIVER_OK) {
+                        (void)CRC->dma_cfg->dma_drv->Uninitialize();
+                        CRC->dma_cfg->dma_handle = -1;
+                        return ret;
+                    }
+
                     ret = CRC->dma_cfg->dma_drv->Allocate(&CRC->dma_cfg->dma_handle);
                     if (ret != ARM_DRIVER_OK) {
+                        (void)CRC->dma_cfg->dma_drv->PowerControl(ARM_POWER_OFF);
                         (void)CRC->dma_cfg->dma_drv->Uninitialize();
                         CRC->dma_cfg->dma_handle = -1;
                         return ret;
@@ -258,6 +266,7 @@ static int32_t CRC_Control (uint32_t control,
                     ret = CRC->dma_cfg->dma_drv->Control(&CRC->dma_cfg->dma_handle, ARM_DMA_NO_DEV_HANDSHAKE, 0);
                     if (ret != ARM_DRIVER_OK) {
                         (void)CRC->dma_cfg->dma_drv->DeAllocate(&CRC->dma_cfg->dma_handle);
+                        (void)CRC->dma_cfg->dma_drv->PowerControl(ARM_POWER_OFF);
                         (void)CRC->dma_cfg->dma_drv->Uninitialize();
                         CRC->dma_cfg->dma_handle = -1;
                         return ret;
@@ -276,6 +285,7 @@ static int32_t CRC_Control (uint32_t control,
                 {
                     CRC->state.dma_enabled = false;
                     ret = CRC->dma_cfg->dma_drv->DeAllocate(&CRC->dma_cfg->dma_handle);
+                    (void)CRC->dma_cfg->dma_drv->PowerControl(ARM_POWER_OFF);
                     (void)CRC->dma_cfg->dma_drv->Uninitialize(); // DMA Uninitialize returns always ARM_DRIVER_OK
                     CRC->dma_cfg->dma_handle = -1;
                 }
@@ -449,7 +459,7 @@ static int32_t CRC_Compute (const void *data_in, uint32_t len, uint32_t *data_ou
         params.dir = ARM_DMA_MEM_TO_DEV;
         params.cb_event   = CRC->dma_cb;
         params.src_addr = data_in;
-        params.dst_addr = (volatile void*)(uintptr_t)CRC->regs->CRC_DATA_IN_8_0;
+        params.dst_addr = &CRC->regs->CRC_DATA_IN_8_0;
         params.burst_size = BS_BYTE_1;
         params.burst_len  = 1;
         params.num_bytes  = len;
@@ -509,7 +519,7 @@ static int32_t CRC_Compute (const void *data_in, uint32_t len, uint32_t *data_ou
         if (CRC->state.dma_enabled)
         {
             params.burst_size = BS_BYTE_4;
-            params.dst_addr = (void*)CRC->regs->CRC_DATA_IN_32_0;
+            params.dst_addr = &CRC->regs->CRC_DATA_IN_32_0;
             ret = CRC_Compute_DMA(&params, CRC, data_out);
         }
         else
