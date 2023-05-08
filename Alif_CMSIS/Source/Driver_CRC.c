@@ -521,6 +521,7 @@ static int32_t CRC_Compute (const void *data_in, uint32_t len, uint32_t *data_ou
             params.burst_size = BS_BYTE_4;
             params.dst_addr = &CRC->regs->CRC_DATA_IN_32_0;
             ret = CRC_Compute_DMA(&params, CRC, data_out);
+            *data_out = ~(CRC->regs->CRC_OUT);
         }
         else
         {
