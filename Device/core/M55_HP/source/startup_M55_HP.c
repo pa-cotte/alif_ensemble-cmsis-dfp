@@ -1091,7 +1091,10 @@ __NO_RETURN void Reset_Handler_C(void)
 void _platform_pre_stackheap_init(void)
 {
     /* Synchronise the caches for any copied code */
-    SCB_CleanDCache();
+    if (!(MEMSYSCTL->MSCR & MEMSYSCTL_MSCR_DCCLEAN_Msk))
+    {
+        SCB_CleanDCache();
+    }
     SCB_InvalidateICache();
 }
 
