@@ -109,17 +109,15 @@ typedef struct
 /*@}*/ /* end of group EWIC_Type */
 
 /**
-  @brief enum Core power domain low power state:-
+  @brief enum ow power state:-
  */
-typedef enum _CPDLP_STATE
+typedef enum LPSTATE
 {
-    CPDLP_STATE_ON      ,           /*!<  ON                */
-    CPDLP_STATE_CLK_OFF ,           /*!<  ON, clock is off  */
-    CPDLP_STATE_RET     ,           /*!<  Not supported     */
-    CPDLP_STATE_OFF     ,           /*!<  OFF               */
-
-    CPDLP_STATE_MAX
-} CPDLP_STATE;
+    LPSTATE_ON,                 /*!<  On                */
+    LPSTATE_ON_CLK_OFF,         /*!<  On, clock is off  */
+    LPSTATE_RET,                /*!<  Retention         */
+    LPSTATE_OFF                 /*!<  Off               */
+} LP_STATE;
 
 #define CPDLP_CLPSTATE_MASK(val) ((val << PWRMODCTL_CPDLPSTATE_CLPSTATE_Pos) | \
                                   (val << PWRMODCTL_CPDLPSTATE_ELPSTATE_Pos) | \
@@ -131,14 +129,17 @@ typedef enum _CPDLP_STATE
 /* Cold_Wakeup bit in external system 0/1 */
 /*!< EXTSYS0/1 : bit 0 (architecture dependent) */
 #define COLD_WAKEUP_Pos                     (0U)
+#define COLD_WAKEUP_Msk                     (1U << COLD_WAKEUP_Pos)
 
 /* WIC bit positions in WICCONTROL */
 /*!< WICCONTROL: bit 8 (architecture dependent) */
 #define WICCONTROL_WIC_Pos                  (8U)
+#define WICCONTROL_WIC_Msk                  (1U << WICCONTROL_WIC_Pos)
 
 /* IWIC bit positions in WICCONTROL */
  /*!< WICCONTROL: bit 9 (architecture dependent)*/
 #define WICCONTROL_IWIC_Pos                 (9U)
+#define WICCONTROL_IWIC_Msk                 (1U << WICCONTROL_IWIC_Pos)
 
 /*!< External Wakeup Interrupt Controller Base Address */
 #define _EWIC_BASE                          (0xE0047000UL)

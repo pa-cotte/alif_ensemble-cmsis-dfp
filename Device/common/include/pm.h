@@ -45,20 +45,6 @@ typedef enum _PM_STATUS
 }PM_STATUS;
 
 /**
-  @brief enum pm_sleep_type:-
- */
-typedef enum _PM_SLEEP_TYPE
-{
-    PM_SLEEP_TYPE_NORMAL_SLEEP = 1,    /*!< Device is in Full operation      */
-    PM_SLEEP_TYPE_DEEP_SLEEP      ,    /*!< Device Core clock will be off    */
-    PM_SLEEP_TYPE_IWIC_SLEEP      ,    /*!< Device Core clock will be off    */
-    PM_SLEEP_TYPE_SUBSYS_OFF      ,    /*!< Device will be off,              */
-
-    PM_SLEEP_TYPE_MAX = 0x7FFFFFFFUL
-} PM_SLEEP_TYPE;
-
-
-/**
   @brief enum of wake reasons-
  */
 typedef enum _PM_RESET_REASON
@@ -151,35 +137,112 @@ typedef struct _pm_wakeup_reason_t {
 uint16_t pm_get_version(void);
 
 /**
-  @fn     uint16_t pm_core_set_normal_sleep(void)
+  @fn     uint16_t pm_core_enter_normal_sleep(void)
   @brief  Power management API which performs normal sleep operation
-  @return This function return nothing
+  @note   This function should be called with interrupts disabled.
+  @note   This function is provided for consistency with the
+          deeper sleeps, which require interrupts disabled.
+          In interrupt-enabled context, in bare-metal use, direct
+          use of __WFE() may be more appropriate.
+  @return This function returns nothing
  */
-static inline void pm_core_set_normal_sleep(void)
+static inline void pm_core_enter_normal_sleep(void)
 {
     __WFI();
 }
 
 /**
-  @fn     void pm_core_set_deep_sleep(void)
+  @fn     void pm_core_enter_deep_sleep(void)
   @brief  Power management API which performs deep sleep operation
-  @return This function return nothing
+  @note   On current silicon, this does nothing on its own beyond basic sleep;
+          but it activates power saving if a WIC is enabled. So it is
+          called by the calls below.
+  @note   This function should be called with interrupts disabled
+  @return This function returns nothing
  */
-void pm_core_set_deep_sleep(void);
+void pm_core_enter_deep_sleep(void);
 
 /**
-  @fn     void pm_core_set_iwic_sleep(void)
-  @brief  Power management API which performs iwic sleep operation
+  @fn     void pm_core_enter_iwic_sleep(void)
+  @brief  Power management API which performs IWIC sleep operation
+          This enters the deepest possible CPU sleep state, without
+          losing CPU state. All CPU clocks can be stopped, including
+          SysTick. CPU and subsystem power will remain on.
+  @note   Possible IWIC wake sources are events, NMI, debug events
+          and interrupts 0-63 only, subject to standard interrupt
+          enable controls.
+  @note   This function should be called with interrupts disabled
   @return This function return nothing
  */
-void pm_core_set_iwic_sleep(void);
+void pm_core_enter_iwic_sleep(void);
 
 /**
-  @fn     void pm_core_set_subsys_off(void)
-  @brief Power management API which performs subs off operation
-  @return This function return nothing
+  @fn     void pm_core_enter_subsys_off(void)
+  @brief Power management API which performs subsystem off operation
+  @note   This function should be called with interrupts disabled
+          A cache clean operation is performed if necessary
+  @note   This function will not return if the system goes off
+          before a wake event. It will return if a wake event
+          occurs before power off is possible.
+  @note   Possible EWIC wake sources are a limited selection
+          of interrupts 0-63 - see the HWRM for details.
+          The CPU may also reboot if power is automatically
+          applied to the subsystem for other reasons aside from
+          EWIC wakeup.
+          The pending information from EWIC is transferred
+          into the NVIC on startup, so interrupt handlers
+          can respond to the cause as soon as they're
+          unmasked by drivers.
+  @return This function returns nothing, or causes reboot.
  */
-void pm_core_set_subsys_off(void);
+void pm_core_enter_subsys_off(void);
+
+/**
+  @fn     void pm_shut_down_dcache(void)
+  @brief  Preparation for pm_core_enter_subsys_off
+
+  In preparation for removing power, we need to ensure the data
+  cache is clean.
+  This is a potentially slow operation, so it may be desirable
+  to do so with interrupts enabled before hand. If this call is
+  made before pm_core_enter_subsys_off, it significantly reduces
+  the work that core does with interrupts disabled.
+
+  Example usage:
+
+  ```
+      atomic_bool service_requested; // set by an EWIC-capable IRQ handler
+
+      while (!service_requested) {
+          uint32_t cache_state = pm_shut_down_cache(void); // keep IRQs enabled while cleaning
+          __disable_irq();
+          if (!service_requested) { // re-check as IRQ could have occurred during clean
+              pm_core_enter_subsys_off(); // if IRQ pends during shutdown, this will return
+          }
+          pm_restore_cache_enable(cache_state);
+          __enable_irq(); // Any pending IRQ will be triggered after this
+      }
+      // Do service work
+   ```
+
+  @return This function returns a state indicator for pm_restore_dcache_enable
+  */
+uint32_t pm_shut_down_dcache(void);
+
+/**
+  @fn     void pm_restore_dcache_enable(uint32_t old_state)
+  @brief  Restore dcache operational state
+
+  If an "off" attempt returns, due to a wake event happening before
+  power was shut down, we can undo the effect of
+  pm_shut_down_dcache_ready_for_cpu_off and restore cache operation.
+
+  Unlike the disable, this is a fast call, so it can be made before
+  enabling interrupts.
+
+  @return This function returns nothing
+  */
+void pm_restore_dcache_enable(uint32_t old_state);
 
 /**
   @fn    PM_WAKEUP_REASON pm_core_get_reset_reason(void)
