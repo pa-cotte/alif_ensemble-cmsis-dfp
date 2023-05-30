@@ -330,11 +330,6 @@ void pm_core_enter_subsys_off(void)
     }
 }
 
-/*
-void pm_core_enter_shutdown(void)
-{
-}
-
 /**
   @fn    PM_RESET_REASON pm_core_get_reset_reason(void)
   @brief Get reset reason
