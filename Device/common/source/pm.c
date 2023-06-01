@@ -174,17 +174,24 @@ uint32_t pm_shut_down_dcache(void)
 
     /* Check cache status */
     uint32_t orig_mscr = MEMSYSCTL->MSCR;
+
     if (orig_mscr & MEMSYSCTL_MSCR_DCACTIVE_Msk)
     {
-        if (!(orig_mscr & MEMSYSCTL_MSCR_DCCLEAN_Msk))
+        /* Make sure nothing gets dirty any more - this should stabilise DCCLEAN */
+        MEMSYSCTL->MSCR = orig_mscr | MEMSYSCTL_MSCR_FORCEWT_Msk;
+        __DSB();
+        __ISB();
+
+        if (!(MEMSYSCTL->MSCR & MEMSYSCTL_MSCR_DCCLEAN_Msk))
         {
             /* Clean if it is active, and not known to be clean */
-            SCB_CleanInvalidateDCache();
+            SCB_CleanDCache();
         }
         /* M55 TRM tells us not to modify the DCCLEAN bit; otherwise it seems like
-         * we could set it here.
+         * we could set it here. Disable the cache and put FORCEWT back how it was.
          */
-        MEMSYSCTL->MSCR = orig_mscr &~ MEMSYSCTL_MSCR_DCACTIVE_Msk;
+        MEMSYSCTL->MSCR = (MEMSYSCTL->MSCR &~ (MEMSYSCTL_MSCR_DCACTIVE_Msk | MEMSYSCTL_MSCR_FORCEWT_Msk))
+                                            | (orig_mscr & MEMSYSCTL_MSCR_FORCEWT_Msk);
     }
 
 #if (MEMSYSCTL_MSCR_DCACTIVE_Msk & SCB_CCR_DC_Msk) != 0
@@ -272,7 +279,12 @@ void pm_core_enter_subsys_off(void)
     uint32_t orig_mscr = MEMSYSCTL->MSCR;
     if (orig_mscr & MEMSYSCTL_MSCR_DCACTIVE_Msk)
     {
-        if (!(orig_mscr & MEMSYSCTL_MSCR_DCCLEAN_Msk))
+        /* Make sure nothing gets dirty any more - this should stabilise DCCLEAN */
+        MEMSYSCTL->MSCR = orig_mscr | MEMSYSCTL_MSCR_FORCEWT_Msk;
+        __DSB();
+        __ISB();
+
+        if (!(MEMSYSCTL->MSCR & MEMSYSCTL_MSCR_DCCLEAN_Msk))
         {
             /* Clean if data cache is active, and not known to be clean. This
              * could be done earlier by pm_shut_down_dcache, before disabling
@@ -280,7 +292,7 @@ void pm_core_enter_subsys_off(void)
              * interrupt latency - we might be needing a full reboot to
              * respond.
              */
-            SCB_CleanInvalidateDCache();
+            SCB_CleanDCache();
         }
     }
 
@@ -288,10 +300,11 @@ void pm_core_enter_subsys_off(void)
      * is important that we don't let the M55 request MEM_RET state by having
      * PDRAMS at RET and PDCORE at OFF - the PPU will grant this,
      * and the M55 will wrongly think its cache has been retained, and skip
-     * necessary auto-invalidation on the subsequent reset.)
+     * necessary auto-invalidation on the subsequent reset.) Restore FORCEWT now.
      */
     SCB->CCR = orig_ccr &~ (SCB_CCR_IC_Msk | SCB_CCR_DC_Msk);
-    MEMSYSCTL->MSCR = orig_mscr &~ (MEMSYSCTL_MSCR_ICACTIVE_Msk | MEMSYSCTL_MSCR_DCACTIVE_Msk);
+    MEMSYSCTL->MSCR = (MEMSYSCTL->MSCR &~ (MEMSYSCTL_MSCR_ICACTIVE_Msk | MEMSYSCTL_MSCR_DCACTIVE_Msk | MEMSYSCTL_MSCR_FORCEWT_Msk))
+                                       |  (orig_mscr & MEMSYSCTL_MSCR_FORCEWT_Msk);
 
     /* Disable PMU/DWT - we know this is enabled at boot by system code using
      * PMU timers, so we could never permit PDDEBUG OFF otherwise.
@@ -309,7 +322,7 @@ void pm_core_enter_subsys_off(void)
     pm_core_enter_wic_sleep(false);
 
     /* Restore enables */
-    MEMSYSCTL->MSCR = orig_mscr;
+    MEMSYSCTL->MSCR |= orig_mscr & (MEMSYSCTL_MSCR_ICACTIVE_Msk | MEMSYSCTL_MSCR_DCACTIVE_Msk);
     SCB->CCR = orig_ccr;
     DCB->DEMCR = orig_demcr;
     ICB->CPPWR = orig_cppwr;
