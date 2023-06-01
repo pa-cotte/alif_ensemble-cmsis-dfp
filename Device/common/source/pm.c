@@ -83,8 +83,11 @@ uint16_t pm_get_version(void)
   but it activates power saving if a WIC is enabled.
   @return This function return nothing
  */
-void pm_core_enter_deep_sleep(void)
+static void pm_core_enter_wic_sleep(bool iwic)
 {
+    /* Set up WICCONTROL so that deep sleep is the required WIC sleep type */
+    *WICCONTROL = _VAL2FLD(WICCONTROL_WIC, 1) | _VAL2FLD(WICCONTROL_IWIC, iwic);
+
     /* Setting DEEPSLEEP bit */
 	uint32_t scr = SCB->SCR;
     SCB->SCR = scr |= SCB_SCR_SLEEPDEEP_Msk;
@@ -103,6 +106,9 @@ void pm_core_enter_deep_sleep(void)
     /* Clearing DEEPSLEEP bit */
     SCB->SCR = scr &=~ SCB_SCR_SLEEPDEEP_Msk;
 
+    /* Clear WICCONTROL to disable WIC sleep */
+    *WICCONTROL = _VAL2FLD(WICCONTROL_WIC, 0);
+
     /* Data Synchronization Barrier completes all instructions before this */
     __DSB();
 
@@ -117,7 +123,7 @@ void pm_core_enter_deep_sleep(void)
   @brief  Power management API which performs iwic sleep operation
   @return This function returns nothing
  */
-void pm_core_enter_iwic_sleep(void)
+void pm_core_enter_deep_sleep(void)
 {
     /* Entering any WIC sleep could potentially cause state loss,
      * as it enables power saving on PDCORE. Unlike the other domains,
@@ -138,14 +144,8 @@ void pm_core_enter_iwic_sleep(void)
                                 _VAL2FLD(PWRMODCTL_CPDLPSTATE_CLPSTATE, LPSTATE_ON_CLK_OFF);
     }
 
-    /* Set up WICCONTROL so that deep sleep is IWIC sleep */
-    *WICCONTROL = _VAL2FLD(WICCONTROL_WIC, 1) | _VAL2FLD(WICCONTROL_IWIC, 1);
-
-    /* Trigger the inner deep sleep */
-    pm_core_enter_deep_sleep();
-
-    /* Clear WICCONTROL to disable WIC sleep */
-    *WICCONTROL = _VAL2FLD(WICCONTROL_WIC, 0);
+    /* Trigger the IWIC sleep */
+    pm_core_enter_wic_sleep(true);
 
     /* Restore low power state (probably to all OFF) */
     PWRMODCTL->CPDLPSTATE = old_cpdlpstate;
@@ -301,18 +301,12 @@ void pm_core_enter_subsys_off(void)
     uint32_t orig_demcr = DCB->DEMCR;
     DCB->DEMCR = orig_demcr &~ DCB_DEMCR_TRCENA_Msk;
 
-    /* Set WICCONTROL so that deep sleep is EWIC sleep. This permits PDCORE OFF. */
-    *WICCONTROL = _VAL2FLD(WICCONTROL_WIC, 1) | _VAL2FLD(WICCONTROL_IWIC, 0);
-
     /* Assume automatic EWIC sequencing - NVIC masks transferred and EWIC
      * enabled by M55.
      */
 
-    /* Trigger the inner deep sleep */
-    pm_core_enter_deep_sleep();
-
-    /* Clear WICCONTROL to disable WIC sleep */
-    *WICCONTROL = _VAL2FLD(WICCONTROL_WIC, 0);
+    /* Trigger the EWIC sleep */
+    pm_core_enter_wic_sleep(false);
 
     /* Restore enables */
     MEMSYSCTL->MSCR = orig_mscr;

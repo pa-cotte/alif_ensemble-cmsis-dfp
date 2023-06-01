@@ -154,31 +154,57 @@ static inline void pm_core_enter_normal_sleep(void)
 /**
   @fn     void pm_core_enter_deep_sleep(void)
   @brief  Power management API which performs deep sleep operation
-  @note   On current silicon, this does nothing on its own beyond basic sleep;
-          but it activates power saving if a WIC is enabled. So it is
-          called by the calls below.
-  @note   This function should be called with interrupts disabled
-  @return This function returns nothing
- */
-void pm_core_enter_deep_sleep(void);
 
-/**
-  @fn     void pm_core_enter_iwic_sleep(void)
-  @brief  Power management API which performs IWIC sleep operation
           This enters the deepest possible CPU sleep state, without
           losing CPU state. All CPU clocks can be stopped, including
-          SysTick. CPU and subsystem power will remain on.
+          SysTick. CPU and subsystem power will remain on, and the
+          clock continues to run to the Internal Wakeup Interrupt
+          Controller (IWIC), which manages the wakeup.
   @note   Possible IWIC wake sources are events, NMI, debug events
-          and interrupts 0-63 only, subject to standard interrupt
+          and interrupts 0-63 only, subject to NVIC interrupt
           enable controls.
   @note   This function should be called with interrupts disabled
   @return This function return nothing
  */
-void pm_core_enter_iwic_sleep(void);
+void pm_core_enter_deep_sleep(void);
+
+/* Backwards compatibility with earlier naming */
+#define pm_core_enter_iwic_sleep() pm_core_enter_deep_sleep()
 
 /**
   @fn     void pm_core_enter_subsys_off(void)
-  @brief Power management API which performs subsystem off operation
+  @brief  Power management API which performs subsystem off operation
+
+          This enters a deep sleep and indicates that it is okay for
+          the CPU power, and hence potentially the entire subsystem's
+          power, to be removed. Whether power actually is removed will
+          depend on other factors - the CPU is not the only input
+          to the decision.
+
+          If a wake-up source is signalled before power is removed,
+          the function returns from its deep sleep.
+
+          If power is removed from the subsystem, the function does not
+          return, and the CPU will reboot when/if the subsystem is next
+          powered up, which could either be due to the local wakeup
+          controller, or some other power-on request. Any wake-up sources will be
+          indicated by a pending interrupt in the NVIC.
+
+          As there are many reasons the subsystem could wake, applications
+          should be written to call this again on reboot when they find there
+          are no wake reasons.
+
+          Where the system reboots from can be controlled using the secure
+          enclave APIs to set the initial vector table.
+
+          The RTSS-HE core can arrange for some or all of its TCM to be
+          retained when the power is turned off by making calls to the
+          secure enclave to configure the retention power.
+
+          The secure enclave can also arrange for various deep SoC sleep
+          states to be entered if all subsystems have configured this, and they
+          enter sleep. So this call can lead to overall SoC sleep.
+
   @note   This function should be called with interrupts disabled
           A cache clean operation is performed if necessary
   @note   This function will not return if the system goes off
@@ -201,8 +227,10 @@ void pm_core_enter_subsys_off(void);
   @fn     void pm_shut_down_dcache(void)
   @brief  Preparation for pm_core_enter_subsys_off
 
-  In preparation for removing power, we need to ensure the data
-  cache is clean.
+  In preparation for power potentially being removed, we need to
+  ensure the data cache is clean, so previous writes to RAM are
+  not lost.
+
   This is a potentially slow operation, so it may be desirable
   to do so with interrupts enabled before hand. If this call is
   made before pm_core_enter_subsys_off, it significantly reduces
