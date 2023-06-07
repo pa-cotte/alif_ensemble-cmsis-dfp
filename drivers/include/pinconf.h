@@ -27,6 +27,9 @@ extern "C"
 
 #include <stdint.h>
 
+#define _PORT_(n)  PORT_##n
+#define  PORT_(n) _PORT_(n)
+
 #define PORT_0                                              0U
 #define PORT_1                                              1U
 #define PORT_2                                              2U
@@ -42,7 +45,7 @@ extern "C"
 #define PORT_12                                             12U
 #define PORT_13                                             13U
 #define PORT_14                                             14U
-#define PORT_15                                             15U
+#define PORT_LP                                             15U
 
 #define PIN_0                                               0U
 #define PIN_1                                               1U
