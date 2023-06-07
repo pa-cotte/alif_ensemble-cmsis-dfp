@@ -45,22 +45,27 @@ typedef enum _PM_STATUS
 }PM_STATUS;
 
 /**
-  @brief enum of wake reasons-
+  @brief enum of reset reasons
+
+ * Note that if a subsystem powers itself down and restarts, then no
+ * reset reason is indicated, as the reset was not triggered by the
+ * central reset logic - this value is read from the central reset
+ * controller.
  */
 typedef enum _PM_RESET_REASON
 {
-    PM_RESET_REASON_POR_OR_SOC_OR_HOST_RESET =  0,   /*!< Indicates the last
+    PM_RESET_REASON_POR_OR_SOC_OR_HOST_RESET = (1U<<0), /*!< Indicates that a
                                                          reset of the External
                                                          System was caused by
                                                          the POR (Reset because
                                                          of power on/off or SOC)
                                                          or Host reset i.e.
                                                          Secure Enclave       */
-    PM_RESET_REASON_NRST_RESET               =  1,   /*!< Indicates that the
+    PM_RESET_REASON_NSRST_RESET              = (1U<<1), /*!< Indicates that a
                                                          last reset of the
                                                          External System was
                                                          caused by nSRST      */
-    PM_RESET_REASON_EXTERNAL_SYS_RESET       =  4,   /*!< Indicates the last
+    PM_RESET_REASON_EXTERNAL_SYS_RESET       = (1U<<4), /*!< Indicates that a
                                                          reset of the External
                                                          System was caused by a
                                                          request to reset this
@@ -120,7 +125,7 @@ typedef enum _PM_EWIC_WAKEUP_SRC
 */
 typedef struct _pm_wakeup_reason_t {
     PM_EWIC_WAKEUP_SRC    ewic_wakeup_src;
-    PM_RESET_REASON       reset_reason   ;
+    uint32_t              reset_status;
 } pm_wakeup_reason_t;
 
 
@@ -172,8 +177,8 @@ void pm_core_enter_deep_sleep(void);
 #define pm_core_enter_iwic_sleep() pm_core_enter_deep_sleep()
 
 /**
-  @fn     void pm_core_enter_subsys_off(void)
-  @brief  Power management API which performs subsystem off operation
+  @fn     void pm_core_enter_deep_sleep_permitting_subsys_off(void)
+  @brief  Power management API which permits subsystem off operation
 
           This enters a deep sleep and indicates that it is okay for
           the CPU power, and hence potentially the entire subsystem's
@@ -221,7 +226,10 @@ void pm_core_enter_deep_sleep(void);
           unmasked by drivers.
   @return This function returns nothing, or causes reboot.
  */
-void pm_core_enter_subsys_off(void);
+void pm_core_enter_deep_sleep_permitting_subsys_off(void);
+
+/* Backwards compatibility with earlier naming */
+#define pm_core_enter_subsys_off() pm_core_enter_deep_sleep_permitting_subsys_off()
 
 /**
   @fn     void pm_shut_down_dcache(void)
@@ -273,11 +281,14 @@ uint32_t pm_shut_down_dcache(void);
 void pm_restore_dcache_enable(uint32_t old_state);
 
 /**
-  @fn    PM_WAKEUP_REASON pm_core_get_reset_reason(void)
-  @brief Get reset reason
-  @return Reset reason return
+  @fn    uint32_t pm_get_subsystem reset_status(void)
+  @brief Get reset status
+         Returns the value of the current subsystem's reset status register,
+         and clears it. So if this call isn't made on every reset, it may
+         indicate previous resets.
+  @return Reset status return (ORred PM_RESET_REASON values)
  */
-PM_RESET_REASON pm_core_get_reset_reason();
+uint32_t pm_get_subsystem_reset_status(void);
 
 #ifdef  __cplusplus
 }

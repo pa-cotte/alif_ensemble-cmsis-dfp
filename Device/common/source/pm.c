@@ -29,11 +29,11 @@
 
 /* WICCONTROL register : volatile static uint32_t *const WICCONTROL*/
 #if   defined(M55_HP)
-#define WICCONTROL                  (&(AON->RTSS_HP_CTRL ))
-#define RESET_REASON_REG            (&(AON->RTSS_HP_RESET))
+#define WICCONTROL                  (AON->RTSS_HP_CTRL )
+#define RESET_STATUS_REG            (AON->RTSS_HP_RESET)
 #elif defined(M55_HE)
-#define WICCONTROL                  (&(AON->RTSS_HE_CTRL ))
-#define RESET_REASON_REG            (&(AON->RTSS_HE_RESET))
+#define WICCONTROL                  (AON->RTSS_HE_CTRL )
+#define RESET_STATUS_REG            (AON->RTSS_HE_RESET)
 #else
 #error "Invalid CPU"
 #endif
@@ -66,27 +66,22 @@ void restore_fp_state(const fp_state_t *state)
     "BX      LR"
   );
 }
-/**
-  @fn          uint16_t pm_get_version(void)
-  @brief       Get PM driver version.
-  @return      uint16_t
-*/
+
 uint16_t pm_get_version(void)
 {
   return PM_DRV_VERSION;
 }
 
 /**
-  @fn     void pm_core_set_deep_sleep(void)
-  @brief  Power management API which performs deep sleep operation
-  On current silicon, this does nothing on its own beyond basic sleep;
-  but it activates power saving if a WIC is enabled.
-  @return This function return nothing
+  @fn     void pm_core_enter_wic_sleep(bool iwic)
+  @brief  Enter deep WIC-based sleep subroutine
+  @param[in]   iwic true for IWIC sleep, false for EWIC.
+  @return This function returns nothing, potentially causes power-down.
  */
 static void pm_core_enter_wic_sleep(bool iwic)
 {
     /* Set up WICCONTROL so that deep sleep is the required WIC sleep type */
-    *WICCONTROL = _VAL2FLD(WICCONTROL_WIC, 1) | _VAL2FLD(WICCONTROL_IWIC, iwic);
+    WICCONTROL = _VAL2FLD(WICCONTROL_WIC, 1) | _VAL2FLD(WICCONTROL_IWIC, iwic);
 
     /* Setting DEEPSLEEP bit */
 	uint32_t scr = SCB->SCR;
@@ -107,7 +102,7 @@ static void pm_core_enter_wic_sleep(bool iwic)
     SCB->SCR = scr &=~ SCB_SCR_SLEEPDEEP_Msk;
 
     /* Clear WICCONTROL to disable WIC sleep */
-    *WICCONTROL = _VAL2FLD(WICCONTROL_WIC, 0);
+    WICCONTROL = _VAL2FLD(WICCONTROL_WIC, 0);
 
     /* Data Synchronization Barrier completes all instructions before this */
     __DSB();
@@ -118,11 +113,6 @@ static void pm_core_enter_wic_sleep(bool iwic)
     __ISB();
 }
 
-/**
-  @fn     void pm_core_set_iwic_sleep(void)
-  @brief  Power management API which performs iwic sleep operation
-  @return This function returns nothing
- */
 void pm_core_enter_deep_sleep(void)
 {
     /* Entering any WIC sleep could potentially cause state loss,
@@ -135,8 +125,8 @@ void pm_core_enter_deep_sleep(void)
      * as the CPU, so we need the IWIC+CPU to stay on to be able to wake,
      * which means our minimum is actually ON with clock off.
      *
-     * But don't lower the entry value - caller may have a reason to suppress
-     * low-power states.
+     * But don't lower the entry value of CLPSTATE - caller may have a reason
+     * to suppress low-power states.
      */
     uint32_t old_cpdlpstate = PWRMODCTL->CPDLPSTATE;
     if (_FLD2VAL(PWRMODCTL_CPDLPSTATE_CLPSTATE, old_cpdlpstate) > LPSTATE_ON_CLK_OFF) {
@@ -151,19 +141,6 @@ void pm_core_enter_deep_sleep(void)
     PWRMODCTL->CPDLPSTATE = old_cpdlpstate;
 }
 
-/**
-  @fn     void pm_shut_down_dcache(void)
-  @brief  Preparation for pm_core_enter_subsys_off
-
-  In preparation for removing power, we need to ensure the data
-  cache is clean.
-  This is a potentially slow operation, so it may be desirable
-  to do so with interrupts enabled before hand. If this call is
-  made before pm_core_enter_subsys_off, it significantly reduces
-  the work that core does with interrupts disabled.
-
-  @return This function returns a state indicator for pm_restore_dcache_enable
-  */
 uint32_t pm_shut_down_dcache(void)
 {
     /* Stop new data cache allocations  */
@@ -186,10 +163,15 @@ uint32_t pm_shut_down_dcache(void)
         {
             /* Clean if it is active, and not known to be clean */
             SCB_CleanDCache();
+
+            /* Should be good to manually mark clean now - M55 TRM tells us not to,
+             * but after some disussion with Arm, I believe we've taken enough care
+             * that this is valid at this point.
+             */
+            MEMSYSCTL->MSCR |= MEMSYSCTL_MSCR_DCCLEAN_Msk;
         }
-        /* M55 TRM tells us not to modify the DCCLEAN bit; otherwise it seems like
-         * we could set it here. Disable the cache and put FORCEWT back how it was.
-         */
+
+        /* Disable the cache and put FORCEWT back how it was. */
         MEMSYSCTL->MSCR = (MEMSYSCTL->MSCR &~ (MEMSYSCTL_MSCR_DCACTIVE_Msk | MEMSYSCTL_MSCR_FORCEWT_Msk))
                                             | (orig_mscr & MEMSYSCTL_MSCR_FORCEWT_Msk);
     }
@@ -201,31 +183,13 @@ uint32_t pm_shut_down_dcache(void)
     return (orig_ccr | orig_mscr) & (MEMSYSCTL_MSCR_DCACTIVE_Msk | SCB_CCR_DC_Msk);
 }
 
-/**
-  @fn     void pm_restore_dcache_enable(uint32_t old_state)
-  @brief  Restore dcache operational state
-
-  If an "off" attempt returns, due to a wake event happening before
-  power was shut down, we can undo the effect of
-  pm_shut_down_dcache_ready_for_cpu_off and restore cache operation.
-
-  Unlike the disable, this is a fast call, so it can be made before
-  enabling interrupts.
-
-  @return This function returns nothing
-  */
 void pm_restore_dcache_enable(uint32_t old_state)
 {
 	MEMSYSCTL->MSCR = (MEMSYSCTL->MSCR &~ MEMSYSCTL_MSCR_DCACTIVE_Msk) | (old_state & MEMSYSCTL_MSCR_DCACTIVE_Msk);
 	SCB->CCR = (SCB->CCR &~ SCB_CCR_DC_Msk) | (old_state & SCB_CCR_DC_Msk);
 }
 
-/**
-  @fn     void pm_core_set_subsys_off(void)
-  @brief Power management API which performs subsystem off operation
-  @return This function return nothing
- */
-void pm_core_enter_subsys_off(void)
+void pm_core_enter_deep_sleep_permitting_subsys_off(void)
 {
     const uint32_t SU11 = 1 << (11*2);
     const uint32_t SU10 = 1 << (10*2);
@@ -293,6 +257,13 @@ void pm_core_enter_subsys_off(void)
              * respond.
              */
             SCB_CleanDCache();
+
+            /* Should be good to manually mark clean now - M55 TRM tells us not to,
+             * but after some disussion with Arm, I believe we've taken enough care
+             * that this is valid at this point.
+             * (If the cache ISN'T clean, then we've failed on the shutdown).
+             */
+            MEMSYSCTL->MSCR |= MEMSYSCTL_MSCR_DCCLEAN_Msk;
         }
     }
 
@@ -318,10 +289,10 @@ void pm_core_enter_subsys_off(void)
      * enabled by M55.
      */
 
-    /* Trigger the EWIC sleep */
+    /* Trigger the EWIC sleep - may or may not return */
     pm_core_enter_wic_sleep(false);
 
-    /* Restore enables */
+    /* If we return, restore enables */
     MEMSYSCTL->MSCR |= orig_mscr & (MEMSYSCTL_MSCR_ICACTIVE_Msk | MEMSYSCTL_MSCR_DCACTIVE_Msk);
     SCB->CCR = orig_ccr;
     DCB->DEMCR = orig_demcr;
@@ -337,12 +308,13 @@ void pm_core_enter_subsys_off(void)
     }
 }
 
-/**
-  @fn    PM_RESET_REASON pm_core_get_reset_reason(void)
-  @brief Get reset reason
-  @return reset reason
- */
-PM_RESET_REASON pm_core_get_reset_reason(void)
+uint32_t pm_get_subsystem_reset_status(void)
 {
-    return (PM_RESET_REASON) *RESET_REASON_REG;
+    /* Read the set bits */
+    uint32_t reason = RESET_STATUS_REG;
+
+    /* Write them back to acknowledge what we read */
+    RESET_STATUS_REG = reason;
+
+    return reason;
 }
