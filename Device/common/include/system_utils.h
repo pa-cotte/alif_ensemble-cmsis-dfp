@@ -91,6 +91,26 @@ extern "C" {
 // Function documentation
 
 /**
+  \fn          bool RTSS_Is_DCache_Dirty(void)
+  \brief       Check whether the Data Cache line is dirty
+  \return      bool True: if cache is dirty, false otherwise
+*/
+__STATIC_FORCEINLINE
+bool RTSS_Is_DCache_Dirty(void)
+{
+    uint32_t mscr = MEMSYSCTL->MSCR;
+
+    /* Return True, if Cache is active and not known to be clean */
+    if((mscr & MEMSYSCTL_MSCR_DCACTIVE_Msk)
+       && !(mscr & MEMSYSCTL_MSCR_DCCLEAN_Msk))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+/**
   \fn          bool RTSS_Is_TCM_Addr(const volatile void *local_addr)
   \brief       Return true if the local_addr is in TCM
   \param[in]   local_addr  local address
@@ -161,6 +181,13 @@ void* GlobalToLocal(uint32_t global_addr)
   \param[in]   delay_us delay in micro seconds.
 */
 void PMU_delay_loop_us(unsigned int delay_us);
+
+/**
+  \fn          void RTSS_IsGlobalCacheClean_Required (void)
+  \brief       Return True if Global Cache Clean operation is required
+  return       True : If CacheOperation Required, else False
+*/
+bool RTSS_IsGlobalCacheClean_Required (void);
 
 /**
   \fn          void RTSS_IsCacheInvalidate_Required_by_Addr (volatile void *addr, int32_t size)
@@ -266,6 +293,17 @@ void RTSS_CleanDCache_by_Addr (volatile void *addr, int32_t dsize)
 }
 
 /**
+  \fn          void RTSS_CleanDCache (void)
+  \brief       Clean the Cache only if the line is dirty.
+*/
+__STATIC_FORCEINLINE
+void RTSS_CleanDCache (void)
+{
+    if(RTSS_IsGlobalCacheClean_Required() && RTSS_Is_DCache_Dirty())
+        SCB_CleanDCache();
+}
+
+/**
   \fn          void RTSS_CleanInvalidateDCache_by_Addr (volatile void *addr, int32_t dsize)
   \brief       Add a wrapper on the CleanInvalidateDcache APIs so that
                TCM regions are ignored.
@@ -281,7 +319,7 @@ void RTSS_CleanInvalidateDCache_by_Addr (volatile void *addr, int32_t dsize)
     clean_req = RTSS_IsCacheClean_Required_by_Addr (addr, dsize);
     invalidate_req = RTSS_IsCacheInvalidate_Required_by_Addr (addr, dsize);
 
-    if(clean_req & invalidate_req)
+    if(clean_req && invalidate_req)
     {
         /*
          * Considering the time required to CleanInvalidate by address

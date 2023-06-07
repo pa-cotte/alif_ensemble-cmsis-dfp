@@ -51,6 +51,28 @@ static inline void disable_pdm_periph_clk(void)
     CLKCTL_PER_SLV->EXPMST0_CTRL &= ~EXPMST0_CTRL_PDM_CKEN;
 }
 
+/**
+ @fn          void enable_lppdm_periph_clk(void)
+ @brief       Enable LPPDM input clock
+ @param[in]   none
+ @return      none
+ */
+static inline void enable_lppdm_periph_clk(void)
+{
+    M55HE_CFG->HE_CLK_ENA |= HE_CLK_ENA_PDM_CKEN;
+}
+
+/**
+ @fn          void disable_lppdm_periph_clk(void)
+ @brief       Disable LPPDM input clock
+ @param[in]   none
+ @return      none
+ */
+static inline void disable_lppdm_periph_clk(void)
+{
+    M55HE_CFG->HE_CLK_ENA &= ~HE_CLK_ENA_PDM_CKEN;
+}
+
 #ifdef __cplusplus
 }
 #endif

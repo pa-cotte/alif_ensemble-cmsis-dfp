@@ -424,21 +424,21 @@ void DMA0_IRQ_ABORT_Handler (void) __attribute__ ((weak, alias("Default_Handler"
 
 void GPU2D_IRQHandler               (void) __attribute__ ((weak, alias("Default_Handler")));
 
-void DPI_SCANLINE0_IRQHandler       (void) __attribute__ ((weak, alias("Default_Handler")));
-void DPI_SCANLINE1_IRQHandler       (void) __attribute__ ((weak, alias("Default_Handler")));
-void DPI_FIFO_WARNING0_IRQHandler   (void) __attribute__ ((weak, alias("Default_Handler")));
-void DPI_FIFO_WARNING1_IRQHandler   (void) __attribute__ ((weak, alias("Default_Handler")));
-void DPI_FIFO_UNDERRUN0_IRQHandler  (void) __attribute__ ((weak, alias("Default_Handler")));
-void DPI_FIFO_UNDERRUN1_IRQHandler  (void) __attribute__ ((weak, alias("Default_Handler")));
-void DPI_BUS_ERROR0_IRQHandler      (void) __attribute__ ((weak, alias("Default_Handler")));
-void DPI_BUS_ERROR1_IRQHandler      (void) __attribute__ ((weak, alias("Default_Handler")));
-void DPI_REG_RELOAD0_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));
-void DPI_REG_RELOAD1_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));
+void CDC_SCANLINE0_IRQHandler       (void) __attribute__ ((weak, alias("Default_Handler")));
+void CDC_SCANLINE1_IRQHandler       (void) __attribute__ ((weak, alias("Default_Handler")));
+void CDC_FIFO_WARNING0_IRQHandler   (void) __attribute__ ((weak, alias("Default_Handler")));
+void CDC_FIFO_WARNING1_IRQHandler   (void) __attribute__ ((weak, alias("Default_Handler")));
+void CDC_FIFO_UNDERRUN0_IRQHandler  (void) __attribute__ ((weak, alias("Default_Handler")));
+void CDC_FIFO_UNDERRUN1_IRQHandler  (void) __attribute__ ((weak, alias("Default_Handler")));
+void CDC_BUS_ERROR0_IRQHandler      (void) __attribute__ ((weak, alias("Default_Handler")));
+void CDC_BUS_ERROR1_IRQHandler      (void) __attribute__ ((weak, alias("Default_Handler")));
+void CDC_REG_RELOAD0_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));
+void CDC_REG_RELOAD1_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));
 
 void DSI_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
 void CSI_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
 
-void CPI_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void CAM_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
 
 void QEC0_CMPA_IRQHandler   (void) __attribute__ ((weak, alias("Default_Handler")));
 void QEC0_CMPB_IRQHandler   (void) __attribute__ ((weak, alias("Default_Handler")));
@@ -909,19 +909,19 @@ extern const VECTOR_TABLE_Type __VECTOR_TABLE[496];
   DMA0_IRQ31Handler,                        /*   330 Interrupt 330 */
   DMA0_IRQ_ABORT_Handler,                   /*   331 Interrupt 331 */
   GPU2D_IRQHandler,                         /*   332 Interrupt 332 */
-  DPI_SCANLINE0_IRQHandler,                 /*   333 Interrupt 333 */
-  DPI_SCANLINE1_IRQHandler,                 /*   334 Interrupt 334 */
-  DPI_FIFO_WARNING0_IRQHandler,             /*   335 Interrupt 335 */
-  DPI_FIFO_WARNING1_IRQHandler,             /*   336 Interrupt 336 */
-  DPI_FIFO_UNDERRUN0_IRQHandler,            /*   337 Interrupt 337 */
-  DPI_FIFO_UNDERRUN1_IRQHandler,            /*   338 Interrupt 338 */
-  DPI_BUS_ERROR0_IRQHandler,                /*   339 Interrupt 339 */
-  DPI_BUS_ERROR1_IRQHandler,                /*   340 Interrupt 340 */
-  DPI_REG_RELOAD0_IRQHandler,               /*   341 Interrupt 341 */
-  DPI_REG_RELOAD1_IRQHandler,               /*   342 Interrupt 342 */
+  CDC_SCANLINE0_IRQHandler,                 /*   333 Interrupt 333 */
+  CDC_SCANLINE1_IRQHandler,                 /*   334 Interrupt 334 */
+  CDC_FIFO_WARNING0_IRQHandler,             /*   335 Interrupt 335 */
+  CDC_FIFO_WARNING1_IRQHandler,             /*   336 Interrupt 336 */
+  CDC_FIFO_UNDERRUN0_IRQHandler,            /*   337 Interrupt 337 */
+  CDC_FIFO_UNDERRUN1_IRQHandler,            /*   338 Interrupt 338 */
+  CDC_BUS_ERROR0_IRQHandler,                /*   339 Interrupt 339 */
+  CDC_BUS_ERROR1_IRQHandler,                /*   340 Interrupt 340 */
+  CDC_REG_RELOAD0_IRQHandler,               /*   341 Interrupt 341 */
+  CDC_REG_RELOAD1_IRQHandler,               /*   342 Interrupt 342 */
   DSI_IRQHandler,                           /*   343 Interrupt 343 */
   CSI_IRQHandler,                           /*   344 Interrupt 344 */
-  CPI_IRQHandler,                           /*   345 Interrupt 345 */
+  CAM_IRQHandler,                           /*   345 Interrupt 345 */
   LPTIMER0_IRQHandler,                      /*   346 Interrupt 346 */
   LPTIMER1_IRQHandler,                      /*   347 Interrupt 347 */
   LPTIMER2_IRQHandler,                      /*   348 Interrupt 348 */

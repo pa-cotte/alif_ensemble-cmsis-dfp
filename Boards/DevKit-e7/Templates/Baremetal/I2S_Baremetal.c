@@ -15,7 +15,8 @@
  * @version  V1.0.0
  * @date     3-May-2023
  * @brief    Test Application for I2S for Devkit
- *           I2S2 is configured as master transmitter (DAC).
+ *           For HP, I2S1 is configured as master transmitter (DAC).
+ *           For HE, LPI2S will be used as DAC.
  *           I2S3(ADC) is configured as master receiver SPH0645LM4H-1 device 24bit
  * @bug      None.
  * @Note	 None
@@ -67,7 +68,7 @@ void Receiver ();
  * Send function. Receive will be disabled.
  */
 //#define DAC_PREDEFINED_SAMPLES
-#define I2S_DAC 2             /* DAC I2S Controller 2 */
+#define I2S_DAC 1             /* DAC I2S Controller 1 */
 #endif
 #define I2S_ADC 3             /* ADC I2S Controller 3 */
 
@@ -131,18 +132,18 @@ int32_t dac_pinmux_config(void)
     if(status)
         return ERROR;
 #else
-    /* Configure I2S2_A SDO */
-    status = pinconf_set(PORT_8, PIN_2, PINMUX_ALTERNATE_FUNCTION_1, 0);
+    /* Configure I2S1_A SDO */
+    status = pinconf_set(PORT_3, PIN_3, PINMUX_ALTERNATE_FUNCTION_3, 0);
     if(status)
         return ERROR;
 
-    /* Configure I2S2_A WS */
-    status = pinconf_set(PORT_8, PIN_4, PINMUX_ALTERNATE_FUNCTION_1, 0);
+    /* Configure I2S1_A WS */
+    status = pinconf_set(PORT_4, PIN_0, PINMUX_ALTERNATE_FUNCTION_3, 0);
     if(status)
         return ERROR;
 
-    /* Configure I2S2_A SCLK */
-    status = pinconf_set(PORT_8, PIN_3, PINMUX_ALTERNATE_FUNCTION_1, 0);
+    /* Configure I2S1_A SCLK */
+    status = pinconf_set(PORT_3, PIN_4, PINMUX_ALTERNATE_FUNCTION_4, 0);
     if(status)
         return ERROR;
 
@@ -181,7 +182,7 @@ void DAC_Init()
         return;
     }
 
-    /* Initializes I2S0 interface */
+    /* Initializes I2S interface */
     status = i2s_dac->Initialize(dac_callback);
     if(status)
     {
@@ -189,7 +190,7 @@ void DAC_Init()
         goto error_initialize;
     }
 
-    /* Enable the power for I2S0 */
+    /* Enable the power for I2S */
     status = i2s_dac->PowerControl(ARM_POWER_FULL);
     if(status)
     {
@@ -197,12 +198,12 @@ void DAC_Init()
         goto error_power;
     }
 
-    /* configure I2S0 Transmitter to Asynchronous Master */
+    /* configure I2S Transmitter to Asynchronous Master */
     status = i2s_dac->Control(ARM_SAI_CONFIGURE_TX |
-                                ARM_SAI_MODE_MASTER  |
-                                ARM_SAI_ASYNCHRONOUS |
-                                ARM_SAI_PROTOCOL_I2S |
-                                ARM_SAI_DATA_SIZE(wlen), wlen*2, sampling_rate);
+                              ARM_SAI_MODE_MASTER  |
+                              ARM_SAI_ASYNCHRONOUS |
+                              ARM_SAI_PROTOCOL_I2S |
+                              ARM_SAI_DATA_SIZE(wlen), wlen*2, sampling_rate);
     if(status)
     {
         printf("DAC Control status = %d\n", status);
@@ -380,7 +381,7 @@ void ADC_Init()
         return;
     }
 
-    /* Initializes I2S2 interface */
+    /* Initializes I2S interface */
     status = i2s_adc->Initialize(adc_callback);
     if(status)
     {
@@ -388,7 +389,7 @@ void ADC_Init()
         return;
     }
 
-    /* Enable the power for I2S2 */
+    /* Enable the power for I2S */
     status = i2s_adc->PowerControl(ARM_POWER_FULL);
     if(status)
     {
@@ -396,12 +397,12 @@ void ADC_Init()
         return;
     }
 
-    /* configure I2S2 Receiver to Asynchronous Master */
+    /* configure I2S Receiver to Asynchronous Master */
     status = i2s_adc->Control(ARM_SAI_CONFIGURE_RX |
-                                ARM_SAI_MODE_MASTER  |
-                                ARM_SAI_ASYNCHRONOUS |
-                                ARM_SAI_PROTOCOL_I2S |
-                                ARM_SAI_DATA_SIZE(wlen), wlen*2, sampling_rate);
+                              ARM_SAI_MODE_MASTER  |
+                              ARM_SAI_ASYNCHRONOUS |
+                              ARM_SAI_PROTOCOL_I2S |
+                              ARM_SAI_DATA_SIZE(wlen), wlen*2, sampling_rate);
     if(status)
     {
       printf("ADC Control status = %d\n", status);

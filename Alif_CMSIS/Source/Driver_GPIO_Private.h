@@ -20,6 +20,7 @@
  ******************************************************************************/
 
 #ifndef DRIVER_GPIO_PRIVATE_H_
+
 #define DRIVER_GPIO_PRIVATE_H_
 
 #ifdef  __cplusplus
@@ -69,7 +70,7 @@ typedef enum _GPIO_INSTANCE
     GPIO12_INSTANCE,
     GPIO13_INSTANCE,
     GPIO14_INSTANCE,
-    GPIO15_INSTANCE
+    LPGPIO_INSTANCE
 } GPIO_INSTANCE;
 
 typedef struct _GPIO_DRV_STATE {

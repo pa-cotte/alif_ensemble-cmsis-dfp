@@ -21,7 +21,14 @@
 #define PERIPHERAL_TYPES_H
 
 #include <stdint.h>
-#include "global_map.h"
+
+#if defined (M55_HP)
+  #include "M55_HP_map.h"
+#elif defined (M55_HE)
+  #include "M55_HE_map.h"
+#else
+  #error device not specified!
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,11 +81,23 @@ typedef struct {                                /*!< (@ 0x1A602000) CGU Structur
   * @brief CLKCTL_PER_MST (CLKCTL_PER_MST)
   */
 
+/* CLKCTL_PER_MST CAMERA_PIXCLK_CTRL field definitions */
+#define CAMERA_PIXCLK_CTRL_CKEN             (1U << 0) /* Camera Pixel clock enables */
+#define CAMERA_PIXCLK_CTRL_CLK_SEL          (1U << 4) /* Camera Pixel clock select  */
+#define CAMERA_PIXCLK_CTRL_DIVISOR_Pos      16U       /* Camera Pixel clock divisor */
+#define CAMERA_PIXCLK_CTRL_DIVISOR_Msk      (0x1FF << CAMERA_PIXCLK_CTRL_DIVISOR_Pos)
+
 /* CLKCTL_PER_MST CDC200_PIXCLK_CTRL field definitions */
 #define CDC200_PIXCLK_CTRL_CKEN             (1U << 0) /* CDC200 Pixel clock enables */
 #define CDC200_PIXCLK_CTRL_CLK_SEL          (1U << 4) /* CDC200 Pixel clock select  */
 #define CDC200_PIXCLK_CTRL_DIVISOR_Pos      16U       /* CDC200 Pixel clock divisor */
 #define CDC200_PIXCLK_CTRL_DIVISOR_Msk      (0x1FFU << CDC200_PIXCLK_CTRL_DIVISOR_Pos)
+
+/* CLKCTL_PER_MST CSI_PIXCLK_CTRL field definitions */
+#define CSI_PIXCLK_CTRL_CKEN                (0x1U << 0) /* CSI Pixel clock enables */
+#define CSI_PIXCLK_CTRL_CLK_SEL             (0x1U << 4) /* CSI Pixel clock select  */
+#define CSI_PIXCLK_CTRL_DIVISOR_Pos         16U         /* CSI Pixel clock divisor */
+#define CSI_PIXCLK_CTRL_DIVISOR_Msk         (0x1FF << CSI_PIXCLK_CTRL_DIVISOR_Pos)
 
 /* CLKCTL_PER_MST PERIPH_CLK_ENA field definitions */
 #define PERIPH_CLK_ENA_CPI_CKEN             (1U << 0)  /* Enable clock supply for CPI */
@@ -124,7 +143,7 @@ typedef struct {                                /*!< (@ 0x1A602000) CGU Structur
 
 /* CLKCTL_PER_MST, M55_Common_CFG DMA_CTRL field definitions */
 #define DMA_CTRL_BOOT_MANAGER               (1U << 0)  /* 0: Secure, 1: Non-Secure */
-#define DMA_CTRL_SW_RST                     (1U << 16) /* Software reset of DMA0 */
+#define DMA_CTRL_SW_RST                     (1U << 16) /* Software reset of DMA */
 
 
 typedef struct {                                /*!< (@ 0x4903F000) CLKCTL_PER_MST Structure                                   */
@@ -298,11 +317,30 @@ typedef struct {                                /*!< (@ 0x1A609000) VBAT Structu
 /* =========================================================================================================================== */
 /* ================                                         M55HE_CFG                                         ================ */
 /* =========================================================================================================================== */
-
+#define HE_DMA_SEL_FLT_ENA_Pos                   (24)                                 /* Glitch filter Pos for LPGPIO    */
+#define HE_DMA_SEL_FLT_ENA_Msk                   (0xFF)                               /* Glitch filter Mask for LPGPIO   */
+#define HE_DMA_SEL_PDM_DMA0                      (1U << 16)                           /* Select DMA0 for LPPDM           */
+#define HE_DMA_SEL_I2S_DMA0                      (1U << 12)                           /* Select DMA0 for LPI2S           */
+#define HE_DMA_SEL_LPSPI_Pos                     (4)                                  /* Pos to Select DMA0 for LPSPI    */
+#define HE_DMA_SEL_LPSPI_Msk                     (0x3U << HE_DMA_SEL_LPSPI_Pos)       /* Mask to Select DMA0 for LPSPI   */
+#define HE_DMA_SEL_LPSPI_DMA2                    (0x0U << HE_DMA_SEL_LPSPI_Pos)       /* Select DMA2 for LPSPI           */
+#define HE_DMA_SEL_LPSPI_DMA0_GROUP1             (0x1U << HE_DMA_SEL_LPSPI_Pos)       /* Select DMA0 Group1 for LPSPI    */
+#define HE_DMA_SEL_LPSPI_DMA0_GROUP2             (0x2U << HE_DMA_SEL_LPSPI_Pos)       /* Select DMA0 Group2 for LPSPI    */
+#define HE_DMA_SEL_LPUART_DMA0                   (1U << 0)                            /* Select DMA0 for LPUART          */
 
 /**
   * @brief M55HE_CFG (M55HE_CFG)
   */
+
+/* M55HE_CFG HE_CLK_ENA field definitions */
+#define HE_CLK_ENA_LPCPI_CKEN              (1U << 12)   /* Enable LPCPI clock */
+#define HE_CLK_ENA_SPI_CKEN                (1U << 16U)  /* Enable LPSPI clock */
+#define HE_CLK_ENA_PDM_CKEN                (1U << 8)    /* Enable LPPDM clock */
+
+/* M55HE_CFG HE_CAMERA_PIXCLK field definitions */
+#define HE_CAMERA_PIXCLK_CTRL_CKEN              (1U << 0)
+#define HE_CAMERA_PIXCLK_CTRL_DIVISOR_Pos       16U
+#define HE_CAMERA_PIXCLK_CTRL_DIVISOR_Msk       (0x1FF << HE_CAMERA_PIXCLK_CTRL_DIVISOR_Pos)
 
 typedef struct {                                /*!< (@ 0x43007000) M55HE_CFG Structure                                        */
   __IOM uint32_t  HE_DMA_CTRL;                  /*!< (@ 0x00000000) DMA2 Boot Control Register                                 */
@@ -335,6 +373,11 @@ typedef struct {                                /*!< (@ 0x400F0000) M55HP_CFG St
 /* M55_CFG_Common_Type CLK_ENA field definitions */
 #define CLK_ENA_NPU_CKEN                    (1U << 0)  /* Enable clock supply for NPU */
 #define CLK_ENA_DMA_CKEN                    (1U << 4)  /* Enable clock supply for DMA */
+
+/* M55_CFG_Common_Type DMA_SEL field definitions */
+#define DMA_SEL_FLT_ENA_Pos                 (24)                            /* Glitch filter Pos for  GPIO   */
+#define DMA_SEL_FLT_ENA_Msk                 (0xFF << DMA_SEL_FLT_ENA_Pos)   /* Glitch filter Mask for GPIO   */
+
 
 typedef struct {                                /*!< M55_HE_CFG and M55_HP_CFG common registers structure                      */
   __IOM uint32_t  DMA_CTRL;                     /*!< (@ 0x00000000) DMA Boot Control Register                                  */
@@ -407,6 +450,123 @@ typedef struct {                                /*!< (@ 0x1A604000) AON Structur
   __IOM uint32_t  PMU_PERIPH;                   /*!< (@ 0x00000040) ADC Control Register                        */
 } AON_Type;                                     /*!< Size = 68 (0x44)                                           */
 
+
+/* =========================================================================================================================== */
+/* ================                                           AES                                            ================  */
+/* =========================================================================================================================== */
+
+
+/**
+  * @brief AES (AES)
+  */
+
+typedef struct {                                /*!<  AES Structure                                                            */
+  __IOM uint32_t  AES_CONTROL;                  /*!< (@ 0x00000000) AES Control Register                                       */
+  __IOM uint32_t  AES_INTERRUPT;                /*!< (@ 0x00000004) AES Interrupt Control Register                             */
+  __IOM uint32_t  AES_INTERRUPT_MASK;           /*!< (@ 0x00000008) AES Interrupt Mask Register                                */
+  __IOM uint32_t  AES_KEY_0;                    /*!< (@ 0x0000000C) AES Key 0 RegisterNOTE: Internal register!                 */
+  __IOM uint32_t  AES_KEY_1;                    /*!< (@ 0x00000010) AES Key 1 RegisterNOTE: Internal register!                 */
+  __IOM uint32_t  AES_KEY_2;                    /*!< (@ 0x00000014) AES Key 2 RegisterNOTE: Internal register!                 */
+  __IOM uint32_t  AES_KEY_3;                    /*!< (@ 0x00000018) AES Key 3 RegisterNOTE: Internal register!                 */
+  __IOM uint32_t  AES_TIMEOUT_VAL;              /*!< (@ 0x0000001C) ReservedNOTE: Internal register!                           */
+  __IOM uint32_t  AES_RXDS_DELAY;               /*!< (@ 0x00000020) AES RXDS Delay Register                                    */
+} AES_Type;
+
+/* =========================================================================================================================== */
+/* ================                                          EVTRTR1                                          ================ */
+/* =========================================================================================================================== */
+
+/* EVTRTR1, DMA_CTRL field definitions */
+#define DMA_CTRL_ACK_TYPE_Pos               (16U)  /* HandShake Type 0: Peripheral, 1: Event Router               */
+#define DMA_CTRL_ACK_TYPE_EVTRTR            (1U << 16)  /* HandShake Type Peripheral                                   */
+#define DMA_CTRL_ENA                        (1U << 4)   /* Enable DMA Channel                                          */
+#define DMA_CTRL_SEL_Pos                    (0U)        /* Select DMA group from 0 to 3 for DMA0. For Local, only GRP0 */
+#define DMA_CTRL_SEL_Msk                    (0x3)       /* Select DMA group from 0 to 3 for DMA0. For Local, only GRP0 */
+
+/* EVTRTR1, DMA_REQ_CTRL field definitions */
+#define DMA_REQ_CTRL_CB                     (1U << 12)  /* Enable peripheral Burst DMA request  : DMACBREQ        */
+#define DMA_REQ_CTRL_CS                     (1U << 8)   /* Enable peripheral Single DMA request : DMACSREQ        */
+#define DMA_REQ_CTRL_CLB                    (1U << 4)   /* Enable peripheral Last Burst DMA request  : DMACLBREQ  */
+#define DMA_REQ_CTRL_CLS                    (1U << 0)   /* Enable peripheral Last Single DMA request  : DMACLSREQ */
+
+
+/**
+  * @brief EVTRTR1 (EVTRTR1)
+  */
+
+typedef struct {                                /*!< (@ 0x400E2000) EVTRTR1 Structure                                          */
+  __IOM uint32_t  DMA_CTRL0;                    /*!< (@ 0x00000000) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL1;                    /*!< (@ 0x00000004) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL2;                    /*!< (@ 0x00000008) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL3;                    /*!< (@ 0x0000000C) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL4;                    /*!< (@ 0x00000010) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL5;                    /*!< (@ 0x00000014) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL6;                    /*!< (@ 0x00000018) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL7;                    /*!< (@ 0x0000001C) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL8;                    /*!< (@ 0x00000020) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL9;                    /*!< (@ 0x00000024) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL10;                   /*!< (@ 0x00000028) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL11;                   /*!< (@ 0x0000002C) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL12;                   /*!< (@ 0x00000030) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL13;                   /*!< (@ 0x00000034) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL14;                   /*!< (@ 0x00000038) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL15;                   /*!< (@ 0x0000003C) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL16;                   /*!< (@ 0x00000040) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL17;                   /*!< (@ 0x00000044) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL18;                   /*!< (@ 0x00000048) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL19;                   /*!< (@ 0x0000004C) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL20;                   /*!< (@ 0x00000050) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL21;                   /*!< (@ 0x00000054) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL22;                   /*!< (@ 0x00000058) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL23;                   /*!< (@ 0x0000005C) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL24;                   /*!< (@ 0x00000060) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL25;                   /*!< (@ 0x00000064) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL26;                   /*!< (@ 0x00000068) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL27;                   /*!< (@ 0x0000006C) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL28;                   /*!< (@ 0x00000070) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL29;                   /*!< (@ 0x00000074) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL30;                   /*!< (@ 0x00000078) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_CTRL31;                   /*!< (@ 0x0000007C) DMA/Event Router Control and Status Register
+                                                                    (n)                                                        */
+  __IOM uint32_t  DMA_REQ_CTRL;                 /*!< (@ 0x00000080) DMA REQ Control Register                                   */
+  __IM  uint32_t  RESERVED[3];
+  __IOM uint32_t  DMA_ACK_TYPE0;                /*!< (@ 0x00000090) DMA Handshake Type Register 0                              */
+  __IOM uint32_t  DMA_ACK_TYPE1;                /*!< (@ 0x00000094) DMA Handshake Type Register 1                              */
+  __IOM uint32_t  DMA_ACK_TYPE2;                /*!< (@ 0x00000098) DMA Handshake Type Register 2                              */
+  __IOM uint32_t  DMA_ACK_TYPE3;                /*!< (@ 0x0000009C) DMA Handshake Type Register 3                              */
+} EVTRTR1_Type;
+
 /* =========================================================================================================================== */
 /* ================                                  Peripheral declaration                                   ================ */
 /* =========================================================================================================================== */
@@ -423,13 +583,18 @@ typedef struct {                                /*!< (@ 0x1A604000) AON Structur
 #define AON                         ((AON_Type*)               AON_BASE)
 #define ANA_REG                     ((ANA_Type *)              ANA_BASE)
 #define CMP_REG                     ((CMP01_Type *)            CMP0_BASE)
+#define AES0                        ((AES_Type *)              AES0_BASE)
+#define AES1                        ((AES_Type *)              AES1_BASE)
 #define M55HE_CFG                   ((M55HE_CFG_Type*)         M55HE_CFG_BASE)
-#if (M55_HP)
+#define EVTRTR0                     ((EVTRTR1_Type*)           EVTRTR0_BASE)
+#if defined(M55_HP)
 #define M55HP_CFG                   ((M55HP_CFG_Type*)         M55HP_CFG_BASE)
 #define M55LOCAL_CFG                ((M55_CFG_Common_Type*)    M55HP_CFG_BASE)
+#define EVTRTRLOCAL                 ((EVTRTR1_Type*)           EVTRTR1_BASE)
 #endif
-#if (M55_HE)
+#if defined(M55_HE)
 #define M55LOCAL_CFG                ((M55_CFG_Common_Type*)    M55HE_CFG_BASE)
+#define EVTRTRLOCAL                 ((EVTRTR1_Type*)           EVTRTR2_BASE)
 #endif
 
 

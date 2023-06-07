@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -15,14 +15,14 @@
  * @version  V1.0.0
  * @date     28-August-2021
  * @brief    demo application for lptimer.
- *           - Configuring the lptimer channel 0 for 500micro second.
+ *           - Configuring the lptimer channel 0 for 5 seconds.
  * @bug      None.
  * @Note     None
  ******************************************************************************/
 /* System Includes */
 #include <stdio.h>
 #include <stdlib.h>
-/* include for UART Driver */
+/* include for LPTIMER Driver */
 #include "Driver_LPTIMER.h"
 /*RTOS Includes */
 #include "RTE_Components.h"
@@ -32,10 +32,26 @@
 #include "FreeRTOSConfig.h"
 #include "task.h"
 
+/* For Release build disable printf and semihosting */
+#define DISABLE_PRINTF
+
+#ifdef DISABLE_PRINTF
+  #define printf( fmt, ... ) ( 0 )
+  /* Also Disable Semihosting */
+  #if __ARMCC_VERSION >= 6000000
+    __asm( ".global __use_no_semihosting" );
+  #elif __ARMCC_VERSION >= 5000000
+    #pragma import( __use_no_semihosting )
+  #else
+    #error Unsupported compiler
+  #endif
+  void _sys_exit( int return_code ) { while ( 1 ); }
+#endif
+
 /*Define for the FreeRTOS objects*/
 #define LPTIMER_CALLBACK_EVENT     0x01
-#define LPTIMER_CHANNEL_0          0 // lptimer have 0-3 channels, using channel zero for demo app
-#define LPTIMER_EVENT_WAIT_TIME    1000
+#define LPTIMER_CHANNEL_0          0    /* lptimer have 0-3 channels, using channel zero for demo app */
+#define LPTIMER_EVENT_WAIT_TIME    pdMS_TO_TICKS(6000) /* interrupt wait time:6 seconds */
 
 
 /*Define for FreeRTOS*/
@@ -86,8 +102,12 @@ void vApplicationIdleHook(void)
 
 void lptimer_cb_fun (uint8_t event)
 {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE, xResult = pdFALSE;
+
     if (event & ARM_LPTIMER_EVENT_UNDERFLOW) {
-        xTaskNotifyFromISR(lptimer_xHandle,LPTIMER_CALLBACK_EVENT,eSetBits, NULL);
+        xTaskNotifyFromISR(lptimer_xHandle,LPTIMER_CALLBACK_EVENT,eSetBits, &xHigherPriorityTaskWoken);
+
+        if (xResult == pdTRUE)        {    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );    }
     }
 }
 
@@ -96,22 +116,25 @@ void lptimer_Thread (void *pvParameters)
     extern ARM_DRIVER_LPTIMER DRIVER_LPTIMER0;
     ARM_DRIVER_LPTIMER *ptrDrv = &DRIVER_LPTIMER0;
 
-    /* Configuring the lptimer channel 0 for 500micro second
+    /* Configuring the lptimer channel 0 for 5 seconds
+     *Clock Source is depends on RTE_LPTIMER_CHANNEL_CLK_SRC in RTE_Device.h
+     *RTE_LPTIMER_CHANNEL_CLK_SRC = 0 : 32.768KHz freq (Default)
+     *RTE_LPTIMER_CHANNEL_CLK_SRC = 1 : 128KHz freq.
      *
-     * System clock frequency (F)= 400Mhz
+     * Selected clock frequency (F)= 32.768KHz
      *
-     * time for 1 count T = 1/F = 1/(400*10^6) = 0.0025 * 10^-6
+     * time for 1 count T = 1/F = 1/(32.768*10^3) = 30.51 * 10^-6
      *
-     * To increment or decrement timer by 1 count, takes 0.0025 micro sec
+     * To increment timer by 1 count, takes 30.51 micro sec
      *
-     * So count for 500us = (500*(10^-6))/(0.0025*(10^-6)) = 200000
+     * So count for 5sec = 5/(30.51 *(10^-6)) = 163880
      *
-     * DEC = 200000
-     * HEX = 0x30D40
+     * DEC = 163880
+     * HEX = 0x28028
     */
 
-    /*Timer channel configured 500 usec*/
-    uint32_t count = 0x30D40;
+    /* Timer channel configured 5 sec */
+    uint32_t count = 0x28028;
     uint8_t channel = LPTIMER_CHANNEL_0;
     BaseType_t xReturned;
     uint32_t ret;
@@ -135,7 +158,7 @@ void lptimer_Thread (void *pvParameters)
         goto error_poweroff;
     }
 
-    printf("demo application: lptimer channel '%d'configured for 500 us \r\n\n", channel);
+    printf("demo application: lptimer channel '%d'configured for 5 sec \r\n\n", channel);
 
     ret = ptrDrv->Start (channel);
     if (ret != ARM_DRIVER_OK) {
@@ -148,11 +171,11 @@ void lptimer_Thread (void *pvParameters)
     xReturned = xTaskNotifyWait(NULL,LPTIMER_CALLBACK_EVENT,NULL, LPTIMER_EVENT_WAIT_TIME);
     if (xReturned != pdTRUE )
     {
-	printf("\n\r Task Wait Time out expired \n\r");
-	goto error_poweroff;
+        printf("\n\r Task Wait Time out expired \n\r");
+        goto error_poweroff;
     }
 
-    printf("500us timer expired \r\n");
+    printf("5 sec timer expired \r\n");
 
     ret = ptrDrv->Stop(channel);
     if(ret != ARM_DRIVER_OK) {
@@ -176,6 +199,9 @@ error_uninstall:
     }
 
     printf("demo application: completed \r\n");
+
+    /* thread delete  */
+    vTaskDelete( NULL );
 }
 
 
@@ -188,7 +214,7 @@ int main( void )
    SystemCoreClockUpdate();
 
    /* Create application main thread */
-   BaseType_t xReturned = xTaskCreate(lptimer_Thread, "lpTimer_Thread", 1024, NULL,configMAX_PRIORITIES-1, &lptimer_xHandle);
+   BaseType_t xReturned = xTaskCreate(lptimer_Thread, "lpTimer_Thread", 512, NULL,configMAX_PRIORITIES-1, &lptimer_xHandle);
    if (xReturned != pdPASS)
    {
 

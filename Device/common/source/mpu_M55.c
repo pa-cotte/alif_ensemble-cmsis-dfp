@@ -51,6 +51,7 @@ void MPU_Load_Regions(void)
 #define MEMATTRIDX_DEVICE_nGnRE              1
 #define MEMATTRIDX_NORMAL_WB_RA_WA           2
 #define MEMATTRIDX_NORMAL_WT_RA              3
+#define MEMATTRIDX_NORMAL_NON_CACHEABLE      4
 
     static const ARM_MPU_Region_t mpu_table[] __STARTUP_RO_DATA_ATTRIBUTE =
     {
@@ -93,13 +94,13 @@ void MPU_Load_Regions(void)
             .RBAR = ARM_MPU_RBAR(0x83000000, ARM_MPU_SH_NON, 0, 1, 1),
             .RLAR = ARM_MPU_RLAR(0x83FFFFFF, MEMATTRIDX_DEVICE_nGnRE)
         },
-        {   /* OSPI0 XIP(eg:flash) - 512MB : RO-1, NP-1, XN-0  */
-            .RBAR = ARM_MPU_RBAR(0xA0000000, ARM_MPU_SH_NON, 1, 1, 0),
-            .RLAR = ARM_MPU_RLAR(0xBFFFFFFF, MEMATTRIDX_NORMAL_WT_RA)
+        {   /* OSPI0 XIP(eg:hyperram) - 512MB : RO-0, NP-1, XN-0  */
+            .RBAR = ARM_MPU_RBAR(0xA0000000, ARM_MPU_SH_NON, 0, 1, 0),
+            .RLAR = ARM_MPU_RLAR(0xBFFFFFFF, MEMATTRIDX_NORMAL_WB_RA_WA)
         },
-        {   /* OSPI1 XIP(eg:hyperram) - 512MB : RO-0, NP-1, XN-0  */
-            .RBAR = ARM_MPU_RBAR(0xC0000000, ARM_MPU_SH_NON, 0, 1, 0),
-            .RLAR = ARM_MPU_RLAR(0xDFFFFFFF, MEMATTRIDX_NORMAL_WB_RA_WA)
+        {   /* OSPI1 XIP(eg:flash) - 512MB : RO-1, NP-1, XN-0  */
+            .RBAR = ARM_MPU_RBAR(0xC0000000, ARM_MPU_SH_NON, 1, 1, 0),
+            .RLAR = ARM_MPU_RLAR(0xDFFFFFFF, MEMATTRIDX_NORMAL_NON_CACHEABLE)
         },
     };
 
@@ -126,6 +127,11 @@ void MPU_Load_Regions(void)
                                          /* NT=1, WB=0, RA=1, WA=0 */
                                          ARM_MPU_ATTR_MEMORY_(1,0,1,0),
                                          ARM_MPU_ATTR_MEMORY_(1,0,1,0)));
+
+    /* Mem Attribute for the 4th index */
+    ARM_MPU_SetMemAttr(MEMATTRIDX_NORMAL_NON_CACHEABLE, ARM_MPU_ATTR(
+                                         ARM_MPU_ATTR_NON_CACHEABLE,
+                                         ARM_MPU_ATTR_NON_CACHEABLE));
 
     /* Load the regions from the table */
     ARM_MPU_Load(0, mpu_table, sizeof(mpu_table)/sizeof(ARM_MPU_Region_t));
@@ -162,8 +168,17 @@ __attribute__ ((weak))
 void MPU_Setup(void)
 {
 #define MPU_CONTROL (MPU_CTRL_PRIVDEFENA_Msk | MPU_CTRL_HFNMIENA_Msk)
-	/* Disable the MPU before operating on the table */
-    ARM_MPU_Disable();
+    /*
+     * Make this conditional to avoid an unnecessary DSB -
+     * If this call is made from the booting sequence, it is very
+     * likely that cache auto-invalidation is ongoing (as we prepare
+     * the table), and DSB would wait for it to finish.
+     */
+    if (MPU->CTRL & MPU_CTRL_ENABLE_Msk)
+    {
+        /* Disable the MPU before operating on the table */
+        ARM_MPU_Disable();
+    }
 
     /* Clear all the regions */
     MPU_Clear_All_Regions();

@@ -378,6 +378,17 @@ int32_t OSPI_ll_Control_SlaveSelect(OSPI_RESOURCES *OSPI, uint32_t device, uint3
     return ARM_DRIVER_OK;
 }
 
+void OSPI_ll_Init(OSPI_RESOURCES *OSPI)
+{
+    OSPI_RegInfo *reg_ptr = (OSPI_RegInfo*) OSPI->reg_base;
+    OSPI_ll_Disable(OSPI);
+    reg_ptr->txftlr = OSPI->tx_fifo_threshold;
+    reg_ptr->rxftlr = OSPI->rx_fifo_threshold;
+    reg_ptr->txd_drive_edge = OSPI->ddr_drive_edge;
+    reg_ptr->rx_sample_dly = OSPI->rx_sample_delay;
+    OSPI_ll_Enable(OSPI);
+}
+
 /**
  * @fn      void OSPI_ll_IRQHandler(OSPI_RESOURCES *OSPI)
  * @brief   Low level interrupt handler for OSPI.
@@ -465,10 +476,22 @@ void OSPI_ll_IRQHandler(OSPI_RESOURCES *OSPI)
         {
             for (index = 0; index < rx_count; index++)
             {
-                *((uint8_t *) OSPI->rx_buff) = (uint8_t) (reg_ptr->data_reg);
+                /*
+                 * It is observed that with DFS set to 8, the controller reads in 16bit
+                 * frames. Workaround this by making two valid 8bit frames out of the
+                 * DR content.
+                 */
+                uint32_t val = reg_ptr->data_reg;
 
+                *((uint8_t *) OSPI->rx_buff) = (uint8_t) ((val >> 8) & 0xff);
                 OSPI->rx_buff += sizeof(uint8_t);
+                OSPI->rx_current_cnt++;
 
+                if (OSPI->rx_current_cnt == OSPI->rx_total_cnt)
+                    break;
+
+                *((uint8_t *) OSPI->rx_buff) = (uint8_t) (val & 0xff);
+                OSPI->rx_buff += sizeof(uint8_t);
                 OSPI->rx_current_cnt++;
             }
         }
@@ -502,8 +525,8 @@ void OSPI_ll_IRQHandler(OSPI_RESOURCES *OSPI)
         OSPI->cb_event(ARM_OSPI_EVENT_MODE_FAULT);
     }
 
-    /* SEND ONLY mode : if transmit finished */
-    if (((reg_ptr->ctrlr0 & SPI_CTRLR0_TMOD_MASK) == SPI_CTRLR0_TMOD_SEND_ONLY) &&
+    /* SEND ONLY mode : check if the transfer is finished */
+    if ((OSPI->mode == SPI_TMODE_TX) &&
            (OSPI->tx_total_cnt == OSPI->tx_current_cnt))
     {
         /* Wait for the transfer to complete */
@@ -520,8 +543,8 @@ void OSPI_ll_IRQHandler(OSPI_RESOURCES *OSPI)
         }
     }
     /* RECEIVE ONLY mode : check if the transfer is finished */
-    if (((reg_ptr->ctrlr0 & SPI_CTRLR0_TMOD_MASK) == SPI_CTRLR0_TMOD_RECEIVE_ONLY) &&
-             (OSPI->rx_total_cnt <= OSPI->rx_current_cnt))
+    if ((OSPI->mode == SPI_TMODE_RX) &&
+             (OSPI->rx_total_cnt == OSPI->rx_current_cnt))
     {
         /* Mask the RX interrupts */
         reg_ptr->imr &= ~(SPI_IMR_RX_FIFO_UNDER_FLOW_INTERRUPT_MASK |
@@ -534,7 +557,7 @@ void OSPI_ll_IRQHandler(OSPI_RESOURCES *OSPI)
         OSPI->cb_event(ARM_OSPI_EVENT_TRANSFER_COMPLETE);
     }
 
-    if(((reg_ptr->ctrlr0 & SPI_CTRLR0_TMOD_MASK) == SPI_CTRLR0_TMOD_TRANSFER) &&
+    if((OSPI->mode == SPI_TMODE_TX_AND_RX) &&
               (OSPI->rx_total_cnt == (OSPI->rx_current_cnt)))
     {
     	/* Mask all the interrupts */
@@ -545,7 +568,7 @@ void OSPI_ll_IRQHandler(OSPI_RESOURCES *OSPI)
          OSPI->cb_event(ARM_OSPI_EVENT_TRANSFER_COMPLETE);
     }
 
-    if(((reg_ptr->ctrlr0 & SPI_CTRLR0_TMOD_MASK) == SPI_CTRLR0_TMOD_TRANSFER) && (OSPI->tx_total_cnt == OSPI->tx_current_cnt))
+    if((OSPI->mode == SPI_TMODE_TX_AND_RX) && (OSPI->tx_total_cnt == OSPI->tx_current_cnt))
     {
         if((reg_ptr->sr & TX_FIFO_EMPTY) == TX_FIFO_EMPTY)
         {
@@ -585,11 +608,10 @@ int32_t OSPI_ll_Send(OSPI_RESOURCES *OSPI, const void *data, uint32_t num)
     OSPI->tx_current_cnt    = 0;
 
     OSPI->status.busy = 1;
-    OSPI->mode = SPI_CTRLR0_TMOD_SEND_ONLY;
+    OSPI->mode = SPI_TMODE_TX;
 
     OSPI_ll_Disable(OSPI);
 
-    reg_ptr->txftlr = OSPI->tx_fifo_threshold;
 
     reg_val = reg_ptr->ctrlr0;
 
@@ -600,8 +622,8 @@ int32_t OSPI_ll_Send(OSPI_RESOURCES *OSPI, const void *data, uint32_t num)
 
     reg_ptr->ctrlr1 = 0;
 
-    reg_val = (SPI_TRANS_TYPE_FRF_DEFINED
-              | SPI_CTRLR0_SPI_RXDS_DISABLE << SPI_CTRLR0_SPI_RXDS_EN_OFFSET)
+    reg_val = SPI_TRANS_TYPE_FRF_DEFINED
+              | SPI_CTRLR0_SPI_RXDS_ENABLE << SPI_CTRLR0_SPI_RXDS_EN_OFFSET
               | (OSPI->ddr << SPI_CTRLR0_SPI_DDR_EN_OFFSET)
               | (SPI_CTRLR0_INST_L_8bit << SPI_CTRLR0_INST_L_OFFSET)
               | (OSPI->addr_len << SPI_CTRLR0_ADDR_L_OFFSET)
@@ -640,11 +662,10 @@ int32_t OSPI_ll_Receive(OSPI_RESOURCES *OSPI, void *data, uint32_t num)
     OSPI->tx_current_cnt     = 0;
 
     OSPI->status.busy = 1;
-    OSPI->mode = SPI_CTRLR0_TMOD_RECEIVE_ONLY;
+    OSPI->mode = SPI_TMODE_RX;
 
     OSPI_ll_Disable(OSPI);
 
-    reg_ptr->rxftlr = OSPI->rx_fifo_threshold;
 
     reg_val = reg_ptr->ctrlr0;
 
@@ -656,7 +677,7 @@ int32_t OSPI_ll_Receive(OSPI_RESOURCES *OSPI, void *data, uint32_t num)
     OSPI->reg_base->ctrlr1 = num - 1;
 
     reg_val = SPI_TRANS_TYPE_FRF_DEFINED
-              | (SPI_CTRLR0_SPI_RXDS_DISABLE << SPI_CTRLR0_SPI_RXDS_EN_OFFSET)
+              | (SPI_CTRLR0_SPI_RXDS_ENABLE << SPI_CTRLR0_SPI_RXDS_EN_OFFSET)
               | (OSPI->ddr << SPI_CTRLR0_SPI_DDR_EN_OFFSET)
               | (SPI_CTRLR0_INST_L_0bit << SPI_CTRLR0_INST_L_OFFSET)
               | (OSPI->addr_len << SPI_CTRLR0_ADDR_L_OFFSET)
@@ -708,24 +729,21 @@ int32_t OSPI_ll_Transfer(OSPI_RESOURCES *OSPI, const void *data_out, void *data_
     OSPI->rx_total_cnt   = num;
 
     OSPI->status.busy = 1;
-    OSPI->mode = SPI_CTRLR0_TMOD_TRANSFER;
+    OSPI->mode = SPI_TMODE_TX_AND_RX;
 
     OSPI_ll_Disable(OSPI);
-
-    reg_ptr->rxftlr = OSPI->rx_fifo_threshold;
-    reg_ptr->txftlr = OSPI->tx_fifo_threshold;
 
     reg_val = reg_ptr->ctrlr0;
 
     reg_val &= ~(SPI_CTRLR0_SPI_FRF_MASK | (SPI_CTRLR0_TMOD_MASK | SPI_CTRLR0_SSTE_MASK ));
-    reg_val |= ((OSPI->spi_frf << SPI_CTRLR0_SPI_FRF) | SPI_CTRLR0_TMOD_TRANSFER);
+    reg_val |= ((OSPI->spi_frf << SPI_CTRLR0_SPI_FRF) | SPI_CTRLR0_TMOD_RECEIVE_ONLY);
 
     reg_ptr->ctrlr0 = reg_val;
 
     OSPI->reg_base->ctrlr1 = num - 1;
 
     reg_val = SPI_TRANS_TYPE_FRF_DEFINED
-              | (SPI_CTRLR0_SPI_RXDS_DISABLE << SPI_CTRLR0_SPI_RXDS_EN_OFFSET)
+              | (SPI_CTRLR0_SPI_RXDS_ENABLE << SPI_CTRLR0_SPI_RXDS_EN_OFFSET)
               | (OSPI->ddr << SPI_CTRLR0_SPI_DDR_EN_OFFSET)
               | (SPI_CTRLR0_INST_L_8bit << SPI_CTRLR0_INST_L_OFFSET)
               | (OSPI->addr_len << SPI_CTRLR0_ADDR_L_OFFSET)

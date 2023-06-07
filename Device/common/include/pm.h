@@ -23,8 +23,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include <stdint.h>
-#include "RTE_Components.h"
-#include CMSIS_device_header
+#include "system_utils.h"
 
 
 #ifdef  __cplusplus

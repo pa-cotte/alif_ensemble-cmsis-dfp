@@ -24,8 +24,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include <stdint.h>
-#include "RTE_Components.h"
-#include CMSIS_device_header
+#include "peripheral_types.h"
 
 #ifdef  __cplusplus
 extern "C"
@@ -100,6 +99,36 @@ static inline void set_dmalocal_boot_periph_ns_mask(uint32_t boot_periph_ns_mask
 static inline void reset_dmalocal(void)
 {
     M55LOCAL_CFG->DMA_CTRL |= DMA_CTRL_SW_RST;
+}
+
+static inline void set_dma0_glitch_filter(uint32_t glitch_filter)
+{
+    CLKCTL_PER_MST->DMA_GLITCH_FLT = glitch_filter;
+}
+
+static inline void set_dmalocal_glitch_filter(uint8_t glitch_filter)
+{
+    M55LOCAL_CFG->DMA_SEL |= (glitch_filter << DMA_SEL_FLT_ENA_Pos);
+}
+
+static inline void lppdm_select_dma0(void)
+{
+    M55HE_CFG->HE_DMA_SEL |= HE_DMA_SEL_PDM_DMA0;
+}
+
+static inline void lpi2s_select_dma0(void)
+{
+    M55HE_CFG->HE_DMA_SEL |= HE_DMA_SEL_I2S_DMA0;
+}
+
+static inline void lpspi_select_dma0(uint8_t group)
+{
+    M55HE_CFG->HE_DMA_SEL |= ((group << HE_DMA_SEL_LPSPI_Pos) & HE_DMA_SEL_LPSPI_Msk);
+}
+
+static inline void lpuart_select_dma0(void)
+{
+    M55HE_CFG->HE_DMA_SEL |= HE_DMA_SEL_LPUART_DMA0;
 }
 
 #ifdef  __cplusplus

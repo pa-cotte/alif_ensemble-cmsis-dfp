@@ -66,6 +66,18 @@ typedef struct
     volatile uint32_t xip_cnt_time_out;
 } ssi_regs_t;
 
+typedef struct {
+    volatile uint32_t  aes_control;                  /*!< (@ 0x00000000) AES Control Register                                       */
+    volatile uint32_t  aes_interrupt;                /*!< (@ 0x00000004) AES Interrupt Control Register                             */
+    volatile uint32_t  aes_interrupt_mask;           /*!< (@ 0x00000008) AES Interrupt Mask Register                                */
+    volatile uint32_t  aes_key_0;                    /*!< (@ 0x0000000C) AES Key 0 Register                                         */
+    volatile uint32_t  aes_key_1;                    /*!< (@ 0x00000010) AES Key 1 Register                                         */
+    volatile uint32_t  aes_key_2;                    /*!< (@ 0x00000014) AES Key 2 Register                                         */
+    volatile uint32_t  aes_key_3;                    /*!< (@ 0x00000018) AES Key 3 Register                                         */
+    volatile uint32_t  aes_timeout_val;              /*!< (@ 0x0000001C) Reserved                                                   */
+    volatile uint32_t  aes_rxds_delay;               /*!< (@ 0x00000020) AES RXDS Delay Register                                    */
+} aes_regs_t;
+
 /* CLK */
 #ifndef AXI_CLOCK
 #define AXI_CLOCK                                       400000000UL
@@ -137,6 +149,9 @@ typedef struct
 #define CTRLR0_DFS_16bit                                0x0FU
 #define CTRLR0_DFS_32bit                                0x1FU
 
+#define ADDR_L32bit                                     0x8
+#define INST_L8bit                                      0x2
+
 /* Bit fields for Frame Format FRF */
 #define FRF_SPI                                         0x0
 #define FRF_SSP                                         0x1
@@ -169,6 +184,24 @@ typedef struct
 #define CTRLR0_XIP_MD_EN_OFFSET                         7U
 #define CTRLR0_ADDR_L_OFFSET                            2U
 #define CTRLR0_TRANS_TYPE_OFFSET                        0U
+
+#define XIP_CTRL_RXDS_VL_EN_OFFSET                      30U
+#define XIP_PREFETCH_EN_OFFSET                          29U
+#define XIP_CTRL_XIP_MBL_OFFSET                         26U
+#define XIP_CTRL_RXDS_SIG_EN                            25U
+#define XIP_CTRL_HYPERBUS_EN_OFFSET                     24U
+#define XIP_CTRL_CONT_XFER_EN_OFFSET                    23U
+#define XIP_CTRL_INST_EN_OFFSET                         22U
+#define XIP_CTRL_RXDS_EN_OFFSET                         21U
+#define XIP_CTRL_INST_DDR_EN_OFFSET                     20U
+#define XIP_CTRL_DDR_EN_OFFSET                          19U
+#define XIP_CTRL_DFC_HC_OFFSET                          18U
+#define XIP_CTRL_WAIT_CYCLES_OFFSET                     13U
+#define XIP_CTRL_MD_BITS_EN_OFFSET                      12U
+#define XIP_CTRL_INST_L_OFFSET                          9U
+#define XIP_CTRL_ADDR_L_OFFSET                          4U
+#define XIP_CTRL_TRANS_TYPE_OFFSET                      2U
+#define XIP_CTRL_FRF_OFFSET                             0U
 
 #define CTRLR0_TRANS_TYPE_MASK                          3U
 #define TRANS_TYPE_STANDARD                             0U

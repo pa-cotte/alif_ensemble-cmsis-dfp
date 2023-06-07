@@ -1449,11 +1449,11 @@ static inline void utimer_driver_output_enable (UTIMER_Type *utimer, uint8_t cha
 {
     if (ch_config->driver_A)
     {
-        utimer->UTIMER_GLB_DRIVER_OEN &= ~(GLB_DRIVER_CHAN_A_OEN << channel);
+        utimer->UTIMER_GLB_DRIVER_OEN &= ~(GLB_DRIVER_CHAN_A_OEN << (channel << 1));
     }
     if (ch_config->driver_B)
     {
-        utimer->UTIMER_GLB_DRIVER_OEN &= ~(GLB_DRIVER_CHAN_B_OEN << channel);
+        utimer->UTIMER_GLB_DRIVER_OEN &= ~(GLB_DRIVER_CHAN_A_OEN << (channel << 1));
     }
 }
 
@@ -1466,7 +1466,7 @@ static inline void utimer_driver_output_enable (UTIMER_Type *utimer, uint8_t cha
 */
 static inline void utimer_driver_output_disable (UTIMER_Type *utimer, uint8_t channel)
 {
-        utimer->UTIMER_GLB_DRIVER_OEN |= (GLB_DRIVER_CHAN_OEN << channel);
+        utimer->UTIMER_GLB_DRIVER_OEN |= (GLB_DRIVER_CHAN_A_OEN << (channel << 1));
 }
 
 /**

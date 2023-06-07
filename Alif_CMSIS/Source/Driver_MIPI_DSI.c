@@ -22,7 +22,6 @@
 #include "Driver_MIPI_DSI.h"
 #include "dsi.h"
 #include "Driver_DSI_Private.h"
-#include "sys_ctrl_dsi.h"
 #include "RTE_Device.h"
 #include "DPHY_init.h"
 #include "display.h"
@@ -76,15 +75,21 @@ static ARM_MIPI_DSI_CAPABILITIES ARM_MIPI_DSI_GetCapabilities (void)
 
 /**
   \fn          int32_t DSI_Initialize (ARM_MIPI_DSI_SignalEvent_t cb_event,
+                                       DISPLAY_PANEL_DEVICE *display_panel,
                                        DSI_RESOURCES *dsi)
   \brief       Initialize MIPI DSI Interface.
   \param[in]   cb_event Pointer to ARM_MIPI_DSI_SignalEvent_t.
+  \param[in]   display_panel Pointer to display panel resources.
   \param[in]   dsi Pointer to DSI resources.
   \return      \ref execution_status.
   */
 static int32_t DSI_Initialize (ARM_MIPI_DSI_SignalEvent_t cb_event,
+                               DISPLAY_PANEL_DEVICE *display_panel,
                                DSI_RESOURCES *dsi)
 {
+    DISPLAY_PANEL_FRAME_INFO *frame_info = display_panel->Frame_info;
+    uint32_t pixclk, htotal, vtotal;
+    uint32_t frequency;
     int32_t ret = ARM_DRIVER_OK;
 
     if(dsi->state.initialized == 1)
@@ -99,6 +104,50 @@ static int32_t DSI_Initialize (ARM_MIPI_DSI_SignalEvent_t cb_event,
 
     dsi->cb_event = cb_event;
 
+
+    /* LCD Manufacturer provides the Frame timing values
+     *     HTOTAL = WIDTH + HSYNC + HFP + HBP
+     *     VTOTAL = HEIGHT + VSYNC + VFP + VBP
+     * Calculate the pixel clock for DPI controller
+     *     PIXCLK = FPS x HTOTAL x VTOTAL
+     * Calculate the pixel clock divider
+     *     PIXCLK_DIV = CDC200_PIXCLK_SOURCE / PIXCLK
+     */
+    htotal = (frame_info->hsync_time
+              + frame_info->hbp_time
+              + frame_info->hfp_time
+              + frame_info->hactive_time);
+
+    vtotal = (frame_info->vsync_line
+              + frame_info->vbp_line
+              + frame_info->vfp_line
+              + frame_info->vactive_line);
+
+    pixclk = (htotal * vtotal * RTE_CDC200_DPI_FPS);
+
+    /* SCALE = LANEBYTECLK / PIXCLK
+     * MIPI data rate must be exactly equal, not greater than, for 1.5 scale to work
+     * MIPI data rate + 33% allows for scaling times 2
+     *    24 x 1.333 / 16 = 2
+     * LANEBYTECLK = PIXCLK * SCALE
+     * lanebyteclk frequency is 1/4th of the DPHY frequency
+     * PLL frequency = LANEBYTECLK * 4
+     *               = PIXCLK * SCALE * 4
+     */
+    frequency = pixclk * 2 * 4;
+
+    /*Checking LCD Panel supports MIPI DSI DPHY data rate*/
+    if((frequency * 2) > (display_panel->Info->max_bitrate * 1000000))
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
+
+    /*DPHY initialization*/
+    ret  = DSI_DPHY_Initialize(frequency);
+    if(ret != ARM_DRIVER_OK)
+    {
+        return ret;
+    }
 
     /*LCD Panel Initialization*/
     ret = display_panel->Ops->Init();
@@ -143,6 +192,13 @@ static int32_t DSI_Uninitialize (DSI_RESOURCES *dsi)
         return ARM_DRIVER_ERROR;
     }
 
+    /*DPHY Uninitialization*/
+    ret  = DSI_DPHY_Uninitialize();
+    if(ret != ARM_DRIVER_OK)
+    {
+        return ret;
+    }
+
     /*LCD Panel Un-Initialization*/
     ret = display_panel->Ops->Uninit();
     if(ret != ARM_DRIVER_OK)
@@ -156,22 +212,15 @@ static int32_t DSI_Uninitialize (DSI_RESOURCES *dsi)
 
 /**
   \fn          int32_t DSI_PowerControl (ARM_POWER_STATE state,
-                                         DISPLAY_PANEL_DEVICE *display_panel,
                                          DSI_RESOURCES *dsi)
   \brief       Control DSI Interface Power.
   \param[in]   state  Power state.
-  \param[in]   display_panel Pointer to display panel resources.
   \param[in]   dsi Pointer to DSI resources.
   \return      \ref execution_status.
   */
 static int32_t DSI_PowerControl (ARM_POWER_STATE state,
-                                 DISPLAY_PANEL_DEVICE *display_panel,
                                  DSI_RESOURCES *dsi)
 {
-    DISPLAY_PANEL_FRAME_INFO *frame_info = display_panel->Frame_info;
-    uint32_t pixclk, htotal, vtotal;
-    uint32_t frequency;
-    int32_t ret = ARM_DRIVER_OK;
 
     if (dsi->state.initialized == 0)
     {
@@ -190,15 +239,6 @@ static int32_t DSI_PowerControl (ARM_POWER_STATE state,
             NVIC_DisableIRQ (dsi->irq);
             NVIC_ClearPendingIRQ (dsi->irq);
 
-            /*DPHY Uninitialization*/
-            ret  = DSI_DPHY_Uninitialize();
-            if(ret != ARM_DRIVER_OK)
-            {
-                return ret;
-            }
-
-            disable_dsi_periph_clk();
-
             dsi->state.powered = 0;
             break;
         }
@@ -207,52 +247,6 @@ static int32_t DSI_PowerControl (ARM_POWER_STATE state,
             if (dsi->state.powered == 1)
             {
                 return ARM_DRIVER_OK;
-            }
-
-            enable_dsi_periph_clk();
-
-            /* LCD Manufacturer provides the Frame timing values
-             *     HTOTAL = WIDTH + HSYNC + HFP + HBP
-             *     VTOTAL = HEIGHT + VSYNC + VFP + VBP
-             * Calculate the pixel clock for DPI controller
-             *     PIXCLK = FPS x HTOTAL x VTOTAL
-             * Calculate the pixel clock divider
-             *     PIXCLK_DIV = CDC200_PIXCLK_SOURCE / PIXCLK
-             */
-            htotal = (frame_info->hsync_time
-                      + frame_info->hbp_time
-                      + frame_info->hfp_time
-                      + frame_info->hactive_time);
-
-            vtotal = (frame_info->vsync_line
-                      + frame_info->vbp_line
-                      + frame_info->vfp_line
-                      + frame_info->vactive_line);
-
-            pixclk = (htotal * vtotal * RTE_CDC200_DPI_FPS);
-
-            /* SCALE = LANEBYTECLK / PIXCLK
-             * MIPI data rate must be exactly equal, not greater than, for 1.5 scale to work
-             * MIPI data rate + 33% allows for scaling times 2
-             *    24 x 1.333 / 16 = 2
-             * LANEBYTECLK = PIXCLK * SCALE
-             * lanebyteclk frequency is 1/4th of the DPHY frequency
-             * PLL frequency = LANEBYTECLK * 4
-             *               = PIXCLK * SCALE * 4
-             */
-            frequency = pixclk * 2 * 4;
-
-            /*Checking LCD Panel supports MIPI DSI DPHY data rate*/
-            if((frequency * 2) > (display_panel->Info->max_bitrate * 1000000))
-            {
-                return ARM_DRIVER_ERROR_PARAMETER;
-            }
-
-            /*DPHY initialization*/
-            ret  = DSI_DPHY_Initialize(frequency);
-            if(ret != ARM_DRIVER_OK)
-            {
-                return ret;
             }
 
             NVIC_ClearPendingIRQ (dsi->irq);
@@ -270,7 +264,7 @@ static int32_t DSI_PowerControl (ARM_POWER_STATE state,
         }
     }
 
-    return ret;
+    return ARM_DRIVER_OK;
 }
 
 /**
@@ -733,7 +727,7 @@ void DSI_DCS_Long_Write (uint8_t cmd, uint32_t data)
   */
 static int32_t ARM_MIPI_DSI_Initialize (ARM_MIPI_DSI_SignalEvent_t cb_event)
 {
-    return DSI_Initialize (cb_event, &DSI_INFO);
+    return DSI_Initialize (cb_event, display_panel, &DSI_INFO);
 }
 
 /**
@@ -754,7 +748,7 @@ static int32_t ARM_MIPI_DSI_Uninitialize (void)
   */
 static int32_t ARM_MIPI_DSI_PowerControl (ARM_POWER_STATE state)
 {
-    return DSI_PowerControl (state, display_panel, &DSI_INFO);
+    return DSI_PowerControl (state, &DSI_INFO);
 }
 
 /**

@@ -252,7 +252,7 @@ typedef struct {                                   /*!< (@ 0x43002000) LPPDM Str
 /* Taking the difference of two different channel gain register address value */
 #define PDM_CH_OFFSET                 ((uint32_t *)&(pdm->PDM_CH1_GAIN) - (uint32_t *)&(pdm->PDM_CH0_GAIN))
 
-#define PDM0_IRQ_ENABLE                (0xFF03)                 /* To enable the interrupt status register */
+#define PDM0_IRQ_ENABLE               (0xFF03)                 /* To enable the interrupt status register */
 #define PDM_BYPASS_IIR                (1 << 2)                  /* Bypass DC blocking IIR filter           */
 #define PDM_BYPASS_FIR                (1 << 3)                  /* Bypass FIR filter                       */
 #define PDM_PEAK_DETECT_NODE          (1 << 4)                  /* Peak detection node                     */
@@ -263,7 +263,7 @@ typedef struct {                                   /*!< (@ 0x43002000) LPPDM Str
 
 #define PDM_FIFO_ALMOST_FULL_IRQ      (0x1 << 0)                /* FIFO almost full Interrupt              */
 #define PDM_FIFO_OVERFLOW_IRQ         (0x1 << 1)                /* FIFO overflow interrupt                 */
-#define PDM_AUDIO_DETECT_IRQ          (0xFF << 8)               /* Audio detect interrupt                  */
+#define PDM_AUDIO_DETECT_IRQ_STAT     (0xFF << 8)               /* Audio detect interrupt                  */
 #define PDM_CHANNEL_ENABLE            (0xFF)                    /* To check the which channel is enabled   */
 #define PDM_MODES                     (0xFF << 16)              /* To check for the PDM modes              */
 
@@ -286,15 +286,16 @@ typedef struct {                                   /*!< (@ 0x43002000) LPPDM Str
 typedef enum _PDM_TRANSFER_STATUS
 {
     PDM_CAPTURE_STATUS_NONE,        /* PDM capture status none     */
-    PDM_AUDIO_STATUS_DETECTION,    /* PDM status audio detection  */
+    PDM_AUDIO_STATUS_DETECTION,     /* PDM status audio detection  */
     PDM_CAPTURE_STATUS_COMPLETE,    /* PDM capture status complete */
+    PDM_ERROR_DETECT,               /* PDM error detection status  */
 }PDM_TRANSFER_STATUS;
 
 /**
  @brief struct pdm_transfer_t:- To store PDM Capture Configuration
  */
 typedef struct{
-    uint32_t en_channel;                  /* Multiple channel                                               */
+    uint32_t en_channel;                  /* Enable channel                                                 */
     uint32_t curr_cnt;                    /* Current count value                                            */
     uint32_t total_cnt;                   /* Total count value                                              */
     uint32_t *ch0_1_addr;                 /* Channel 0 and 1 audio output values are stored in this address */
@@ -305,7 +306,7 @@ typedef struct{
 }pdm_transfer_t;
 
 /**
- @fn          void pdm_bypass_iir(PDM_Type *PDM, bool arg)
+ @fn          void pdm_bypass_iir(PDM_Type *pdm, bool arg)
  @brief       Select the Bypass DC blocking IIR filter
  @param[in]   pdm : Pointer to the PDM register map
  @param[in]   arg : Enable or disable the bypass IIR filter
@@ -321,7 +322,7 @@ static inline void pdm_bypass_iir(PDM_Type *pdm, bool arg)
 }
 
 /**
- @fn          void pdm_bypass_fir(PDM_Type *PDM, bool arg)
+ @fn          void pdm_bypass_fir(PDM_Type *pdm, bool arg)
  @brief       To select the Bypass FIR filter
  @param[in]   pdm : Pointer to the PDM register map
  @param[in]   arg : Enable or disable the bypass FIR filter
@@ -337,7 +338,7 @@ static inline void pdm_bypass_fir(PDM_Type *pdm, bool arg)
 }
 
 /**
- @fn          void pdm_peak_detect(PDM_Type *PDM, bool arg)
+ @fn          void pdm_peak_detect(PDM_Type *pdm, bool arg)
  @brief       To select the Bypass FIR filter
  @param[in]   pdm : Pointer to the PDM register map
  @param[in]   arg : Enable or disable the peak detection node
@@ -353,7 +354,7 @@ static inline void pdm_peak_detect(PDM_Type *pdm, bool arg)
 }
 
 /**
- @fn          void pdm_sample_advance(PDM_Type *PDM, bool arg)
+ @fn          void pdm_sample_advance(PDM_Type *pdm, bool arg)
  @brief       To select the Sample advance
  @param[in]   pdm : Pointer to the PDM register map
  @param[in]   arg : Enable or disable the Sample advance
@@ -369,7 +370,7 @@ static inline void pdm_sample_advance(PDM_Type *pdm, bool arg)
 }
 
 /**
- @fn          void pdm_dma_handshake(PDM_Type *PDM, bool arg)
+ @fn          void pdm_dma_handshake(PDM_Type *pdm, bool arg)
  @brief       To Use DMA handshaking signals for flow control
               (Not yet implemented)
  @param[in]   pdm : Pointer to the PDM register map
@@ -386,7 +387,7 @@ static inline void pdm_dma_handshake(PDM_Type *pdm, bool arg)
 }
 
 /**
- @fn          void pdm_enable_irq(PDM_Type *PDM)
+ @fn          void pdm_enable_irq(PDM_Type *pdm)
  @brief       Enable the IRQ
  @param[in]   pdm : Pointer to the PDM register map
  @return      None
@@ -401,7 +402,7 @@ static inline void pdm_enable_irq(PDM_Type *pdm)
     audio_ch = ((pdm->PDM_CTL0)) & PDM_CHANNEL_ENABLE;
 
     /* Enable the Interrupt */
-    pdm->PDM_IRQ_ENABLE |= (( audio_ch  << 8) | (PDM_FIFO_ALMOST_FULL_IRQ |PDM_FIFO_OVERFLOW_IRQ));
+    pdm->PDM_IRQ_ENABLE |= (( audio_ch  << 8) | (PDM_FIFO_ALMOST_FULL_IRQ | PDM_FIFO_OVERFLOW_IRQ));
 }
 
 /**

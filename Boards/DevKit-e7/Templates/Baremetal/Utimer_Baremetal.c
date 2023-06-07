@@ -13,7 +13,7 @@
  * @author   Manoj A Murudi
  * @email    manoj.murudi@alifsemi.com
  * @version  V1.0.0
- * @date     19-August-2022
+ * @date     30-May-2023
  * @brief    Baremetal demo application for UTIMER.
  *           - Configuring the UTIMER Channel 0 for 500ms basic mode.
  *           - Configuring the UTIMER Channel 1 for 500ms, 1000ms, 1500ms buffering mode.
@@ -23,6 +23,14 @@
  * @bug      None.
  * @Note     None
  ******************************************************************************/
+
+/* History:
+ *  Version 1.0.1
+ *     update for latest devkit
+ *  Version 1.0.0
+ *     initial version
+ */
+
 #include <stdio.h>
 #include "Driver_UTIMER.h"
 #include "Driver_GPIO.h"
@@ -33,8 +41,8 @@
 
 /* GPIO related definitions */
 #define GPIO3                          3
-#define GPIO3_PIN0                     0
-#define GPIO3_PIN1                     1
+#define GPIO3_PIN5                     5
+#define GPIO3_PIN6                     6
 #define GPIO3_PIN3                     3
 #define GPIO3_PIN4                     4
 
@@ -143,65 +151,65 @@ static int32_t gpio_init(ARM_UTIMER_MODE mode)
 
     if(mode == ARM_UTIMER_MODE_TRIGGERING)
     {
-        /* init P3_0 as GPIO */
-        ret = pinconf_set (PORT_3, PIN_0, PINMUX_ALTERNATE_FUNCTION_0, 0);
+        /* init P3_5 as GPIO */
+        ret = pinconf_set (PORT_3, PIN_5, PINMUX_ALTERNATE_FUNCTION_0, 0);
         if(ret != ARM_DRIVER_OK) {
             printf("\r\n Error in PINMUX.\r\n");
             return -1;
         }
 
-        ret = ptrDrv->Initialize(GPIO3_PIN0, NULL);
+        ret = ptrDrv->Initialize(GPIO3_PIN5, NULL);
         if (ret != ARM_DRIVER_OK) {
-            printf("ERROR: Failed to initialize GPIO3_PIN0 as GPIO\n");
+            printf("ERROR: Failed to initialize GPIO3_PIN5 as GPIO\n");
             return -1;
         }
 
-        ret = ptrDrv->PowerControl(GPIO3_PIN0, ARM_POWER_FULL);
+        ret = ptrDrv->PowerControl(GPIO3_PIN5, ARM_POWER_FULL);
         if (ret != ARM_DRIVER_OK) {
-            printf("ERROR: Failed to Powered the GPIO3_PIN0\n");
+            printf("ERROR: Failed to Powered the GPIO3_PIN5\n");
             return -1;
         }
 
-        ret = ptrDrv->SetDirection(GPIO3_PIN0, GPIO_PIN_DIRECTION_OUTPUT);
+        ret = ptrDrv->SetDirection(GPIO3_PIN5, GPIO_PIN_DIRECTION_OUTPUT);
         if (ret != ARM_DRIVER_OK) {
-            printf("ERROR: Failed to set direction for GPIO3_PIN0\n");
+            printf("ERROR: Failed to set direction for GPIO3_PIN5\n");
             return -1;
         }
 
-        ret = ptrDrv->SetValue(GPIO3_PIN0, GPIO_PIN_OUTPUT_STATE_LOW);
+        ret = ptrDrv->SetValue(GPIO3_PIN5, GPIO_PIN_OUTPUT_STATE_LOW);
         if (ret != ARM_DRIVER_OK) {
-            printf("ERROR: Failed to set value for GPIO3_PIN0\n");
+            printf("ERROR: Failed to set value for GPIO3_PIN5\n");
             return -1;
         }
 
-        /* init P3_1 as GPIO */
-        ret = pinconf_set (PORT_3, PIN_1, PINMUX_ALTERNATE_FUNCTION_0, 0);
+        /* init P3_6 as GPIO */
+        ret = pinconf_set (PORT_3, PIN_6, PINMUX_ALTERNATE_FUNCTION_0, 0);
         if(ret != ARM_DRIVER_OK) {
             printf("\r\n Error in PINMUX.\r\n");
             return -1;
         }
 
-        ret = ptrDrv->Initialize(GPIO3_PIN1, NULL);
+        ret = ptrDrv->Initialize(GPIO3_PIN6, NULL);
         if (ret != ARM_DRIVER_OK) {
-            printf("ERROR: Failed to initialize GPIO3_PIN1 as GPIO\n");
+            printf("ERROR: Failed to initialize GPIO3_PIN6 as GPIO\n");
             return -1;
         }
 
-        ret = ptrDrv->PowerControl(GPIO3_PIN1, ARM_POWER_FULL);
+        ret = ptrDrv->PowerControl(GPIO3_PIN6, ARM_POWER_FULL);
         if (ret != ARM_DRIVER_OK) {
-            printf("ERROR: Failed to Powered the GPIO3_PIN1\n");
+            printf("ERROR: Failed to Powered the GPIO3_PIN6\n");
             return -1;
         }
 
-        ret = ptrDrv->SetDirection(GPIO3_PIN1, GPIO_PIN_DIRECTION_OUTPUT);
+        ret = ptrDrv->SetDirection(GPIO3_PIN6, GPIO_PIN_DIRECTION_OUTPUT);
         if (ret != ARM_DRIVER_OK) {
-            printf("ERROR: Failed to set direction for GPIO3_PIN1\n");
+            printf("ERROR: Failed to set direction for GPIO3_PIN6\n");
             return -1;
         }
 
-        ret = ptrDrv->SetValue(GPIO3_PIN1, GPIO_PIN_OUTPUT_STATE_LOW);
+        ret = ptrDrv->SetValue(GPIO3_PIN6, GPIO_PIN_OUTPUT_STATE_LOW);
         if (ret != ARM_DRIVER_OK) {
-            printf("ERROR: Failed to set value for GPIO3_PIN1\n");
+            printf("ERROR: Failed to set value for GPIO3_PIN6\n");
             return -1;
         }
     }
@@ -580,7 +588,7 @@ static void utimer_trigger_mode_app(void)
     /*
      * utimer channel 3 is configured for utimer trigger mode.
      * chan_event_a_rising_b_0 event from pinmux is used for triggering counter start.
-     * H/W connection : short P3_0 and P0_6, short P3_1 and P0_7.
+     * H/W connection : short P3_5 and P0_6, short P3_6 and P0_7.
      **/
 
     printf("*** utimer demo application for trigger mode started ***\n");
@@ -652,7 +660,7 @@ static void utimer_trigger_mode_app(void)
     value = ptrUTIMER->GetCount (channel, ARM_UTIMER_CNTR);
     printf("counter value before triggering : %d\n",value);
 
-    ret = ptrDrv->SetValue(GPIO3_PIN0, GPIO_PIN_OUTPUT_STATE_HIGH);
+    ret = ptrDrv->SetValue(GPIO3_PIN5, GPIO_PIN_OUTPUT_STATE_HIGH);
     if ((ret != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to configure\n");
     }
@@ -988,7 +996,7 @@ static void utimer_compare_mode_app(void)
         printf("utimer channel %d :timer started\n", channel);
     }
 
-    for (int index=0; index<=11; index++)
+    for (int index = 0; index <= 11; index++)
     {
         while(1)
         {

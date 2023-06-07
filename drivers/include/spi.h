@@ -195,6 +195,48 @@ typedef struct {
 #define SPI_CTRLR0_SPI_OCTAL_TX_MODE                    SPI_TMOD_SEND_ONLY
 #define SPI_CTRLR0_SPI_OCTAL_RX_MODE                    SPI_TMOD_RECEIVE_ONLY
 
+/* LPSPI Control Register 0 (CTRLR0) bit Definition, Macros, Offsets and Masks */
+/* Data Frame DFS bit[3:0] */
+#define LPSPI_CTRLR0_DFS                                0U
+#define LPSPI_CTRLR0_DFS_MASK                           (0xFU << LPSPI_CTRLR0_DFS)
+
+/* Frame Format FRF bit [5:4] */
+#define LPSPI_CTRLR0_FRF                                4U
+#define LPSPI_CTRLR0_FRF_MASK                           (0x3UL << LPSPI_CTRLR0_FRF)
+#define LPSPI_CTRLR0_FRF_MOTOROLA                       0x00U     /* 0x0 Motorola SPI Frame Format */
+#define LPSPI_CTRLR0_FRF_TI                             0x10U     /* 0x1 Texas Instruments SSP Frame Format */
+#define LPSPI_CTRLR0_FRF_MICROWIRE                      0x20U     /* 0X2 National Semiconductors Microwire Frame Format */
+
+/* Serial Clock Polarity SCPOL | Serial Clock Phase SCPH bit [7:6] */
+#define LPSPI_CTRLR0_SC                                 6U
+#define LPSPI_CTRLR0_SC_MASK                            (0x3UL << LPSPI_CTRLR0_SC)
+#define LPSPI_CTRLR0_SCPH_HIGH                          0x40U     /* 0x1 SPI SCPH high */
+#define LPSPI_CTRLR0_SCPH_LOW                           0x00U     /* 0x0 SPI SCPH low */
+#define LPSPI_CTRLR0_SCPOL_HIGH                         0x80U     /* 0x2 SPI SCPOL high */
+#define LPSPI_CTRLR0_SCPOL_LOW                          0x00U     /* 0x0 SPI SCPOL low */
+
+/* Transfer Mode TMOD bit[9:8] */
+#define LPSPI_CTRLR0_TMOD                               8U
+#define LPSPI_CTRLR0_TMOD_MASK                          (0x3UL << LPSPI_CTRLR0_TMOD)
+#define LPSPI_CTRLR0_TMOD_TRANSFER                      0x000U     /* 0x0 SPI transfer mode */
+#define LPSPI_CTRLR0_TMOD_SEND_ONLY                     0x100U     /* 0x1 SPI send only mode */
+#define LPSPI_CTRLR0_TMOD_RECEIVE_ONLY                  0x200U     /* 0x2 SPI receive only mode */
+#define LPSPI_CTRLR0_TMOD_EEPROM_READ_ONLY              0x300U     /* 0x3 SPI EEPROM read only mode */
+
+/* Control Frame Size for the Microwire frame format CFS bit[15:12]*/
+#define LPSPI_CTRLR0_CFS                                12U
+#define LPSPI_CTRLR0_CFS_MASK                           (0xF << LPSPI_CTRLR0_CFS)
+
+/* Data Frame DFS 32 bit [20:16] */
+#define LPSPI_CTRLR0_DFS_32                             16U
+#define LPSPI_CTRLR0_DFS32_MASK                         (0x1FU << LPSPI_CTRLR0_DFS_32)
+
+/* Slave Select toggle Enable SSTE bit[24] */
+#define LPSPI_CTRLR0_SSTE                               24U
+#define LPSPI_CTRLR0_SSTE_MASK                          (1 << LPSPI_CTRLR0_SSTE)
+#define LPSPI_CTRLR0_SSTE_ENABLE                        0x1000000U     /* 0x1 SPI slave select toggle enable */
+#define LPSPI_CTRLR0_SSTE_DISABLE                       0x0000000U     /* 0x0 SPI slave select toggle disable */
+
 #define SPI_TXFTLR_TFT_SHIFT                            0U
 #define SPI_TXFTLR_TFT_MASK                             (0xFFFFU << SPI_TXFTLR_TFT_SHIFT)
 #define SPI_TXFTLR_TXFTHR_SHIFT                         16U
@@ -292,6 +334,8 @@ typedef struct _spi_transfer_t {
     void                            *rx_buff;           /**< Pointer to Rx buffer             */
     uint32_t                        tx_default_val;     /**< Default value to Transfer        */
     bool                            tx_default_enable;  /**< Enable Tx default value transfer */
+    SPI_TMOD                        mode;               /**< SPI transfer mode                */
+    uint8_t                         frame_size;         /**< SPI Data frame size              */
     volatile SPI_TRANSFER_STATUS    status;             /**< transfer status                  */
 } spi_transfer_t;
 
@@ -489,22 +533,92 @@ void spi_control_ss(SPI_Type *spi, uint8_t slave, SPI_SS_STATE state);
 void spi_send(SPI_Type *spi);
 
 /**
-  \fn          void spi_receive(SPI_Type *spi, spi_transfer_t *transfer)
+  \fn          void spi_receive(SPI_Type *lpspi, uint32_t total_cnt)
   \brief       Prepare the SPI instance for reception
-  \param[in]   spi       Pointer to the SPI register map
-  \param[in]   spi       Pointer to the transfer structure for the SPI instance
+  \param[in]   spi     Pointer to the SPI register map
+  \param[in]   total_cnt total number of data count
   \return      none
 */
-void spi_receive(SPI_Type *spi, spi_transfer_t *transfer);
+void spi_receive(SPI_Type *spi, uint32_t total_cnt);
 
 /**
-  \fn          void spi_transfer(SPI_Type *spi)
+  \fn          void spi_transfer(SPI_Type *spi, uint32_t total_cnt)
   \brief       Prepare the SPI instance for transfer
   \param[in]   spi       Pointer to the SPI register map
-  \param[in]   spi       Pointer to the transfer structure for the SPI instance
+  \param[in]   total_cnt total number of data count
   \return      none
 */
-void spi_transfer(SPI_Type *spi, spi_transfer_t *transfer);
+void spi_transfer(SPI_Type *spi, uint32_t total_cnt);
+
+/**
+  \fn          void lpspi_set_mode(SPI_Type *spi, SPI_MODE mode)
+  \brief       Set the mode for the LPSPI instance.
+  \param[in]   lpspi   Pointer to the LPSPI register map
+  \param[in]   mode    The mode to be set.
+  \return      none
+*/
+void lpspi_set_mode(SPI_Type *lpspi, SPI_MODE mode);
+
+/**
+  \fn          void lpspi_set_protocol(SPI_Type *lpspi, SPI_PROTO format)
+  \brief       Set the protocol format for the LPSPI instance.
+  \param[in]   lpspi   Pointer to the LPSPI register map
+  \param[in]   format  The protocol to be set
+  \return      none
+*/
+void lpspi_set_protocol(SPI_Type *lpspi, SPI_PROTO format);
+
+/**
+  \fn          void lpspi_set_dfs(SPI_Type *lpspi, uint8_t dfs)
+  \brief       Set the data frame size for the LPSPI instance.
+  \param[in]   lpspi   Pointer to the LPSPI register map
+  \param[in]   dfs     The data frame size
+  \return      none
+*/
+void lpspi_set_dfs(SPI_Type *lpspi, uint8_t dfs);
+
+/**
+  \fn          void lpspi_set_tmod(SPI_Type *lpspi, SPI_TMOD tmod)
+  \brief       Set the transfer mode for the LPSPI instance.
+  \param[in]   lpspi   Pointer to the LPSPI register map
+  \param[in]   tmod    Transfer mode
+  \return      none
+*/
+void lpspi_set_tmod(SPI_Type *lpspi, SPI_TMOD tmod);
+
+/**
+  \fn          SPI_TMOD lpspi_get_tmod(SPI_Type *lpspi)
+  \brief       Get the transfer mode of the LPSPI instance.
+  \param[in]   lpspi     Pointer to the LPSPI register map
+  \return      The current transfer mode
+*/
+SPI_TMOD lpspi_get_tmod(SPI_Type *lpspi);
+
+/**
+  \fn          void lpspi_send(SPI_Type *spi)
+  \brief       Prepare the SPI instance for transmission
+  \param[in]   lpspi       Pointer to the LPSPI register map
+  \return      none
+*/
+void lpspi_send(SPI_Type *lpspi);
+
+/**
+  \fn          void lpspi_receive(SPI_Type *lpspi, uint32_t total_cnt)
+  \brief       Prepare the LPSPI instance for reception
+  \param[in]   lpspi     Pointer to the LPSPI register map
+  \param[in]   total_cnt total number of data count
+  \return      none
+*/
+void lpspi_receive(SPI_Type *lpspi, uint32_t total_cnt);
+
+/**
+  \fn          void lpspi_transfer(SPI_Type *lpspi, uint32_t total_cnt)
+  \brief       Prepare the LPSPI instance for transfer
+  \param[in]   lpspi      Pointer to the LPSPI register map
+  \param[in]   total_cnt  total number of data count
+  \return      none
+*/
+void lpspi_transfer(SPI_Type *lpspi, uint32_t total_cnt);
 
 /**
   \fn          void spi_irq_handler(SPI_Type *spi, spi_master_transfer_t *transfer)

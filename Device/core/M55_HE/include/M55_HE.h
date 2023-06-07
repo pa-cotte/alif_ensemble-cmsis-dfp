@@ -85,6 +85,40 @@ extern "C" {
 /* ----------  Local DMA IRQ Number Aliases  ---------- */
 #define DMALOCAL_IRQ0_IRQn          DMA2_IRQ0_IRQn
 
+/* ----------  Local MHU IRQ Handler Aliases  ---------- */
+#define MHU_APSS_S_RX_IRQHandler    MHU_A32_M55HE_0_RX_IRQHandler
+#define MHU_APSS_S_TX_IRQHandler    MHU_M55HE_A32_0_TX_IRQHandler
+#define MHU_APSS_NS_RX_IRQHandler   MHU_A32_M55HE_1_RX_IRQHandler
+#define MHU_APSS_NS_TX_IRQHandler   MHU_M55HE_A32_1_TX_IRQHandler
+#define MHU_SESS_S_RX_IRQHandler    MHU_SECPU_M55HE_0_RX_IRQHandler
+#define MHU_SESS_S_TX_IRQHandler    MHU_M55HE_SECPU_0_TX_IRQHandler
+#define MHU_SESS_NS_RX_IRQHandler   MHU_SECPU_M55HE_1_RX_IRQHandler
+#define MHU_SESS_NS_TX_IRQHandler   MHU_M55HE_SECPU_1_TX_IRQHandler
+#define MHU_RTSS_S_RX_IRQHandler    MHU_M55HP_M55HE_0_RX_IRQHandler
+#define MHU_RTSS_S_TX_IRQHandler    MHU_M55HE_M55HP_0_TX_IRQHandler
+#define MHU_RTSS_NS_RX_IRQHandler   MHU_M55HP_M55HE_1_RX_IRQHandler
+#define MHU_RTSS_NS_TX_IRQHandler   MHU_M55HE_M55HP_1_TX_IRQHandler
+
+/* ----------  Local MHU IRQ Number Aliases  ---------- */
+#define MHU_APSS_S_RX_IRQ_IRQn      MHU_A32_M55HE_0_RX_IRQ_IRQn
+#define MHU_APSS_S_TX_IRQ_IRQn      MHU_M55HE_A32_0_TX_IRQ_IRQn
+#define MHU_APSS_NS_RX_IRQ_IRQn     MHU_A32_M55HE_1_RX_IRQ_IRQn
+#define MHU_APSS_NS_TX_IRQ_IRQn     MHU_M55HE_A32_1_TX_IRQ_IRQn
+#define MHU_SESS_S_RX_IRQ_IRQn      MHU_SECPU_M55HE_0_RX_IRQ_IRQn
+#define MHU_SESS_S_TX_IRQ_IRQn      MHU_M55HE_SECPU_0_TX_IRQ_IRQn
+#define MHU_SESS_NS_RX_IRQ_IRQn     MHU_SECPU_M55HE_1_RX_IRQ_IRQn
+#define MHU_SESS_NS_TX_IRQ_IRQn     MHU_M55HE_SECPU_1_TX_IRQ_IRQn
+#define MHU_RTSS_S_RX_IRQ_IRQn      MHU_M55HP_M55HE_0_RX_IRQ_IRQn
+#define MHU_RTSS_S_TX_IRQ_IRQn      MHU_M55HE_M55HP_0_TX_IRQ_IRQn
+#define MHU_RTSS_NS_RX_IRQ_IRQn     MHU_M55HP_M55HE_1_RX_IRQ_IRQn
+#define MHU_RTSS_NS_TX_IRQ_IRQn     MHU_M55HE_M55HP_1_TX_IRQ_IRQn
+
+/* ----------  Local NPU IRQ Handler Aliases  ---------- */
+#define LOCAL_NPU_IRQHandler        NPU_HE_IRQHandler
+
+/* ----------  Local NPU IRQ Number Aliases  ---------- */
+#define LOCAL_NPU_IRQ_IRQn          NPU_HE_IRQ_IRQn
+
 /* -------------------------  Interrupt Number Definition  ------------------------ */
 
 typedef enum {
@@ -218,6 +252,7 @@ typedef enum {
                                                      controllers in the device. For more information on the
                                                      internal interrupt requests, see Section OSPI Interrupt
                                                      Requests.                                                                 */
+  BOD_IRQ_IRQn              = 100,              /*!< 100  BOD interrupt                                                        */
   USB_IRQ_IRQn              = 101,              /*!< 101  USB interrupt                                                        */
   SDMMC_IRQ_IRQn            = 102,              /*!< 102  SDMMC Interrupt request                                              */
   SDMMC_WAKEUP_IRQ_IRQn     = 103,              /*!< 103  SDMMC Wakeup event interrupt request                                 */
@@ -238,6 +273,9 @@ typedef enum {
   HWSEM_IRQ13_IRQn          = 118,              /*!< 118  HWSEM interrupt request 13                                           */
   HWSEM_IRQ14_IRQn          = 119,              /*!< 119  HWSEM interrupt request 14                                           */
   HWSEM_IRQ15_IRQn          = 120,              /*!< 120  HWSEM interrupt request 15                                           */
+  PPU0_IRQ_IRQn             = 121,              /*!< 121  PPU0 interrupt request                                               */
+  PPU1_IRQ_IRQn             = 122,              /*!< 122  PPU1 interrupt request                                               */
+  PPU2_IRQ_IRQn             = 123,              /*!< 123  PPU2 interrupt request                                               */
   UART0_IRQ_IRQn            = 124,              /*!< 124  UART0 interrupt request                                              */
   UART1_IRQ_IRQn            = 125,              /*!< 125  UART1 interrupt request                                              */
   UART2_IRQ_IRQn            = 126,              /*!< 126  UART2 interrupt request                                              */
@@ -632,7 +670,7 @@ typedef enum {
 
 
 /* --------  Configuration of Core Peripherals  ----------------------------------- */
-#define __CM55_REV                0x0001U   /* Core revision r0p1 */
+#define __CM55_REV                0x0100U   /* Core revision r1p0 */
 #define __NVIC_PRIO_BITS          8U        /* Number of Bits used for Priority Levels */
 #define __Vendor_SysTickConfig    0U        /* Set to 1 if different SysTick Config is used */
 #define __VTOR_PRESENT            1U        /* VTOR present */
@@ -680,6 +718,17 @@ typedef enum {
 #endif
 
 #define HWSEM_MASTERID                           0x410FD222
+
+/*
+ * Prefetch Control Default Values
+ */
+ /* Max Outstanding line-fills issued on AXI. Possible values <1-6>*/
+#define MEMSYSCTL_PFCR_MAX_OS_DEFAULT_VALUE      3
+/* Max Look Ahead distance. Possible values <0-6>*/
+#define MEMSYSCTL_PFCR_MAX_LA_DEFAULT_VALUE      6
+/* Min Look Ahead distance. Possible values <0-6>*/
+#define MEMSYSCTL_PFCR_MIN_LA_DEFAULT_VALUE      2
+
 
 #ifdef __cplusplus
 }

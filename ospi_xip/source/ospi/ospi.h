@@ -31,7 +31,7 @@ extern "C"
 
 typedef struct {
     ssi_regs_t *regs;                  ///< Pointer to OSPI0 or OSPI1 base address
-    volatile uint32_t *aes_base;       ///< Pointer to AES0 or AES1 decryption module & XIP enable line registers
+    aes_regs_t *aes_regs;              ///< Pointer to AES0 or AES1 decryption module & XIP enable line registers
     volatile void *xip_base;           ///< Pointer to OSPI0 or OSPI1 XIP base address
     uint32_t    dev_type;              ///< Single, Dual, Quad, Octal - device type defined
     uint32_t    ospi_clock;            ///< Octal SPI clock - Device and Bus characteristics defined

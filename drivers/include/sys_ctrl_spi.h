@@ -28,23 +28,46 @@ extern "C"
 #include "peripheral_types.h"
 
 /**
-  \fn          static inline void ctrl_spi_clk (const SPI_RESOURCES *SPI, bool enable)
-  \brief       Enable/Disable SPI input clock
-  \param[in]   instance  spi instance
-  \param[in]   enable    Enable/Disable control
+ * enum SS_IN_SEL.
+ * SPI SS_IN Mode Select.
+ */
+typedef enum _SS_IN_SEL
+{
+    SS_IN_IO_PIN,                         /**< SS_IN from I/O pin */
+    SS_IN_SS_IN_VAL                       /**< SS_IN from SS_IN_VAL */
+} SS_IN_SEL;
+
+/**
+ * enum SPI_INSTANCE.
+ * SPI instances.
+ */
+typedef enum _SPI_INSTANCE
+{
+    SPI_INSTANCE_0,                         /**< SPI instance - 0 */
+    SPI_INSTANCE_1,                         /**< SPI instance - 1 */
+    SPI_INSTANCE_2,                         /**< SPI instance - 2 */
+    SPI_INSTANCE_3,                         /**< SPI instance - 3 */
+    LPSPI_INSTANCE                          /**< Low Power SPI instance */
+} SPI_INSTANCE;
+
+/**
+  \fn          static inline void ctrl_ss_in (SPI_INSTANCE instance, SS_IN_SEL ss_in_sel)
+  \brief       control spi ss_in
+  \param[in]   instance     spi instance
+  \param[in]   ss_in_sel    ss_in signal selection
   \return      none
 */
-static inline void ctrl_spi_clk (SPI_INSTANCE instance, bool enable)
+static inline void ctrl_ss_in (SPI_INSTANCE instance, SS_IN_SEL ss_in_sel)
 {
     switch (instance)
     {
         case SPI_INSTANCE_0:
         {
-            if (enable)
+            if (ss_in_sel == SS_IN_SS_IN_VAL)
             {
                 CLKCTL_PER_SLV->SSI_CTRL |= (SSI_CTRL_SS_IN_VAL_0 | SSI_CTRL_SS_IN_SEL_0);
             }
-            else
+            if (ss_in_sel == SS_IN_IO_PIN)
             {
                 CLKCTL_PER_SLV->SSI_CTRL &= ~(SSI_CTRL_SS_IN_VAL_0 | SSI_CTRL_SS_IN_SEL_0);
             }
@@ -52,11 +75,11 @@ static inline void ctrl_spi_clk (SPI_INSTANCE instance, bool enable)
         }
         case SPI_INSTANCE_1:
         {
-            if (enable)
+            if (ss_in_sel == SS_IN_SS_IN_VAL)
             {
                 CLKCTL_PER_SLV->SSI_CTRL |= (SSI_CTRL_SS_IN_VAL_1 | SSI_CTRL_SS_IN_SEL_1);
             }
-            else
+            if (ss_in_sel == SS_IN_IO_PIN)
             {
                 CLKCTL_PER_SLV->SSI_CTRL &= ~(SSI_CTRL_SS_IN_VAL_1 | SSI_CTRL_SS_IN_SEL_1);
             }
@@ -64,11 +87,11 @@ static inline void ctrl_spi_clk (SPI_INSTANCE instance, bool enable)
         }
         case SPI_INSTANCE_2:
         {
-            if (enable)
+            if (ss_in_sel == SS_IN_SS_IN_VAL)
             {
                 CLKCTL_PER_SLV->SSI_CTRL |= (SSI_CTRL_SS_IN_VAL_2 | SSI_CTRL_SS_IN_SEL_2);
             }
-            else
+            if (ss_in_sel == SS_IN_IO_PIN)
             {
                 CLKCTL_PER_SLV->SSI_CTRL &= ~(SSI_CTRL_SS_IN_VAL_2 | SSI_CTRL_SS_IN_SEL_2);
             }
@@ -76,17 +99,41 @@ static inline void ctrl_spi_clk (SPI_INSTANCE instance, bool enable)
         }
         case SPI_INSTANCE_3:
         {
-            if (enable)
+            if (ss_in_sel == SS_IN_SS_IN_VAL)
             {
                 CLKCTL_PER_SLV->SSI_CTRL |= (SSI_CTRL_SS_IN_VAL_3 | SSI_CTRL_SS_IN_SEL_3);
             }
-            else
+            if (ss_in_sel == SS_IN_IO_PIN)
             {
                 CLKCTL_PER_SLV->SSI_CTRL &= ~(SSI_CTRL_SS_IN_VAL_3 | SSI_CTRL_SS_IN_SEL_3);
             }
             break;
         }
+        default:
+        {
+            break;
+        }
     }
+}
+
+/**
+  \fn          static inline void enable_lpspi_clk (void)
+  \brief       enable LPSPI clock
+  \return      none
+*/
+static inline void enable_lpspi_clk (void)
+{
+    M55HE_CFG->HE_CLK_ENA |= HE_CLK_ENA_SPI_CKEN;
+}
+
+/**
+  \fn          static inline void disable_lpspi_clk (void)
+  \brief       disable LPSPI clock
+  \return      none
+*/
+static inline void disable_lpspi_clk (void)
+{
+    M55HE_CFG->HE_CLK_ENA &= ~HE_CLK_ENA_SPI_CKEN;
 }
 
 #ifdef __cplusplus

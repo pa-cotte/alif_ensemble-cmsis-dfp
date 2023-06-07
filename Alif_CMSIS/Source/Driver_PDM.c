@@ -20,9 +20,7 @@
  ******************************************************************************/
 
 /* Project Includes */
-#include "Driver_PDM.h"
 #include "Driver_PDM_Private.h"
-#include "pdm.h"
 #include "sys_ctrl_pdm.h"
 
 #define ARM_PDM_DRV_VERSION    ARM_DRIVER_VERSION_MAJOR_MINOR(1, 0)  /*  Driver version */
@@ -123,13 +121,13 @@ void PDM_WARNING_IRQ_handler(PDM_RESOURCES *PDM)
 }
 
 /**
-@fn          int32_t PDM_Initialize(ARM_PDM_SignalEvent_t cb_event, PDM_RESOURCES *PDM)
+@fn          int32_t PDMx_Initialize(ARM_PDM_SignalEvent_t cb_event, PDM_RESOURCES *PDM)
 @brief       Initialize the PDM interface
 @param[in]   PDM : Pointer to PDM resources
  @return     ARM_DRIVER_ERROR_PARAMETER : if PDM device is invalid
              ARM_DRIVER_OK              : if PDM successfully initialized or already initialized
  */
-static int32_t PDM_Initialize(ARM_PDM_SignalEvent_t cb_event, PDM_RESOURCES *PDM)
+static int32_t PDMx_Initialize(ARM_PDM_SignalEvent_t cb_event, PDM_RESOURCES *PDM)
 {
     if(!cb_event)
         return ARM_DRIVER_ERROR_PARAMETER;
@@ -144,13 +142,13 @@ static int32_t PDM_Initialize(ARM_PDM_SignalEvent_t cb_event, PDM_RESOURCES *PDM
 }
 
 /**
-@fn          int32_t PDM_Uninitialize(PDM_RESOURCES *PDM)
+@fn          int32_t PDMx_Uninitialize(PDM_RESOURCES *PDM)
 @brief       UnInitialize the PDM interface
 @param[in]   PDM : Pointer to PDM resources
  @return     ARM_DRIVER_ERROR_PARAMETER : if PDM device is invalid
              ARM_DRIVER_OK              : if PDM successfully initialized or already initialized
  */
-static int32_t PDM_Uninitialize(PDM_RESOURCES *PDM)
+static int32_t PDMx_Uninitialize(PDM_RESOURCES *PDM)
 {
     if(!PDM)
         return ARM_DRIVER_ERROR_PARAMETER;
@@ -168,7 +166,7 @@ static int32_t PDM_Uninitialize(PDM_RESOURCES *PDM)
 }
 
 /**
- @fn           int32_t PDM_PowerControl (ARM_POWER_STATE state,
+ @fn           int32_t PDMx_PowerControl (ARM_POWER_STATE state,
                                           PDM_RESOURCES *PDM)
  @brief        CMSIS-DRIVER PDM power control
  @param[in]    state : Power state
@@ -176,26 +174,42 @@ static int32_t PDM_Uninitialize(PDM_RESOURCES *PDM)
  @return       ARM_DRIVER_ERROR_PARAMETER  : if PDM device is invalid
                ARM_DRIVER_OK               : if PDM successfully uninitialized or already not initialized
  */
-static int32_t PDM_PowerControl(ARM_POWER_STATE status,
+static int32_t PDMx_PowerControl(ARM_POWER_STATE status,
                                 PDM_RESOURCES *PDM)
 {
     switch(status)
     {
     case ARM_POWER_OFF:
 
-        NVIC_ClearPendingIRQ(PDM->warning_irq);
-        NVIC_ClearPendingIRQ(PDM->error_irq);
-        NVIC_ClearPendingIRQ(PDM->audio_detect_irq);
-
-        NVIC_DisableIRQ(PDM->warning_irq);
-        NVIC_DisableIRQ(PDM->error_irq);
-        NVIC_DisableIRQ(PDM->audio_detect_irq);
-
         /* Clear the fifo clear bit */
         pdm_disable_fifo_clear(PDM->regs);
 
-        /* Clock configuration for PDM */
-        disable_pdm_periph_clk();
+        if(PDM->instance == PDM_INSTANCE_LPPDM)
+        {
+            /* Clear Any Pending IRQ */
+            NVIC_ClearPendingIRQ(PDM->warning_irq);
+
+            /* Disable the NIVC */
+            NVIC_DisableIRQ(PDM->warning_irq);
+
+            /* Disable LPPDM clock */
+            disable_lppdm_periph_clk();
+        }
+        else
+        {
+            /* Clear Any Pending IRQ */
+            NVIC_ClearPendingIRQ(PDM->warning_irq);
+            NVIC_ClearPendingIRQ(PDM->error_irq);
+            NVIC_ClearPendingIRQ(PDM->audio_detect_irq);
+
+            /* Disable the NIVC */
+            NVIC_DisableIRQ(PDM->warning_irq);
+            NVIC_DisableIRQ(PDM->error_irq);
+            NVIC_DisableIRQ(PDM->audio_detect_irq);
+
+            /* Disable PDM clock */
+            disable_pdm_periph_clk();
+        }
 
         /* Reset the power status of PDM */
         PDM->state.powered = 0;
@@ -210,29 +224,43 @@ static int32_t PDM_PowerControl(ARM_POWER_STATE status,
         if(PDM->state.powered == 1)
             return ARM_DRIVER_OK;
 
-        /* Clear Any Pending IRQ */
-        NVIC_ClearPendingIRQ(PDM->warning_irq);
-        NVIC_ClearPendingIRQ(PDM->error_irq);
-        NVIC_ClearPendingIRQ(PDM->audio_detect_irq);
+        if(PDM->instance == PDM_INSTANCE_LPPDM)
+        {
+            /* Clear Any Pending IRQ */
+            NVIC_ClearPendingIRQ(PDM->warning_irq);
 
-        /* Set priority */
-        NVIC_SetPriority (PDM->warning_irq, PDM->warning_irq_priority);
-        NVIC_SetPriority(PDM->error_irq,PDM->error_irq_priority);
-        NVIC_SetPriority(PDM->audio_detect_irq,PDM->audio_irq_priority);
+            /* Set priority */
+            NVIC_SetPriority (PDM->warning_irq, PDM->warning_irq_priority);
 
-        /* Enable the NIVC */
-        NVIC_EnableIRQ(PDM->warning_irq);
-        NVIC_EnableIRQ(PDM->error_irq);
-        NVIC_EnableIRQ(PDM->audio_detect_irq);
+            /* Enable the NIVC */
+            NVIC_EnableIRQ(PDM->warning_irq);
 
-        /* Clock configuration for PDM */
-        enable_pdm_periph_clk();
+            /* Enable LPPDM clock */
+            enable_lppdm_periph_clk();
+        }
+        else
+        {
+            /* Clear Any Pending IRQ */
+            NVIC_ClearPendingIRQ(PDM->warning_irq);
+            NVIC_ClearPendingIRQ(PDM->error_irq);
+            NVIC_ClearPendingIRQ(PDM->audio_detect_irq);
+
+            /* Set priority */
+            NVIC_SetPriority (PDM->warning_irq, PDM->warning_irq_priority);
+            NVIC_SetPriority(PDM->error_irq, PDM->error_irq_priority);
+            NVIC_SetPriority(PDM->audio_detect_irq, PDM->audio_irq_priority);
+
+            /* Enable the NIVC */
+            NVIC_EnableIRQ(PDM->warning_irq);
+            NVIC_EnableIRQ(PDM->error_irq);
+            NVIC_EnableIRQ(PDM->audio_detect_irq);
+
+            /* Enable PDM clock */
+            enable_pdm_periph_clk();
+        }
 
         /* Set the FIFO clear bit */
         pdm_enable_fifo_clear(PDM->regs);
-
-        /* Clear the FIFO clear bit */
-        pdm_disable_fifo_clear(PDM->regs);
 
         /* Set the power state enabled */
         PDM->state.powered = 1;
@@ -248,7 +276,7 @@ static int32_t PDM_PowerControl(ARM_POWER_STATE status,
 }
 
 /**
- @fn           int32_t PDM_Control (uint32_t control,
+ @fn           int32_t PDMx_Control (uint32_t control,
                                     uint32_t arg,
                                     PDM_RESOURCES *PDM)
  @brief        CMSIS-Driver PDM control.
@@ -259,7 +287,7 @@ static int32_t PDM_PowerControl(ARM_POWER_STATE status,
  @return       ARM_DRIVER_ERROR_PARAMETER  : if PDM device is invalid
                ARM_DRIVER_OK               : if PDM successfully uninitialized or already not initialized
  */
-static int32_t PDM_Control (uint32_t control,
+static int32_t PDMx_Control (uint32_t control,
                             uint32_t arg,
                             PDM_RESOURCES *PDM)
 {
@@ -313,13 +341,13 @@ static int32_t PDM_Control (uint32_t control,
 }
 
 /**
- @fn          int32_t PDM_Channel_Config (PDM_CH_CONFIG *cnfg,PDM_RESOURCES *PDM)
+ @fn          int32_t PDMx_Channel_Config(PDM_CH_CONFIG *cnfg, PDM_RESOURCES *PDM)
  @brief       PDM channel configurations
  @param[in]   PDM : Pointer to PDM resources
  @param[in]   cngf : Pointer to PDM_CH_CONFIG
  @return      ARM_DRIVER_OK : if function return successfully
  */
-static int32_t PDM_Channel_Config(PDM_CH_CONFIG *cnfg, PDM_RESOURCES *PDM)
+static int32_t PDMx_Channel_Config(PDM_CH_CONFIG *cnfg, PDM_RESOURCES *PDM)
 {
     if (PDM->state.initialized == 0)
         return ARM_DRIVER_ERROR;
@@ -328,28 +356,28 @@ static int32_t PDM_Channel_Config(PDM_CH_CONFIG *cnfg, PDM_RESOURCES *PDM)
         return ARM_DRIVER_ERROR;
 
     /* Store the fir coefficient values */
-    pdm_set_fir_coeff(PDM->regs,cnfg->ch_num, cnfg->ch_fir_coef);
+    pdm_set_fir_coeff(PDM->regs, cnfg->ch_num, cnfg->ch_fir_coef);
 
     /* Store the iirr coefficient values */
-    pdm_set_ch_iir_coef(PDM->regs,cnfg->ch_num,cnfg->ch_iir_coef );
+    pdm_set_ch_iir_coef(PDM->regs, cnfg->ch_num, cnfg->ch_iir_coef );
 
     /* Store the channel phase control values */
-    pdm_set_ch_phase(PDM->regs,cnfg->ch_num,cnfg->ch_phase );
+    pdm_set_ch_phase(PDM->regs, cnfg->ch_num, cnfg->ch_phase );
 
     /* Store the Gain value */
-    pdm_set_ch_gain(PDM->regs,cnfg->ch_num,cnfg->ch_gain );
+    pdm_set_ch_gain(PDM->regs, cnfg->ch_num, cnfg->ch_gain );
 
     /* Store the Peak Detector Threshold */
     pdm_set_peak_detect_th(PDM->regs, cnfg->ch_num, cnfg->ch_peak_detect_th);
 
     /* Store the Peak Detector Interval */
-    pdm_set_peak_detect_itv(PDM->regs,cnfg->ch_num, cnfg->ch_peak_detect_itv);
+    pdm_set_peak_detect_itv(PDM->regs, cnfg->ch_num, cnfg->ch_peak_detect_itv);
 
     return ARM_DRIVER_OK;
 }
 
 /**
-@fn         int32_t PDM_Capture (PDM_Capture_CONFIG *cap_cnfg,PDM_RESOURCES *PDM)
+@fn         int32_t PDMx_Capture (PDM_Capture_CONFIG *cap_cnfg, PDM_RESOURCES *PDM)
 @brief      -> clear and set the fifo clear bit
             -> Store the capture configuration channel address
             -> Store the user enabled channel
@@ -359,7 +387,7 @@ static int32_t PDM_Channel_Config(PDM_CH_CONFIG *cnfg, PDM_RESOURCES *PDM)
 @param[in]  PDM      : Pointer to PDM resources
 @return     ARM_DRIVER_OK : if function return successfully
 */
-static int32_t PDM_Capture (PDM_Capture_CONFIG *cap_cnfg,PDM_RESOURCES *PDM)
+static int32_t PDMx_Capture (PDM_Capture_CONFIG *cap_cnfg, PDM_RESOURCES *PDM)
 {
 
     if (PDM->state.initialized == 0)
@@ -368,9 +396,6 @@ static int32_t PDM_Capture (PDM_Capture_CONFIG *cap_cnfg,PDM_RESOURCES *PDM)
     if (PDM->state.powered == 0)
         return ARM_DRIVER_ERROR;
 
-    /* Enable the fifo clear bit */
-    pdm_enable_fifo_clear(PDM->regs);
-
     /* clear the fifo clear bit */
     pdm_disable_fifo_clear(PDM->regs);
 
@@ -378,7 +403,7 @@ static int32_t PDM_Capture (PDM_Capture_CONFIG *cap_cnfg,PDM_RESOURCES *PDM)
     pdm_clear_channel(PDM->regs);
 
     /* Set the fifo watermark value */
-    pdm_set_fifo_watermark(PDM->regs,cap_cnfg->fifo_watermark);
+    pdm_set_fifo_watermark(PDM->regs, cap_cnfg->fifo_watermark);
 
     PDM->transfer.total_cnt  = cap_cnfg->total_no_samples;
     PDM->transfer.ch0_1_addr = cap_cnfg->ch0_1_addr;
@@ -399,11 +424,12 @@ static int32_t PDM_Capture (PDM_Capture_CONFIG *cap_cnfg,PDM_RESOURCES *PDM)
 /* RTE_PDM */
 #if RTE_PDM
 
-static PDM_RESOURCES PDM0 = {
+static PDM_RESOURCES PDM = {
     .cb_event              = NULL,
     .regs                  = (PDM_Type *)PDM_BASE,
     .transfer              = {0},
     .state                 = {0},
+    .instance              = PDM_INSTANCE_PDM0,
     .error_irq             = (IRQn_Type)PDM_ERROR_IRQ_IRQn,
     .warning_irq           = (IRQn_Type)PDM_WARN_IRQ_IRQn,
     .audio_detect_irq      = (IRQn_Type)PDM_AUDIO_DET_IRQ_IRQn,
@@ -413,68 +439,136 @@ static PDM_RESOURCES PDM0 = {
 };
 
 /* Function Name: PDM_Initialize */
-static int32_t PDM0_Initialize(ARM_PDM_SignalEvent_t cb_event)
+static int32_t PDM_Initialize(ARM_PDM_SignalEvent_t cb_event)
 {
-    return (PDM_Initialize(cb_event, &PDM0));
+    return (PDMx_Initialize(cb_event, &PDM));
 }
 
 /* Function Name: PDM_Uninitialize */
-static int32_t PDM0_Uninitialize(void)
+static int32_t PDM_Uninitialize(void)
 {
-    return (PDM_Uninitialize(&PDM0));
+    return (PDMx_Uninitialize(&PDM));
 }
 
 /* Function Name: PDM_PowerControl */
-static int32_t PDM0_PowerControl(ARM_POWER_STATE status)
+static int32_t PDM_PowerControl(ARM_POWER_STATE status)
 {
-    return (PDM_PowerControl(status, &PDM0));
+    return (PDMx_PowerControl(status, &PDM));
 }
 
 /* Function Name: PDM_Control */
-static int32_t PDM0_Control(uint32_t control, uint32_t arg)
+static int32_t PDM_Control(uint32_t control, uint32_t arg)
 {
-    return (PDM_Control(control, arg, &PDM0));
+    return (PDMx_Control(control, arg, &PDM));
 }
 
-/* Function Name: PDM_Start */
-static int32_t PDM0_Capture(PDM_Capture_CONFIG *cap_cnfg)
+/* Function Name: PDM_Capture */
+static int32_t PDM_Capture(PDM_Capture_CONFIG *cap_cnfg)
 {
-    return (PDM_Capture(cap_cnfg, &PDM0));
+    return (PDMx_Capture(cap_cnfg, &PDM));
 }
 
-/* Function Name: PDM0_Channel_Config */
-static int32_t PDM0_Channel_Config(PDM_CH_CONFIG *cnfg)
+/* Function Name: PDM_Channel_Config */
+static int32_t PDM_Channel_Config(PDM_CH_CONFIG *cnfg)
 {
-    return (PDM_Channel_Config(cnfg, &PDM0));
+    return (PDMx_Channel_Config(cnfg, &PDM));
 }
 
 /*Function Name : PDM_WARNNING_IRQHANDLER */
 void PDM_WARN_IRQHandler (void)
 {
-    PDM_WARNING_IRQ_handler(&PDM0);
+    PDM_WARNING_IRQ_handler(&PDM);
 }
 
 /*Function Name : PDM_ERROR_IRQHandler */
 void PDM_ERROR_IRQHandler (void)
 {
-    PDM_ERROR_IRQ_handler(&PDM0);
+    PDM_ERROR_IRQ_handler(&PDM);
 }
 
-/*Function Name : PDM_AUDIO_DETECTED_IRQHANDLER */
+/*Function Name : PDM_AUDIO_DET_IRQHandler */
 void PDM_AUDIO_DET_IRQHandler (void)
 {
-    PDM_AUDIO_DETECT_IRQ_handler(&PDM0);
+    PDM_AUDIO_DETECT_IRQ_handler(&PDM);
 }
 
 extern ARM_DRIVER_PDM Driver_PDM;
 ARM_DRIVER_PDM Driver_PDM = {
     PDM_GetVersion,
     PDM_GetCapabilities,
-    PDM0_Initialize,
-    PDM0_Uninitialize,
-    PDM0_PowerControl,
-    PDM0_Control,
-    PDM0_Channel_Config,
-    PDM0_Capture
+    PDM_Initialize,
+    PDM_Uninitialize,
+    PDM_PowerControl,
+    PDM_Control,
+    PDM_Channel_Config,
+    PDM_Capture
 };
 #endif /* RTE_PDM */
+
+/* RTE_LPPDM */
+#if RTE_LPPDM
+
+static PDM_RESOURCES LPPDM  = {
+    .cb_event              = NULL,
+    .regs                  = (PDM_Type *)LPPDM_BASE,
+    .transfer              = {0},
+    .state                 = {0},
+    .instance              = PDM_INSTANCE_LPPDM,
+    .warning_irq           = (IRQn_Type)LPPDM_IRQ_IRQn,
+    .warning_irq_priority  = (uint32_t)RTE_LPPDM_IRQ_PRIORITY
+};
+
+/* Function Name: LPPDM_Initialize */
+static int32_t LPPDM_Initialize(ARM_PDM_SignalEvent_t cb_event)
+{
+    return (PDMx_Initialize(cb_event, &LPPDM));
+}
+
+/* Function Name: LPPDM_Uninitialize */
+static int32_t LPPDM_Uninitialize(void)
+{
+    return (PDMx_Uninitialize(&LPPDM));
+}
+
+/* Function Name: LPPDM_PowerControl */
+static int32_t LPPDM_PowerControl(ARM_POWER_STATE status)
+{
+    return (PDMx_PowerControl(status, &LPPDM));
+}
+
+/* Function Name: LPPDM_Control */
+static int32_t LPPDM_Control(uint32_t control, uint32_t arg)
+{
+    return (PDMx_Control(control, arg, &LPPDM));
+}
+
+/* Function Name: LPPDM_Capture */
+static int32_t LPPDM_Capture(PDM_Capture_CONFIG *cap_cnfg)
+{
+    return (PDMx_Capture(cap_cnfg, &LPPDM));
+}
+
+/* Function Name: LPPDM_Channel_Config */
+static int32_t LPPDM_Channel_Config(PDM_CH_CONFIG *cnfg)
+{
+    return (PDMx_Channel_Config(cnfg, &LPPDM));
+}
+
+/*Function Name : LPPDM_IRQHandler */
+void LPPDM_IRQHandler (void)
+{
+    PDM_WARNING_IRQ_handler(&LPPDM);
+}
+
+extern ARM_DRIVER_PDM Driver_LPPDM;
+ARM_DRIVER_PDM Driver_LPPDM = {
+    PDM_GetVersion,
+    PDM_GetCapabilities,
+    LPPDM_Initialize,
+    LPPDM_Uninitialize,
+    LPPDM_PowerControl,
+    LPPDM_Control,
+    LPPDM_Channel_Config,
+    LPPDM_Capture
+};
+#endif /* RTE_LPPDM */

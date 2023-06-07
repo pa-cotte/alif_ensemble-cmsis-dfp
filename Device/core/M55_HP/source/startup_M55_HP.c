@@ -122,15 +122,30 @@ void MHU_M55HP_M55HE_0_TX_IRQHandler  (void) __attribute__ ((weak, alias("Defaul
 void MHU_M55HE_M55HP_1_RX_IRQHandler  (void) __attribute__ ((weak, alias("Default_Handler")));
 void MHU_M55HP_M55HE_1_TX_IRQHandler  (void) __attribute__ ((weak, alias("Default_Handler")));
 
-void LPGPIO_COMB_IRQHandler (void) __attribute__ ((weak, alias("Default_Handler")));
+void NPU_HP_IRQHandler                (void) __attribute__ ((weak, alias("Default_Handler")));
+void LPCMP_IRQHandler                 (void) __attribute__ ((weak, alias("Default_Handler")));
+void LPGPIO_COMB_IRQHandler           (void) __attribute__ ((weak, alias("Default_Handler")));
 
-void OSPI0_IRQHandler       (void) __attribute__ ((weak, alias("Default_Handler")));
-void OSPI1_IRQHandler       (void) __attribute__ ((weak, alias("Default_Handler")));
+void REFCLK_CNTBASE0_IRQHandler  (void) __attribute__ ((weak, alias("Default_Handler")));
+void REFCLK_CNTBASE1_IRQHandler  (void) __attribute__ ((weak, alias("Default_Handler")));
+void REFCLK_CNTBASE2_IRQHandler  (void) __attribute__ ((weak, alias("Default_Handler")));
+void REFCLK_CNTBASE3_IRQHandler  (void) __attribute__ ((weak, alias("Default_Handler")));
 
-void AES0_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
-void AES1_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
+void S32K_CNTBASE0_IRQHandler    (void) __attribute__ ((weak, alias("Default_Handler")));
+void S32K_CNTBASE1_IRQHandler    (void) __attribute__ ((weak, alias("Default_Handler")));
 
-void USB_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void SOC_ETR_IRQHandler          (void) __attribute__ ((weak, alias("Default_Handler")));
+void SOC_CATU_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+
+void OSPI0_IRQHandler            (void) __attribute__ ((weak, alias("Default_Handler")));
+void OSPI1_IRQHandler            (void) __attribute__ ((weak, alias("Default_Handler")));
+
+void AES0_IRQHandler             (void) __attribute__ ((weak, alias("Default_Handler")));
+void AES1_IRQHandler             (void) __attribute__ ((weak, alias("Default_Handler")));
+
+void BOD_IRQHandler          (void) __attribute__ ((weak, alias("Default_Handler")));
+
+void USB_IRQHandler          (void) __attribute__ ((weak, alias("Default_Handler")));
 
 void SDMMC_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
 void SDMMC_WAKEUP_IRQHandler (void) __attribute__ ((weak, alias("Default_Handler")));
@@ -153,6 +168,10 @@ void HWSEM_IRQ12Handler     (void) __attribute__ ((weak, alias("Default_Handler"
 void HWSEM_IRQ13Handler     (void) __attribute__ ((weak, alias("Default_Handler")));
 void HWSEM_IRQ14Handler     (void) __attribute__ ((weak, alias("Default_Handler")));
 void HWSEM_IRQ15Handler     (void) __attribute__ ((weak, alias("Default_Handler")));
+
+void PPU0_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
+void PPU1_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
+void PPU2_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
 
 void UART0_IRQHandler       (void) __attribute__ ((weak, alias("Default_Handler")));
 void UART1_IRQHandler       (void) __attribute__ ((weak, alias("Default_Handler")));
@@ -607,26 +626,26 @@ extern const VECTOR_TABLE_Type __VECTOR_TABLE[496];
   0,                                        /*   52 Reserved Interrupt 52 */
   0,                                        /*   53 Reserved Interrupt 53 */
   0,                                        /*   54 Reserved Interrupt 54 */
-  0,                                        /*   55 Reserved Interrupt 55 */
-  0,                                        /*   56 Reserved Interrupt 56 */
+  NPU_HP_IRQHandler,                        /*   55 Interrupt 55 */
+  LPCMP_IRQHandler,                         /*   56 Interrupt 56 */
   LPGPIO_COMB_IRQHandler,                   /*   57 Interrupt 57 */
-  0,                                        /*   58 Reserved Interrupt 58 */
+  LPRTC_IRQHandler,                         /*   58 Interrupt 58 */
   0,                                        /*   59 Reserved Interrupt 59 */
-  0,                                        /*   60 Reserved Interrupt 60 */
-  0,                                        /*   61 Reserved Interrupt 61 */
-  0,                                        /*   62 Reserved Interrupt 62 */
-  0,                                        /*   63 Reserved Interrupt 63 */
+  LPTIMER0_IRQHandler,                      /*   60 Interrupt 60 */
+  LPTIMER1_IRQHandler,                      /*   61 Interrupt 61 */
+  LPTIMER2_IRQHandler,                      /*   62 Interrupt 62 */
+  LPTIMER3_IRQHandler,                      /*   63 Interrupt 63 */
   0,                                        /*   64 Reserved Interrupt 64 */
   0,                                        /*   65 Reserved Interrupt 65 */
   0,                                        /*   66 Reserved Interrupt 66 */
-  0,                                        /*   67 Reserved Interrupt 67 */
-  0,                                        /*   68 Reserved Interrupt 68 */
-  0,                                        /*   69 Reserved Interrupt 69 */
-  0,                                        /*   70 Reserved Interrupt 70 */
-  0,                                        /*   71 Reserved Interrupt 71 */
-  0,                                        /*   72 Reserved Interrupt 72 */
-  0,                                        /*   73 Reserved Interrupt 73 */
-  0,                                        /*   74 Reserved Interrupt 74 */
+  REFCLK_CNTBASE0_IRQHandler,               /*   67 Interrupt 67 */
+  REFCLK_CNTBASE1_IRQHandler,               /*   68 Interrupt 68 */
+  REFCLK_CNTBASE2_IRQHandler,               /*   69 Interrupt 69 */
+  REFCLK_CNTBASE3_IRQHandler,               /*   70 Interrupt 70 */
+  S32K_CNTBASE0_IRQHandler,                 /*   71 Interrupt 71 */
+  S32K_CNTBASE1_IRQHandler,                 /*   72 Interrupt 72 */
+  SOC_ETR_IRQHandler,                       /*   73 Interrupt 73 */
+  SOC_CATU_IRQHandler,                      /*   74 Interrupt 74 */
   0,                                        /*   75 Reserved Interrupt 75 */
   0,                                        /*   76 Reserved Interrupt 76 */
   0,                                        /*   77 Reserved Interrupt 77 */
@@ -652,7 +671,7 @@ extern const VECTOR_TABLE_Type __VECTOR_TABLE[496];
   OSPI1_IRQHandler,                         /*   97 Interrupt 97 */
   AES0_IRQHandler,                          /*   98 Interrupt 98 */
   AES1_IRQHandler,                          /*   99 Interrupt 99 */
-  0,                                        /*   100 Reserved Interrupt 100 */
+  BOD_IRQHandler,                           /*   100 Interrupt 100 */
   USB_IRQHandler,                           /*   101 Interrupt 101 */
   SDMMC_IRQHandler,                         /*   102 Interrupt 102 */
   SDMMC_WAKEUP_IRQHandler,                  /*   103 Interrupt 103 */
@@ -673,9 +692,9 @@ extern const VECTOR_TABLE_Type __VECTOR_TABLE[496];
   HWSEM_IRQ13Handler,                       /*   118 Interrupt 118 */
   HWSEM_IRQ14Handler,                       /*   119 Interrupt 119 */
   HWSEM_IRQ15Handler,                       /*   120 Interrupt 120 */
-  0,                                        /*   121 Reserved Interrupt 121 */
-  0,                                        /*   122 Reserved Interrupt 122 */
-  0,                                        /*   123 Reserved Interrupt 123 */
+  PPU0_IRQHandler,                          /*   121 Interrupt 121 */
+  PPU1_IRQHandler,                          /*   122 Interrupt 122 */
+  PPU2_IRQHandler,                          /*   123 Interrupt 123 */
   UART0_IRQHandler,                         /*   124 Interrupt 124 */
   UART1_IRQHandler,                         /*   125 Interrupt 125 */
   UART2_IRQHandler,                         /*   126 Interrupt 126 */

@@ -25,13 +25,13 @@
 #include "sys_ctrl_gpio.h"
 
 #if !(RTE_GPIO0 || RTE_GPIO1 || RTE_GPIO2 || RTE_GPIO3 || RTE_GPIO4  || RTE_GPIO5 || RTE_GPIO6 || RTE_GPIO7 || \
-      RTE_GPIO8 || RTE_GPIO9 || RTE_GPIO10 || RTE_GPIO11 || RTE_GPIO12  || RTE_GPI13 || RTE_GPI14 || RTE_GPI15)
+      RTE_GPIO8 || RTE_GPIO9 || RTE_GPIO10 || RTE_GPIO11 || RTE_GPIO12  || RTE_GPI13 || RTE_GPI14 || RTE_LPGPIO)
 #error "GPIO is not enabled in the RTE_Device.h"
 #endif
 
-//#if !defined(RTE_Drivers_GPIO)
-//#error "GPIO is not enabled in the RTE_Components.h"
-//#endif
+#if !defined(RTE_Drivers_GPIO)
+#error "GPIO is not enabled in the RTE_Components.h"
+#endif
 
 /**
   \fn      int32_t GPIO_Initialize (GPIO_RESOURCES *GPIO, ARM_GPIO_SignalEvent_t cb_event, uint8_t pin_no)
@@ -291,6 +291,10 @@ static int32_t GPIO_Control (GPIO_RESOURCES *GPIO, uint8_t pin_no, GPIO_OPERATIO
             if (!arg)
             {
                 return ARM_DRIVER_ERROR_PARAMETER;
+            }
+            if (GPIO->gpio_id == LPGPIO_INSTANCE)
+            {
+                return ARM_DRIVER_ERROR_UNSUPPORTED;
             }
 
             if(*arg)
@@ -1907,99 +1911,99 @@ ARM_DRIVER_GPIO Driver_GPIO14 = {
 #endif   /* RTE_GPIO14 */
 
 
-/**<GPIO Instance 15>*/
-#if RTE_GPIO15
-static GPIO_RESOURCES GPIO15_RES = {
+/**< Low Power GPIO >*/
+#if RTE_LPGPIO
+static GPIO_RESOURCES LPGPIO_RES = {
     .reg_base = (LPGPIO_Type*) LPGPIO_BASE,
-    .gpio_id = GPIO15_INSTANCE,
+    .gpio_id = LPGPIO_INSTANCE,
     .IRQ_base_num = LPGPIO_IRQ0_IRQn,
     .IRQ_priority = {
-            RTE_GPIO15_PIN0_IRQ_PRIORITY,
-            RTE_GPIO15_PIN1_IRQ_PRIORITY,
-            RTE_GPIO15_PIN2_IRQ_PRIORITY,
-            RTE_GPIO15_PIN3_IRQ_PRIORITY,
-            RTE_GPIO15_PIN4_IRQ_PRIORITY,
-            RTE_GPIO15_PIN5_IRQ_PRIORITY,
-            RTE_GPIO15_PIN6_IRQ_PRIORITY,
-            RTE_GPIO15_PIN7_IRQ_PRIORITY,
+            RTE_LPGPIO_PIN0_IRQ_PRIORITY,
+            RTE_LPGPIO_PIN1_IRQ_PRIORITY,
+            RTE_LPGPIO_PIN2_IRQ_PRIORITY,
+            RTE_LPGPIO_PIN3_IRQ_PRIORITY,
+            RTE_LPGPIO_PIN4_IRQ_PRIORITY,
+            RTE_LPGPIO_PIN5_IRQ_PRIORITY,
+            RTE_LPGPIO_PIN6_IRQ_PRIORITY,
+            RTE_LPGPIO_PIN7_IRQ_PRIORITY,
     }
 };
 extern void LPGPIO_IRQ0Handler  (void);
-void LPGPIO_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO15_RES, 0);    }
+void LPGPIO_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 0);    }
 
 extern void LPGPIO_IRQ1Handler  (void);
-void LPGPIO_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO15_RES, 1);    }
+void LPGPIO_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 1);    }
 
 extern void LPGPIO_IRQ2Handler  (void);
-void LPGPIO_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO15_RES, 2);    }
+void LPGPIO_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 2);    }
 
 extern void LPGPIO_IRQ3Handler  (void);
-void LPGPIO_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO15_RES, 3);    }
+void LPGPIO_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 3);    }
 
 extern void LPGPIO_IRQ4Handler  (void);
-void LPGPIO_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO15_RES, 4);    }
+void LPGPIO_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 4);    }
 
 extern void LPGPIO_IRQ5Handler  (void);
-void LPGPIO_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO15_RES, 5);    }
+void LPGPIO_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 5);    }
 
 extern void LPGPIO_IRQ6Handler  (void);
-void LPGPIO_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO15_RES, 6);    }
+void LPGPIO_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 6);    }
 
 extern void LPGPIO_IRQ7Handler  (void);
-void LPGPIO_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO15_RES, 7);    }
+void LPGPIO_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 7);    }
 
-static int32_t ARM_GPIO15_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
+static int32_t ARM_LPGPIO_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
 {
-    return GPIO_Initialize (&GPIO15_RES, cb_event, pin_no);
+    return GPIO_Initialize (&LPGPIO_RES, cb_event, pin_no);
 }
 
-static int32_t ARM_GPIO15_PowerControl (uint8_t pin_no, ARM_POWER_STATE state)
+static int32_t ARM_LPGPIO_PowerControl (uint8_t pin_no, ARM_POWER_STATE state)
 {
-    return GPIO_PowerControl (&GPIO15_RES, pin_no, state);
+    return GPIO_PowerControl (&LPGPIO_RES, pin_no, state);
 }
 
-static int32_t ARM_GPIO15_SetDirection (uint8_t pin_no, GPIO_PIN_DIRECTION dir)
+static int32_t ARM_LPGPIO_SetDirection (uint8_t pin_no, GPIO_PIN_DIRECTION dir)
 {
-    return GPIO_SetDirection (&GPIO15_RES, pin_no, dir);
+    return GPIO_SetDirection (&LPGPIO_RES, pin_no, dir);
 }
 
-static int32_t ARM_GPIO15_GetDirection (uint8_t pin_no, uint32_t *dir)
+static int32_t ARM_LPGPIO_GetDirection (uint8_t pin_no, uint32_t *dir)
 {
-    return GPIO_GetDirection (&GPIO15_RES, pin_no, dir);
+    return GPIO_GetDirection (&LPGPIO_RES, pin_no, dir);
 }
 
-static int32_t ARM_GPIO15_SetValue (uint8_t pin_no, GPIO_PIN_OUTPUT_STATE value)
+static int32_t ARM_LPGPIO_SetValue (uint8_t pin_no, GPIO_PIN_OUTPUT_STATE value)
 {
-    return GPIO_SetValue (&GPIO15_RES, pin_no, value);
+    return GPIO_SetValue (&LPGPIO_RES, pin_no, value);
 }
 
-static int32_t ARM_GPIO15_GetValue (uint8_t pin_no, uint32_t *value)
+static int32_t ARM_LPGPIO_GetValue (uint8_t pin_no, uint32_t *value)
 {
-    return GPIO_GetValue (&GPIO15_RES, pin_no, value);
+    return GPIO_GetValue (&LPGPIO_RES, pin_no, value);
 }
 
-static int32_t ARM_GPIO15_Control (uint8_t pin_no, GPIO_OPERATION control_code, uint32_t *arg)
+static int32_t ARM_LPGPIO_Control (uint8_t pin_no, GPIO_OPERATION control_code, uint32_t *arg)
 {
-    return GPIO_Control (&GPIO15_RES, pin_no, control_code, arg);
+    return GPIO_Control (&LPGPIO_RES, pin_no, control_code, arg);
 }
 
-static int32_t ARM_GPIO15_Uninitialize (uint8_t pin_no)
+static int32_t ARM_LPGPIO_Uninitialize (uint8_t pin_no)
 {
-    return GPIO_Uninitialize (&GPIO15_RES, pin_no);
+    return GPIO_Uninitialize (&LPGPIO_RES, pin_no);
 }
 
-extern ARM_DRIVER_GPIO Driver_GPIO15;
-ARM_DRIVER_GPIO Driver_GPIO15 = {
-    ARM_GPIO15_Initialize,
-    ARM_GPIO15_PowerControl,
-    ARM_GPIO15_SetDirection,
-    ARM_GPIO15_GetDirection,
-    ARM_GPIO15_SetValue,
-    ARM_GPIO15_GetValue,
-    ARM_GPIO15_Control,
-    ARM_GPIO15_Uninitialize
+extern ARM_DRIVER_GPIO Driver_GPIOLP;
+ARM_DRIVER_GPIO Driver_GPIOLP = {
+    ARM_LPGPIO_Initialize,
+    ARM_LPGPIO_PowerControl,
+    ARM_LPGPIO_SetDirection,
+    ARM_LPGPIO_GetDirection,
+    ARM_LPGPIO_SetValue,
+    ARM_LPGPIO_GetValue,
+    ARM_LPGPIO_Control,
+    ARM_LPGPIO_Uninitialize
 };
-#endif   /* RTE_GPIO15 */
+#endif   /* RTE_LPGPIO */
 
 /************************ (C) COPYRIGHT ALIF SEMICONDUCTOR *****END OF FILE****/
 

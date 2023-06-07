@@ -26,7 +26,7 @@
 */
 static void ospi_xip_disable(ospi_flash_cfg_t *ospi_cfg)
 {
-    *ospi_cfg->aes_base &= ~AES_XIP_EN;
+    ospi_cfg->aes_regs->aes_control &= ~AES_XIP_EN;
 }
 
 /**
@@ -37,7 +37,7 @@ static void ospi_xip_disable(ospi_flash_cfg_t *ospi_cfg)
 */
 static void ospi_xip_enable(ospi_flash_cfg_t *ospi_cfg)
 {
-    *ospi_cfg->aes_base |= AES_XIP_EN;
+    ospi_cfg->aes_regs->aes_control |= AES_XIP_EN;
 }
 
 /**
@@ -213,24 +213,6 @@ void ospi_recv(ospi_flash_cfg_t *ospi_cfg, uint32_t command, uint8_t *buffer)
     }
 }
 
-/**
-  \fn        void read_bytes_in_xip(ospi_flash_cfg_t *ospi_cfg)
-  \brief     Read initial 512 bytes before starting XIP
-  \param[in] ospi_cfg : OSPI configuration structure
-  \return    none
-*/
-void read_bytes_in_xip(ospi_flash_cfg_t *ospi_cfg)
-{
-    uint8_t temp;
-    volatile uint8_t *addr = (volatile uint8_t *) ospi_cfg->xip_base;
-    uint32_t count = 0;
-
-    /* Read initial 512 bytes */
-    while (count++ < 512)
-    {
-        temp = *addr++;
-    }
-}
 
 /**
   \fn        void ospi_xip_enter(ospi_flash_cfg_t *ospi_cfg)
@@ -250,33 +232,40 @@ void ospi_xip_enter(ospi_flash_cfg_t *ospi_cfg, uint16_t incr_command, uint16_t 
         |(0 << CTRLR0_SCPH_OFFSET)
         |(0 << CTRLR0_SSTE_OFFSET)
         |(TMOD_RO << CTRLR0_TMOD_OFFSET)
-        |(CTRLR0_DFS_32bit << CTRLR0_DFS_OFFSET);
+        |(CTRLR0_DFS_8bit << CTRLR0_DFS_OFFSET);
 
     ospi_writel(ospi_cfg, ctrlr0, val);
-    ospi_writel(ospi_cfg, ctrlr1, 0x0);
 
-    val = TRANS_TYPE_FRF_DEFINED
-        |((ospi_cfg->ddr_en) << CTRLR0_SPI_DDR_EN_OFFSET)
-        |(2 << CTRLR0_XIP_MBL_OFFSET)
-        |(1 << CTRLR0_XIP_DFS_HC_OFFSET)
-        |(1 << CTRLR0_XIP_INST_EN_OFFSET)
-        |(CTRLR0_INST_L_8bit << CTRLR0_INST_L_OFFSET)
-        |(ospi_cfg->addrlen) << (CTRLR0_ADDR_L_OFFSET)
-        |(ospi_cfg->wait_cycles << CTRLR0_WAIT_CYCLES_OFFSET);
+    val = (OCTAL << XIP_CTRL_FRF_OFFSET)
+            | (0x1 << XIP_CTRL_TRANS_TYPE_OFFSET)
+            | (ADDR_L32bit << XIP_CTRL_ADDR_L_OFFSET)
+            | (INST_L8bit << XIP_CTRL_INST_L_OFFSET)
+            | (0x0 << XIP_CTRL_MD_BITS_EN_OFFSET)
+            | (0x10 << XIP_CTRL_WAIT_CYCLES_OFFSET)
+            | (0x1 << XIP_CTRL_DFC_HC_OFFSET)
+            | (0x1 << XIP_CTRL_DDR_EN_OFFSET)
+            | (0x0 << XIP_CTRL_INST_DDR_EN_OFFSET)
+            | (0x1 << XIP_CTRL_RXDS_EN_OFFSET)
+            | (0x1 << XIP_CTRL_INST_EN_OFFSET)
+            | (0x0 << XIP_CTRL_CONT_XFER_EN_OFFSET)
+            | (0x0 << XIP_CTRL_HYPERBUS_EN_OFFSET)
+            | (0x0 << XIP_CTRL_RXDS_SIG_EN)
+            | (0x0 << XIP_CTRL_XIP_MBL_OFFSET)
+            | (0x0 << XIP_PREFETCH_EN_OFFSET)
+            | (0x0 << XIP_CTRL_RXDS_VL_EN_OFFSET);
 
-    ospi_writel(ospi_cfg, spi_ctrlr0, val);
+    ospi_writel(ospi_cfg, xip_ctrl, val);
+
+    ospi_writel(ospi_cfg, rx_sample_dly, 0);
+    ospi_cfg->aes_regs->aes_rxds_delay = 12;
 
     ospi_writel(ospi_cfg, xip_mode_bits, 0x0);
     ospi_writel(ospi_cfg, xip_incr_inst, incr_command);
     ospi_writel(ospi_cfg, xip_wrap_inst, wrap_command);
     ospi_writel(ospi_cfg, xip_ser, ospi_cfg->ser);
-    ospi_writel(ospi_cfg, ser, ospi_cfg->ser);
-    ospi_writel(ospi_cfg, xip_cnt_time_out, 100);
 
     spi_enable(ospi_cfg);
     ospi_xip_enable(ospi_cfg);
-
-    read_bytes_in_xip(ospi_cfg);
 }
 
 /**
@@ -324,7 +313,6 @@ void ospi_xip_exit(ospi_flash_cfg_t *ospi_cfg, uint16_t incr_command, uint16_t w
     spi_enable(ospi_cfg);
 
     ospi_xip_enable(ospi_cfg);
-    read_bytes_in_xip(ospi_cfg);
     ospi_xip_disable(ospi_cfg);
 }
 
@@ -339,8 +327,7 @@ void ospi_init(ospi_flash_cfg_t *ospi_cfg)
     ospi_xip_disable(ospi_cfg);
     spi_disable(ospi_cfg);
     ospi_writel(ospi_cfg, ser, 0);
-
+    ospi_writel(ospi_cfg, rx_sample_dly, 4);
     spi_set_clk(ospi_cfg, (AXI_CLOCK / ospi_cfg->ospi_clock));
-
     spi_enable(ospi_cfg);
 }

@@ -97,7 +97,7 @@
 /*CFG_CLK frequency*/
 #define DPHY_FCFG_CLOCK_MHZ                           25
 /*Input Reference Clock Frequency*/
-#define DPHY_FCLKIN_MHZ                               38.4
+#define DPHY_FCLKIN_MHZ                               38.4f
 /*Charge-pump Programmability*/
 #define DPHY_CPBIAS_CNTRL                             0x00
 #define DPHY_GMP_CNTRL                                0x01

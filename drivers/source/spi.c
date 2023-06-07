@@ -329,17 +329,35 @@ void spi_send(SPI_Type *spi)
 }
 
 /**
-  \fn          void spi_receive(SPI_Type *spi, spi_transfer_t *transfer)
+  \fn          void spi_receive(SPI_Type *spi, uint32_t total_cnt)
   \brief       Prepare the SPI instance for reception
   \param[in]   spi       Pointer to the SPI register map
-  \param[in]   transfer  Pointer to the transfer structure for this SPI instance
+  \param[in]   total_cnt total number of data count
   \return      none
 */
-void spi_receive(SPI_Type *spi, spi_transfer_t *transfer)
+void spi_receive(SPI_Type *spi, uint32_t total_cnt)
 {
     spi_set_tmod(spi, SPI_TMOD_RX);
     spi_disable(spi);
-    spi->SPI_CTRLR1 = transfer->total_cnt - 1;
+    spi->SPI_CTRLR1 = total_cnt - 1;
+    spi->SPI_IMR = (SPI_IMR_RX_FIFO_UNDER_FLOW_INTERRUPT_MASK |
+                    SPI_IMR_RX_FIFO_OVER_FLOW_INTERRUPT_MASK |
+                    SPI_IMR_RX_FIFO_FULL_INTERRUPT_MASK);
+    spi_enable(spi);
+}
+
+/**
+  \fn          void spi_transfer(SPI_Type *spi, uint32_t total_cnt)
+  \brief       Prepare the SPI instance for transfer
+  \param[in]   spi       Pointer to the SPI register map
+  \param[in]   total_cnt total number of data count
+  \return      none
+*/
+void spi_transfer(SPI_Type *spi, uint32_t total_cnt)
+{
+    spi_set_tmod(spi, SPI_TMOD_TX_AND_RX);
+    spi_disable(spi);
+    spi->SPI_CTRLR1 = total_cnt - 1;
     spi->SPI_IMR = (SPI_IMR_TX_FIFO_EMPTY_INTERRUPT_MASK |
                     SPI_IMR_TX_FIFO_OVER_FLOW_INTERRUPT_MASK |
                     SPI_IMR_RX_FIFO_UNDER_FLOW_INTERRUPT_MASK |
@@ -350,23 +368,218 @@ void spi_receive(SPI_Type *spi, spi_transfer_t *transfer)
 }
 
 /**
-  \fn          void spi_transfer(SPI_Type *spi, spi_transfer_t *transfer)
-  \brief       Prepare the SPI instance for transfer
-  \param[in]   spi       Pointer to the SPI register map
+  \fn          void lpspi_set_mode(SPI_Type *spi, SPI_MODE mode)
+  \brief       Set the mode for the LPSPI instance.
+  \param[in]   spi     Pointer to the LPSPI register map
+  \param[in]   mode    The mode to be set.
   \return      none
 */
-void spi_transfer(SPI_Type *spi, spi_transfer_t *transfer)
+void lpspi_set_mode(SPI_Type *lpspi, SPI_MODE mode)
 {
-    spi_set_tmod(spi, SPI_TMOD_TX_AND_RX);
-    spi_disable(spi);
-    spi->SPI_CTRLR1 = transfer->total_cnt - 1;
-    spi->SPI_IMR = (SPI_IMR_TX_FIFO_EMPTY_INTERRUPT_MASK |
+    uint32_t val;
+
+    spi_disable(lpspi);
+
+    val = lpspi->SPI_CTRLR0;
+    val &= ~(LPSPI_CTRLR0_SCPOL_HIGH | LPSPI_CTRLR0_SCPH_HIGH);
+
+    switch (mode)
+    {
+        /* Clock Polarity 0, Clock Phase 0 */
+        case SPI_MODE_0:
+            break;
+
+        /* Clock Polarity 0, Clock Phase 1 */
+        case SPI_MODE_1:
+            val |= (LPSPI_CTRLR0_SCPOL_LOW | LPSPI_CTRLR0_SCPH_HIGH);
+            break;
+
+        /* Clock Polarity 1, Clock Phase 0 */
+        case SPI_MODE_2:
+            val |= (LPSPI_CTRLR0_SCPOL_HIGH | LPSPI_CTRLR0_SCPH_LOW);
+            break;
+
+        /* Clock Polarity 1, Clock Phase 1 */
+        case SPI_MODE_3:
+            val |= (LPSPI_CTRLR0_SCPOL_HIGH | LPSPI_CTRLR0_SCPH_HIGH);
+            break;
+    }
+
+    lpspi->SPI_CTRLR0 = val;
+    spi_enable(lpspi);
+}
+
+/**
+  \fn          void lpspi_set_protocol(SPI_Type *lpspi, SPI_PROTO format)
+  \brief       Set the protocol format for the LPSPI instance.
+  \param[in]   spi     Pointer to the LPSPI register map
+  \param[in]   format  The protocol to be set
+  \return      none
+*/
+void lpspi_set_protocol(SPI_Type *lpspi, SPI_PROTO format)
+{
+    uint32_t val;
+
+    spi_disable(lpspi);
+
+    val = lpspi->SPI_CTRLR0;
+    val &= ~(LPSPI_CTRLR0_FRF_MASK);
+
+    switch(format)
+    {
+    case SPI_PROTO_SPI:
+        break;
+    case SPI_PROTO_SSP:
+        val |= LPSPI_CTRLR0_FRF_TI;
+        break;
+    case SPI_PROTO_MICROWIRE:
+        val |= LPSPI_CTRLR0_FRF_MICROWIRE;
+        break;
+    }
+
+    lpspi->SPI_CTRLR0 = val;
+    spi_enable(lpspi);
+}
+
+/**
+  \fn          void lpspi_set_dfs(SPI_Type *lpspi, uint8_t dfs)
+  \brief       Set the data frame size for the LPSPI instance.
+  \param[in]   spi     Pointer to the LPSPI register map
+  \param[in]   dfs     The data frame size
+  \return      none
+*/
+void lpspi_set_dfs(SPI_Type *lpspi, uint8_t dfs)
+{
+    uint32_t val = 0;
+
+    spi_disable(lpspi);
+
+    val = lpspi->SPI_CTRLR0;
+    val &= ~LPSPI_CTRLR0_DFS32_MASK;
+    val |= (dfs - 1)  << LPSPI_CTRLR0_DFS_32;
+    lpspi->SPI_CTRLR0 = val;
+
+    spi_enable(lpspi);
+}
+
+/**
+  \fn          void lpspi_set_tmod(SPI_Type *lpspi, SPI_TMOD tmod)
+  \brief       Set the transfer mode for the LPSPI instance.
+  \param[in]   lpspi   Pointer to the LPSPI register map
+  \param[in]   tmod    Transfer mode
+  \return      none
+*/
+void lpspi_set_tmod(SPI_Type *lpspi, SPI_TMOD tmod)
+{
+    uint32_t val = 0;
+
+    spi_disable(lpspi);
+
+    val = lpspi->SPI_CTRLR0;
+    val &= ~(LPSPI_CTRLR0_TMOD_MASK);
+
+    switch(tmod)
+    {
+    case SPI_TMOD_TX_AND_RX:
+        val |= LPSPI_CTRLR0_TMOD_TRANSFER;
+        break;
+    case SPI_TMOD_TX:
+        val |= LPSPI_CTRLR0_TMOD_SEND_ONLY;
+        break;
+    case SPI_TMOD_RX:
+        val |= LPSPI_CTRLR0_TMOD_RECEIVE_ONLY;
+        break;
+    case SPI_TMOD_EEPROM_READ:
+        val |= LPSPI_CTRLR0_TMOD_EEPROM_READ_ONLY;
+        break;
+    default:
+        break;
+    }
+    lpspi->SPI_CTRLR0 = val;
+
+    spi_enable(lpspi);
+}
+
+/**
+  \fn          SPI_TMOD lpspi_get_tmod(SPI_Type *lpspi)
+  \brief       Get the transfer mode of the LPSPI instance.
+  \param[in]   lpspi     Pointer to the LPSPI register map
+  \return      The current transfer mode
+*/
+SPI_TMOD lpspi_get_tmod(SPI_Type *lpspi)
+{
+    uint32_t val = lpspi->SPI_CTRLR0;
+
+    if((val & LPSPI_CTRLR0_TMOD_MASK) == LPSPI_CTRLR0_TMOD_SEND_ONLY)
+    {
+        return SPI_TMOD_TX;
+    }
+    else if ((val & LPSPI_CTRLR0_TMOD_MASK) == LPSPI_CTRLR0_TMOD_RECEIVE_ONLY)
+    {
+        return SPI_TMOD_RX;
+    }
+    else if ((val & LPSPI_CTRLR0_TMOD_MASK) == LPSPI_CTRLR0_TMOD_TRANSFER)
+    {
+        return SPI_TMOD_TX_AND_RX;
+    }
+    else
+    {
+        return SPI_TMOD_EEPROM_READ;
+    }
+}
+
+
+/**
+  \fn          void lpspi_send(SPI_Type *spi)
+  \brief       Prepare the SPI instance for transmission
+  \param[in]   lpspi       Pointer to the LPSPI register map
+  \return      none
+*/
+void lpspi_send(SPI_Type *lpspi)
+{
+    lpspi_set_tmod(lpspi, SPI_TMOD_TX);
+    lpspi->SPI_IMR = (SPI_IMR_TX_FIFO_EMPTY_INTERRUPT_MASK |
+                    SPI_IMR_TX_FIFO_OVER_FLOW_INTERRUPT_MASK |
+                    SPI_IMR_MULTI_MASTER_CONTENTION_INTERRUPT_MASK);
+}
+
+/**
+  \fn          void lpspi_receive(SPI_Type *lpspi, uint32_t total_cnt)
+  \brief       Prepare the LPSPI instance for reception
+  \param[in]   lpspi     Pointer to the LPSPI register map
+  \param[in]   total_cnt total number of data count
+  \return      none
+*/
+void lpspi_receive(SPI_Type *lpspi, uint32_t total_cnt)
+{
+    lpspi_set_tmod(lpspi, SPI_TMOD_RX);
+    spi_disable(lpspi);
+    lpspi->SPI_CTRLR1 = total_cnt - 1;
+    lpspi->SPI_IMR = (SPI_IMR_RX_FIFO_UNDER_FLOW_INTERRUPT_MASK |
+                      SPI_IMR_RX_FIFO_OVER_FLOW_INTERRUPT_MASK |
+                      SPI_IMR_RX_FIFO_FULL_INTERRUPT_MASK);
+    spi_enable(lpspi);
+}
+
+/**
+  \fn          void lpspi_transfer(SPI_Type *lpspi, uint32_t total_cnt)
+  \brief       Prepare the LPSPI instance for transfer
+  \param[in]   lpspi      Pointer to the LPSPI register map
+  \param[in]   total_cnt  total number of data count
+  \return      none
+*/
+void lpspi_transfer(SPI_Type *lpspi, uint32_t total_cnt)
+{
+    lpspi_set_tmod(lpspi, SPI_TMOD_TX_AND_RX);
+    spi_disable(lpspi);
+    lpspi->SPI_CTRLR1 = total_cnt - 1;
+    lpspi->SPI_IMR = (SPI_IMR_TX_FIFO_EMPTY_INTERRUPT_MASK |
                     SPI_IMR_TX_FIFO_OVER_FLOW_INTERRUPT_MASK |
                     SPI_IMR_RX_FIFO_UNDER_FLOW_INTERRUPT_MASK |
                     SPI_IMR_RX_FIFO_OVER_FLOW_INTERRUPT_MASK |
                     SPI_IMR_RX_FIFO_FULL_INTERRUPT_MASK |
                     SPI_IMR_MULTI_MASTER_CONTENTION_INTERRUPT_MASK);
-    spi_enable(spi);
+    spi_enable(lpspi);
 }
 
 /**
@@ -380,14 +593,11 @@ void spi_irq_handler(SPI_Type *spi, spi_transfer_t *transfer)
 {
     uint32_t event, tx_data, index, curr_fifo_level;
     uint32_t tx_count, rx_count;
-    uint8_t frame_size;
 
     event = spi->SPI_ISR;
 
     if (event & SPI_TX_FIFO_EMPTY_EVENT)
     {
-        frame_size = (SPI_CTRLR0_DFS_MASK & spi->SPI_CTRLR0);
-
         curr_fifo_level = spi->SPI_TXFLR;
 
         if (transfer->total_cnt >= (transfer->tx_current_cnt + SPI_TX_FIFO_DEPTH - curr_fifo_level))
@@ -412,12 +622,12 @@ void spi_irq_handler(SPI_Type *spi, spi_transfer_t *transfer)
             }
             else
             {
-                if (frame_size > 15)
+                if (transfer->frame_size > 15)
                 {
                     tx_data = (uint32_t) (transfer->tx_buff[0] | (transfer->tx_buff[1] << 8) | (transfer->tx_buff[2] << 16) | (transfer->tx_buff[3] << 24));
                     transfer->tx_buff = transfer->tx_buff + 4U;
                 }
-                else if (frame_size > 7)
+                else if (transfer->frame_size > 7)
                 {
                     tx_data = (uint32_t)(transfer->tx_buff[0] | (transfer->tx_buff[1] << 8));
                     transfer->tx_buff = transfer->tx_buff + 2;
@@ -437,9 +647,8 @@ void spi_irq_handler(SPI_Type *spi, spi_transfer_t *transfer)
     if (event & SPI_RX_FIFO_FULL_EVENT)
     {
         rx_count = spi->SPI_RXFLR;
-        frame_size = (SPI_CTRLR0_DFS_MASK & spi->SPI_CTRLR0);
 
-        if (frame_size > 15)
+        if (transfer->frame_size > 15)
         {
             for (index = 0; index < rx_count; index++)
             {
@@ -449,7 +658,7 @@ void spi_irq_handler(SPI_Type *spi, spi_transfer_t *transfer)
                 transfer->rx_current_cnt++;
             }
         }
-        else if (frame_size > 7)
+        else if (transfer->frame_size > 7)
         {
             for (index = 0; index < rx_count; index++)
             {
@@ -490,7 +699,7 @@ void spi_irq_handler(SPI_Type *spi, spi_transfer_t *transfer)
     }
 
     /* SEND ONLY mode, check if the transfer is complete */
-    if (((spi->SPI_CTRLR0 & SPI_CTRLR0_TMOD_MASK) == SPI_CTRLR0_TMOD_SEND_ONLY) && (transfer->total_cnt <= transfer->tx_current_cnt))
+    if ((transfer->mode == SPI_TMOD_TX) && (transfer->total_cnt <= transfer->tx_current_cnt))
     {
         /* wait for the transfer to complete */
         if ((spi->SPI_SR & 1) == 0)
@@ -505,7 +714,7 @@ void spi_irq_handler(SPI_Type *spi, spi_transfer_t *transfer)
     }
 
     /* RECEIVE ONLY mode, check if the transfer is complete */
-    if (((spi->SPI_CTRLR0 & SPI_CTRLR0_TMOD_MASK) == SPI_CTRLR0_TMOD_RECEIVE_ONLY) && (transfer->total_cnt <= transfer->rx_current_cnt))
+    if ((transfer->mode == SPI_TMOD_RX) && (transfer->total_cnt <= transfer->rx_current_cnt))
     {
         spi->SPI_IMR = 0;
 
@@ -514,7 +723,7 @@ void spi_irq_handler(SPI_Type *spi, spi_transfer_t *transfer)
     }
 
     /* TRANSFER mode, check if the transfer is complete */
-    if (((spi->SPI_CTRLR0 & SPI_CTRLR0_TMOD_MASK) == SPI_CTRLR0_TMOD_TRANSFER) &&
+    if ((transfer->mode == SPI_TMOD_TX_AND_RX) &&
         ((transfer->total_cnt <= transfer->tx_current_cnt) && (transfer->total_cnt <= transfer->rx_current_cnt)))
     {
         /* wait for the transfer to complete */

@@ -32,11 +32,11 @@
 #endif
 
 #ifndef DRIVER_OSPI_NUM
-#define DRIVER_OSPI_NUM                                          0         /* Default SPI driver number */
+#define DRIVER_OSPI_NUM                                          1         /* Default SPI driver number */
 #endif
 
 #ifndef DRIVER_OSPI_BUS_SPEED
-#define DRIVER_OSPI_BUS_SPEED                                    5000000  /* Default SPI bus speed */
+#define DRIVER_OSPI_BUS_SPEED                                    25000000  /* Default SPI bus speed */
 #endif
 
 /* SPI Data Flash Commands */
@@ -52,6 +52,7 @@
 #define IO_MODE_ADDRESS                                         0x00000000U
 #define WAIT_CYCLE_ADDRESS                                      0x00000001U
 #define OCTAL_DDR_WO_DQS                                        (0xC7U)
+#define OCTAL_DDR                                               (0xE7U)
 #define DEFAULT_WAIT_CYCLES                                     (0x10U)
 
 #define FLAG_STATUS_BUSY                                        0x80U
@@ -332,7 +333,7 @@ static int32_t ARM_Flash_PowerControl (ARM_POWER_STATE state)
                 cmd[1] = (uint8_t)(IO_MODE_ADDRESS >> 16);
                 cmd[2] = (uint8_t)(IO_MODE_ADDRESS >> 8);
                 cmd[3] = (uint8_t)(IO_MODE_ADDRESS >> 0);
-                cmd[4] = OCTAL_DDR_WO_DQS;
+                cmd[4] = OCTAL_DDR;
 
                 status = ptrOSPI->Control(ARM_OSPI_SET_ADDR_LENGTH_WAIT_CYCLE, (ARM_OSPI_ADDR_LENGTH_0_BITS << ARM_OSPI_ADDR_LENGTH_POS) | (0 << ARM_OSPI_WAIT_CYCLE_POS));
 

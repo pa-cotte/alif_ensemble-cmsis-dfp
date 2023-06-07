@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -146,24 +146,12 @@ static int32_t ARM_I2C_Uninitialize(I2C_RESOURCES *I2C)
 
     /* check i2c driver is initialized or not */
     if (I2C->state.initialized == 0)
-        return ARM_DRIVER_ERROR;
+        return ARM_DRIVER_OK;
 
     /* check i2c driver is powered or not */
-    if (I2C->state.powered == 0)
+    if (I2C->state.powered == 1)
         return ARM_DRIVER_ERROR;
 
-    /* Disabling interrupts */
-    if (I2C->mode == I2C_MASTER_MODE)
-    {
-        i2c_master_disable_tx_interrupt(I2C->regs);
-        i2c_master_disable_rx_interrupt(I2C->regs);
-    }
-    else {
-        i2c_slave_disable_tx_interrupt(I2C->regs);
-        i2c_slave_disable_rx_interrupt(I2C->regs);
-    }
-
-    /* Disable i2c */
     i2c_disable(I2C->regs);
 
     /* initialize all variables to 0 */
@@ -217,10 +205,10 @@ static int32_t ARM_I2C_PowerControl (ARM_POWER_STATE state, I2C_RESOURCES *I2C)
     case ARM_POWER_FULL:
 
          /* check for Driver initialization */
-        if (I2C->state.initialized == 0)
-        {
-            return ARM_DRIVER_ERROR;
-        }
+         if (I2C->state.initialized == 0)
+         {
+             return ARM_DRIVER_ERROR;
+         }
 
          /* check for the power is done before initialization or not */
          if (I2C->state.powered == 1)
@@ -246,12 +234,23 @@ static int32_t ARM_I2C_PowerControl (ARM_POWER_STATE state, I2C_RESOURCES *I2C)
          I2C->state.powered = 1;
 
         break;
-    case ARM_POWER_LOW:
+    case ARM_POWER_OFF:
 
-        if (I2C->state.powered == 0)
-        {
-            return ARM_DRIVER_OK;
-        }
+         if (I2C->state.powered == 0)
+         {
+             return ARM_DRIVER_OK;
+         }
+         /* Disabling interrupts */
+         if (I2C->mode == I2C_MASTER_MODE)
+         {
+            i2c_master_disable_tx_interrupt(I2C->regs);
+            i2c_master_disable_rx_interrupt(I2C->regs);
+         }
+         else
+         {
+            i2c_slave_disable_tx_interrupt(I2C->regs);
+            i2c_slave_disable_rx_interrupt(I2C->regs);
+         }
 
          /* Disable the IRQ */
          NVIC_DisableIRQ(I2C->irq_num);
@@ -261,7 +260,7 @@ static int32_t ARM_I2C_PowerControl (ARM_POWER_STATE state, I2C_RESOURCES *I2C)
 
          I2C->state.powered = 0;
         break;
-    case ARM_POWER_OFF:
+    case ARM_POWER_LOW:
         return ARM_DRIVER_ERROR_UNSUPPORTED;
     }
     return ARM_DRIVER_OK;

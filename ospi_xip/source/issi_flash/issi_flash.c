@@ -189,12 +189,6 @@ static int issi_flash_probe (ospi_flash_cfg_t *ospi_cfg)
     /* Initialize SPI in Single mode 1-1-1 and read Flash ID */
     if (issi_flash_ReadID(ospi_cfg) == DEVICE_ID_ISSI_FLASH_IS25WX256)
     {
-        ospi_cfg->dev_type = DEVICE_MODE_SINGLE;
-        issi_flash_reset(ospi_cfg);
-        /* Switch ISSI Flash to Octal DDR */
-        issi_flash_set_configuration_register_SDR(ospi_cfg, ISSI_WRITE_VOLATILE_CONFIG_REG, 0x00, OCTAL_DDR);
-        ospi_cfg->dev_type = DEVICE_ID_ISSI_FLASH_IS25WX256;
-
         return 0;
     }
     /* Initialize SPI in Octal mode 8-8-8 and read Flash ID */
@@ -224,30 +218,7 @@ static int issi_flash_probe (ospi_flash_cfg_t *ospi_cfg)
  */
 static int flash_xip_init(ospi_flash_cfg_t *ospi_cfg)
 {
-    /* Check and Set Dummy Cycles to 16 */
-    if (issi_flash_read_configuration_register_ddr(ospi_cfg, VOLATILE_CONFIG_REG, 0x01) != ospi_cfg->wait_cycles)
-    {
-        issi_flash_set_configuration_register_DDR(ospi_cfg, ISSI_WRITE_VOLATILE_CONFIG_REG, 0x01, (uint8_t) ospi_cfg->wait_cycles);
-    }
-
-    /* Check and Set Wrap Configuration to 32-byte wrap */
-    if (issi_flash_read_configuration_register_ddr(ospi_cfg, VOLATILE_CONFIG_REG, 0x07) != WRAP_32_BYTE)
-    {
-        issi_flash_set_configuration_register_DDR(ospi_cfg, ISSI_WRITE_VOLATILE_CONFIG_REG, 0x07, WRAP_32_BYTE);
-    }
-
-    /* Set XiP Configuration to 0xFE 8IOFR XIP */
-    issi_flash_set_configuration_register_DDR(ospi_cfg, ISSI_WRITE_VOLATILE_CONFIG_REG, 0x06, XIP_8IOFR);
-
-    if (issi_flash_read_configuration_register_ddr(ospi_cfg, VOLATILE_CONFIG_REG, 0x06) == XIP_8IOFR)
-    {
-        ospi_xip_enter(ospi_cfg, ISSI_4BYTE_OCTAL_IO_FAST_READ, ISSI_4BYTE_OCTAL_IO_FAST_READ);
-    }
-    else
-    {
-        return -1;
-    }
-
+    ospi_xip_enter(ospi_cfg, ISSI_DDR_OCTAL_IO_FAST_READ, ISSI_DDR_OCTAL_IO_FAST_READ);
     return 0;
 }
 
@@ -263,12 +234,12 @@ int setup_flash_xip(void)
 
 #if OSPI_XIP_INSTANCE == OSPI0
     ospi_cfg->regs = (ssi_regs_t *) OSPI0_BASE;
-    ospi_cfg->aes_base = (volatile uint32_t *) AES0_BASE;
-    ospi_cfg->xip_base = OSPI0_XIP_BASE;
+    ospi_cfg->aes_base = (aes_regs_t *) AES0_BASE;
+    ospi_cfg->xip_base = (volatile void *) OSPI0_XIP_BASE;
 #else
     ospi_cfg->regs = (ssi_regs_t *) OSPI1_BASE;
-    ospi_cfg->aes_base = (volatile uint32_t *) AES1_BASE;
-    ospi_cfg->xip_base = OSPI1_XIP_BASE;
+    ospi_cfg->aes_regs = (aes_regs_t *) AES1_BASE;
+    ospi_cfg->xip_base = (volatile void *) OSPI1_XIP_BASE;
 #endif
 
     ospi_cfg->ser = 1;

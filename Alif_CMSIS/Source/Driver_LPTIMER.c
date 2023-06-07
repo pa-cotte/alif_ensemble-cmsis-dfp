@@ -186,11 +186,14 @@ static int32_t ARM_LPTIMER_Control (LPTIMER_RESOURCES *LPTIMER_RES, uint8_t chan
     {
         if (LPTIMER_RES->ch_info[channel].mode == LPTIMER_FREE_RUN_MODE)
         {
-            return ARM_DRIVER_ERROR;
+            /* load maximum counter value*/
+            lptimer_load_max_count(LPTIMER_RES->regs, channel);
         }
-
-        /* load counter value */
-        lptimer_load_count (LPTIMER_RES->regs, channel, arg);
+        else
+        {
+            /* load counter value */
+            lptimer_load_count (LPTIMER_RES->regs, channel, arg);
+        }
 
         LPTIMER_RES->ch_info[channel].state.set_count1 = 1;
         break;

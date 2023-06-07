@@ -45,7 +45,7 @@ extern "C"
 //      <OSPI1=>  1
 //   <i> OSPI instance selection
 
-#define OSPI_XIP_INSTANCE                        OSPI0
+#define OSPI_XIP_INSTANCE                        OSPI1
 
 /**
   \def OSPI_CLOCK_MHZ
@@ -56,7 +56,7 @@ extern "C"
 //   <i> Defines the frequency of sclk_out of SPI controller.
 //   <i> Default:5
 
-#define OSPI_CLOCK_MHZ                           5
+#define OSPI_CLOCK_MHZ                           50
 #define OSPI_CLOCK                               (OSPI_CLOCK_MHZ * 1000000)
 
 // </h>
@@ -165,4 +165,5 @@ extern "C"
 #endif
 
 #endif /* OSPI_XIP_USER_H_ */
+
 

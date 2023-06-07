@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -7,7 +7,6 @@
  * contact@alifsemi.com, or visit: https://alifsemi.com/license
  *
  */
-
 /**************************************************************************//**
  * @file     MT9M114_Camera_Sensor.c
  * @author   Tanay Rami
@@ -18,20 +17,123 @@
  * @bug      None.
  * @Note     None.
  ******************************************************************************/
-
 /* System Includes */
 #include "RTE_Device.h"
 #include "RTE_Components.h"
 #include CMSIS_device_header
 
-
 /* Proceed only if MT9M114 Camera Sensor is enabled. */
-#if RTE_MT9M114_CAMERA_SENSOR_ENABLE
+#if (RTE_MT9M114_CAMERA_SENSOR_CPI_ENABLE || RTE_MT9M114_CAMERA_SENSOR_LPCPI_ENABLE)
 
 /* Project Includes */
 #include "MT9M114_Camera_Sensor.h"
 #include "Driver_Common.h"
 
+/**
+\brief MT9M114 Camera Sensor slave i2c Configuration
+        \ref CAMERA_SENSOR_SLAVE_I2C_CONFIG
+*/
+CAMERA_SENSOR_SLAVE_I2C_CONFIG mt9m114_camera_sensor_i2c_cnfg =
+{
+  .speed_mode                     = CAMERA_SENSOR_I2C_SPEED_SS_100_KBPS,
+  .cam_sensor_slave_addr          = MT9M114_CAMERA_SENSOR_SLAVE_ADDR,
+  .cam_sensor_slave_reg_addr_type = CAMERA_SENSOR_I2C_REG_ADDR_TYPE_16BIT,
+};
+
+/**
+\brief MT9M114 Camera Sensor Information
+        \ref CAMERA_SENSOR_INFO
+*/
+CAMERA_SENSOR_INFO mt9m114_info =
+{
+  .output_format     = MT9M114_USER_SELECT_CAMERA_OUTPUT_FORMAT,
+  .additional_width  = MT9M114_ADDITIONAL_WIDTH,
+  .additional_height = MT9M114_ADDITIONAL_HEIGHT,
+};
+
+/**
+\brief MT9M114 Camera Sensor Operations
+        \ref CAMERA_SENSOR_OPERATIONS
+*/
+CAMERA_SENSOR_OPERATIONS mt9m114_ops =
+{
+  .Init    = mt9m114_Init,
+  .Uninit  = mt9m114_Uninit,
+  .Start   = mt9m114_Start,
+  .Stop    = mt9m114_Stop,
+  .Control = mt9m114_Control,
+};
+
+#if RTE_CPI
+/**
+\brief CPI MT9M114 Camera Sensor Configurations
+        \ref CAMERA_SENSOR_CONFIG
+*/
+CAMERA_SENSOR_CONFIG cpi_mt9m114_config =
+{
+  .interface    = CPI_INTERFACE_PARALLEL,
+  .pixelclk_pol = RTE_MT9M114_CAMERA_SENSOR_CPI_PIXEL_CLK_POL,
+  .hsync_pol    = RTE_MT9M114_CAMERA_SENSOR_CPI_HSYNC_POL,
+  .vsync_pol    = RTE_MT9M114_CAMERA_SENSOR_CPI_VSYNC_POL,
+  .vsync_wait   = RTE_MT9M114_CAMERA_SENSOR_CPI_VSYNC_WAIT,
+  .vsync_mode   = RTE_MT9M114_CAMERA_SENSOR_CPI_VSYNC_MODE,
+  .data_mode    = RTE_MT9M114_CAMERA_SENSOR_CPI_DATA_MODE,
+  .select_msb   = RTE_MT9M114_CAMERA_SENSOR_CPI_MSB,
+  .code10on8    = RTE_MT9M114_CAMERA_SENSOR_CPI_CODE10ON8,
+  .data_mask    = RTE_MT9M114_CAMERA_SENSOR_CPI_DATA_MASK,
+};
+
+/**
+\brief CPI MT9M114 Camera Sensor Device Structure
+       Contains:
+        - MT9M114 Camera Sensor Information
+        - CPI MT9M114 Camera Sensor Configurations
+        - MT9M114 Camera Sensor Operations
+        \ref CAMERA_SENSOR_DEVICE
+*/
+extern CAMERA_SENSOR_DEVICE cpi_mt9m114_camera_sensor;
+CAMERA_SENSOR_DEVICE cpi_mt9m114_camera_sensor =
+{
+  .Info    = &mt9m114_info,
+  .Config  = &cpi_mt9m114_config,
+  .Ops     = &mt9m114_ops,
+};
+#endif
+
+#if RTE_LPCPI
+/**
+\brief LPCPI MT9M114 Camera Sensor Configurations
+        \ref CAMERA_SENSOR_CONFIG
+*/
+CAMERA_SENSOR_CONFIG lpcpi_mt9m114_config =
+{
+  .interface    = CPI_INTERFACE_PARALLEL,
+  .pixelclk_pol = RTE_MT9M114_CAMERA_SENSOR_LPCPI_PIXEL_CLK_POL,
+  .hsync_pol    = RTE_MT9M114_CAMERA_SENSOR_LPCPI_HSYNC_POL,
+  .vsync_pol    = RTE_MT9M114_CAMERA_SENSOR_LPCPI_VSYNC_POL,
+  .vsync_wait   = RTE_MT9M114_CAMERA_SENSOR_LPCPI_VSYNC_WAIT,
+  .vsync_mode   = RTE_MT9M114_CAMERA_SENSOR_LPCPI_VSYNC_MODE,
+  .data_mode    = RTE_MT9M114_CAMERA_SENSOR_LPCPI_DATA_MODE,
+  .select_msb   = RTE_MT9M114_CAMERA_SENSOR_LPCPI_MSB,
+  .code10on8    = RTE_MT9M114_CAMERA_SENSOR_LPCPI_CODE10ON8,
+};
+
+/**
+\brief LPCPI MT9M114 Camera Sensor Device Structure
+       Contains:
+        - MT9M114 Camera Sensor Information
+        - LPCPI MT9M114 Camera Sensor Configurations
+        - MT9M114 Camera Sensor Operations
+        \ref CAMERA_SENSOR_DEVICE
+*/
+extern CAMERA_SENSOR_DEVICE lpcpi_mt9m114_camera_sensor;
+CAMERA_SENSOR_DEVICE lpcpi_mt9m114_camera_sensor =
+{
+  .Info    = &mt9m114_info,
+  .Config  = &lpcpi_mt9m114_config,
+  .Ops     = &mt9m114_ops,
+};
+#endif
 
 /* Wrapper function for Delay
  * Delay for millisecond:
@@ -146,16 +248,16 @@ static int32_t mt9m114_camera_init(ARM_CAMERA_RESOLUTION cam_resolution,
   /* Configure Camera Sensor Resolution */
   switch(cam_resolution)
   {
-  /* Camera Sensor Resolution: VGA 640x480(WxH) */
-  case CAMERA_RESOLUTION_VGA_640x480:
-    total_num = (sizeof(mt9m114_cam_resolution_VGA_640x480) / sizeof(MT9M114_REG));
-    ret = mt9m114_bulk_write_reg(mt9m114_cam_resolution_VGA_640x480, total_num);
-    if(ret != ARM_DRIVER_OK)
-      return ARM_DRIVER_ERROR;
-    break;
+    /* Camera Sensor Resolution: VGA 640x480(WxH) */
+    case CAMERA_RESOLUTION_VGA_640x480:
+      total_num = (sizeof(mt9m114_cam_resolution_VGA_640x480) / sizeof(MT9M114_REG));
+      ret = mt9m114_bulk_write_reg(mt9m114_cam_resolution_VGA_640x480, total_num);
+      if(ret != ARM_DRIVER_OK)
+        return ARM_DRIVER_ERROR;
+      break;
 
-  default:
-    return ARM_DRIVER_ERROR_PARAMETER;
+    default:
+      return ARM_DRIVER_ERROR_PARAMETER;
   }
 
   /* Configure Camera Sensor slew rate */
@@ -166,14 +268,14 @@ static int32_t mt9m114_camera_init(ARM_CAMERA_RESOLUTION cam_resolution,
   /* Configure Camera Sensor output format */
   switch(cam_output_format)
   {
-  /* Camera Sensor output format: Raw Bayer10 format */
-  case MT9M114_CAMERA_OUTPUT_FORMAT_RAW_BAYER10:
-    output_format =  MT9M114_CAM_OUTPUT_FORMAT_REGISTER_FORMAT_BAYER         |   \
-                     MT9M114_CAM_OUTPUT_FORMAT_REGISTER_BAYER_FORMAT_RAWR10;
-    break;
+    /* Camera Sensor output format: Raw Bayer10 format */
+    case MT9M114_CAMERA_OUTPUT_FORMAT_RAW_BAYER10:
+      output_format =  MT9M114_CAM_OUTPUT_FORMAT_REGISTER_FORMAT_BAYER         |   \
+                       MT9M114_CAM_OUTPUT_FORMAT_REGISTER_BAYER_FORMAT_RAWR10;
+      break;
 
-  default:
-    return ARM_DRIVER_ERROR_PARAMETER;
+    default:
+      return ARM_DRIVER_ERROR_PARAMETER;
   }
 
   ret = MT9M114_WRITE_REG(MT9M114_CAM_OUTPUT_FORMAT_REGISTER, output_format, 2);
@@ -198,12 +300,14 @@ static int32_t mt9m114_camera_testPattern_config(void)
   int32_t  ret = 0;
 
   total_num = (sizeof(mt9m114_cam_testPattern) / sizeof(MT9M114_REG));
+
   ret = mt9m114_bulk_write_reg(mt9m114_cam_testPattern, total_num);
   if(ret != ARM_DRIVER_OK)
     return ARM_DRIVER_ERROR;
 
   return ARM_DRIVER_OK;
 }
+
 #endif /* end of MT9M114_CAMERA_TEST_PATTERN_ENABLE */
 
 /**
@@ -282,7 +386,6 @@ static int32_t mt9m114_set_system_state(uint8_t next_state)
                  sensor sub-system registers to take effect,
                  for detail refer data-sheet.
                 Change system state to MT9M114_SYS_STATE_ENTER_CONFIG_CHANGE.
-
                 The Change−Config performs the following operations:
                  1. Requests the sensor to stop STREAMING
                  2. Waits until the sensor stops STREAMING (this
@@ -323,7 +426,6 @@ static __inline int32_t mt9m114_stream_stop(void)
 {
   return mt9m114_set_system_state(MT9M114_SYS_STATE_ENTER_SUSPEND);
 }
-
 
 /**
   \fn           int32_t mt9m114_Init(ARM_CAMERA_RESOLUTION cam_resolution)
@@ -382,7 +484,6 @@ int32_t mt9m114_Init(ARM_CAMERA_RESOLUTION cam_resolution)
    *          return ARM_DRIVER_ERROR;
    *        MT9M114_DELAY_mSEC(10);
    */
-
   /* Initialize the MT9M114 Camera Sensor */
   ret = mt9m114_camera_init(cam_resolution, cam_output_format);
   if(ret != ARM_DRIVER_OK)
@@ -395,6 +496,7 @@ int32_t mt9m114_Init(ARM_CAMERA_RESOLUTION cam_resolution)
   ret = mt9m114_camera_testPattern_config();
   if(ret != ARM_DRIVER_OK)
     return ARM_DRIVER_ERROR;
+
 #endif  /* end of MT9M114_CAMERA_TEST_PATTERN_ENABLE */
 
   /* @NOTE: Issue Change-Config Command to re-configure

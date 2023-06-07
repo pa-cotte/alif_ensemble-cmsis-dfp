@@ -13,8 +13,25 @@
 
 #include "peripheral_types.h"
 
-#define VBAT_ANA_REG2_VAL          0x380C4230
-#define COMP_REG2_VAL              0x1C240100
+#define VBAT_ANA_REG1_VAL          0x02441A80
+#define VBAT_ANA_REG2_VAL          0x00CC0630
+#define VBAT_ANA_REG3_VAL          0xF8448004
+#define DCDC_ANA_REG1_VAL          0xA14DE693
+#define DCDC_ANA_REG2_VAL          0x0B014404
+#define COMP_REG2_VAL              0x0C18C210
+#define ADC_REG1_VAL               0x001D0410
+
+/**
+ @fn          void analog_config_vbat_reg1(void)
+ @brief       Assigning Vbat registers values to the Vbat register1 base address
+ @param[in]   none
+ @return      none
+ */
+static inline void analog_config_vbat_reg1(void)
+{
+    /* Analog configuration Vbat register1 */
+    ANA_REG->VBAT_ANA_REG1 = VBAT_ANA_REG1_VAL;
+}
 
 /* Analog configuration:
    Vbat register2 contains below parameters:
@@ -42,6 +59,42 @@ static inline void analog_config_vbat_reg2(void)
     ANA_REG->VBAT_ANA_REG2 = VBAT_ANA_REG2_VAL;
 }
 
+/**
+ @fn          void analog_config_vbat_reg3(void)
+ @brief       Assigning Vbat registers values to the Vbat register3 base address
+ @param[in]   none
+ @return      none
+ */
+static inline void analog_config_vbat_reg3(void)
+{
+    /* Analog configuration Vbat register3 */
+    ANA_REG->VBAT_ANA_REG3 = VBAT_ANA_REG3_VAL;
+}
+
+/**
+ @fn          void analog_config_dcdc_reg1(void)
+ @brief       Assigning DCDC registers values to the DCDC register1 base address
+ @param[in]   none
+ @return      none
+ */
+static inline void analog_config_dcdc_reg1(void)
+{
+    /* Analog configuration DCDC register1 */
+    ANA_REG->DCDC_REG1 = DCDC_ANA_REG1_VAL;
+}
+
+/**
+ @fn          void analog_config_dcdc_reg2(void)
+ @brief       Assigning DCDC registers values to the DCDC register2 base address
+ @param[in]   none
+ @return      none
+ */
+static inline void analog_config_dcdc_reg2(void)
+{
+    /* Analog configuration DCDC register2 */
+    ANA_REG->DCDC_REG2 = DCDC_ANA_REG2_VAL;
+}
+
 /* Analog configuration:
    comparator register2 contains below parameters:
    -comp_lpo_in_p_sel,
@@ -57,7 +110,7 @@ static inline void analog_config_vbat_reg2(void)
 */
 
 /**
- @fn          void analog_config_vbat_reg2(void)
+ @fn          void analog_config_comp_reg2(void)
  @brief       Assigning comparator register2 values to the comparator
               register2 base address
  @param[in]   none
@@ -67,6 +120,18 @@ static inline void analog_config_comp_reg2(void)
 {
     /* Analog configuration comparator register2 */
     CMP_REG->CMP_COMP_REG2 = COMP_REG2_VAL;
+}
+
+/**
+ @fn          void analog_config_adc_reg1(void)
+ @brief       Assigning ADC registers values to the ADC register1 base address
+ @param[in]   none
+ @return      none
+ */
+static inline void analog_config_adc_reg1(void)
+{
+    /* Analog configuration ADC register1 */
+    //ADC_REG->ADC_REG1 = ADC_REG1_VAL;
 }
 
 #endif /* ANALOG_CONFIG_H_ */

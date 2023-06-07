@@ -25,6 +25,7 @@
 #include "DPHY_init.h"
 #include "dphy.h"
 #include "DPHY_Loopback_test.h"
+#include "sys_ctrl_dsi.h"
 #include "DPHY_Private.h"
 #include "RTE_Components.h"
 #include CMSIS_device_header
@@ -32,6 +33,7 @@
 
 #if (RTE_MIPI_CSI2)
 #include "csi.h"
+#include "sys_ctrl_csi.h"
 #endif
 
 #if (RTE_MIPI_CSI2) || (RTE_MIPI_DSI)
@@ -253,11 +255,11 @@ static void MIPI_CSI2_DPHY_Shutdown (uint8_t state)
 {
     if(state == ENABLE)
     {
-        csi_dphy_shutdown_line_enable((CSI_Type *)CSI_BASE);
+        csi_enable_dphy_shutdown_line((CSI_Type *)CSI_BASE);
     }
     else
     {
-        csi_dphy_shutdown_line_disable((CSI_Type *)CSI_BASE);
+        csi_disable_dphy_shutdown_line((CSI_Type *)CSI_BASE);
     }
 }
 
@@ -270,11 +272,11 @@ static void MIPI_CSI2_DPHY_Testclr (uint8_t state)
 {
     if(state == ENABLE)
     {
-        csi_dphy_testclr_line_enable((CSI_Type *)CSI_BASE);
+        csi_enable_dphy_testclr_line((CSI_Type *)CSI_BASE);
     }
     else
     {
-        csi_dphy_testclr_line_enable((CSI_Type *)CSI_BASE);
+        csi_disable_dphy_testclr_line((CSI_Type *)CSI_BASE);
     }
 }
 
@@ -287,11 +289,11 @@ static void MIPI_CSI2_DPHY_Rst (uint8_t state)
 {
     if(state == ENABLE)
     {
-        csi_dphy_reset_line_enable((CSI_Type *)CSI_BASE);
+        csi_enable_dphy_reset_line((CSI_Type *)CSI_BASE);
     }
     else
     {
-        csi_dphy_reset_line_disable((CSI_Type *)CSI_BASE);
+        csi_disable_dphy_reset_line((CSI_Type *)CSI_BASE);
     }
 }
 
@@ -537,7 +539,11 @@ static void DPHY_PowerEnable (void)
 
     enable_txdphy_configure_clock();
 
+    enable_dsi_periph_clk();
+
 #if RTE_MIPI_CSI2
+    enable_csi_periph_clk();
+
     enable_rxdphy_configure_clock();
 #endif
 
@@ -551,8 +557,12 @@ static void DPHY_PowerDisable (void)
 {
 
 #if RTE_MIPI_CSI2
+    disable_csi_periph_clk();
+
     disable_rxdphy_configure_clock();
 #endif
+
+    disable_dsi_periph_clk();
 
     disable_txdphy_configure_clock();
 
@@ -576,7 +586,7 @@ static void DPHY_PowerDisable (void)
 */
 static int32_t DPHY_ConfigurePLL(uint32_t clock_frequency)
 {
-    float frequency_in_mhz = clock_frequency/1000000;
+    float frequency_in_mhz = clock_frequency/1000000.0f;
     uint32_t pll_m = 0;
     uint8_t pll_p = 0;
     uint8_t vco_ctrl = 0;
@@ -594,13 +604,13 @@ static int32_t DPHY_ConfigurePLL(uint32_t clock_frequency)
     }
 
     for( range = 0; (range < ARRAY_SIZE(vco_ctrl_range) - 1) &&
-        ((clock_frequency/1000000) < vco_ctrl_range[range].frequency_mhz);
+        ((frequency_in_mhz) < vco_ctrl_range[range].frequency_mhz);
         ++range);
 
     vco_ctrl = vco_ctrl_range[range].vco_ctrl;
 
     for( range = 0; (range < ARRAY_SIZE(pll_p_factor) - 1) &&
-    ((clock_frequency/1000000) <= pll_p_factor[range].frequency_mhz);
+    ((frequency_in_mhz) <= pll_p_factor[range].frequency_mhz);
     ++range);
 
     pll_p = pll_p_factor[range].p;
@@ -731,9 +741,17 @@ static int32_t DPHY_MasterSetup (uint32_t clock_frequency)
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
+#if RTE_MIPI_DSI
     unset_tx_dphy_basedir((1U << RTE_MIPI_DSI_N_LANES) - 1);
+#else
+    unset_tx_dphy_basedir((1U << RTE_MIPI_CSI2_N_LANES) - 1);
+#endif
 
+#if RTE_MIPI_DSI
     unset_tx_dphy_forcerxmode((1U << RTE_MIPI_DSI_N_LANES) - 1);
+#else
+    unset_tx_dphy_forcerxmode((1U << RTE_MIPI_CSI2_N_LANES) - 1);
+#endif
 
     PMU_delay_loop_us(1);
 
@@ -833,13 +851,15 @@ int32_t DSI_DPHY_Uninitialize (void)
 {
     if(dsi_init_status == DPHY_INIT_STATUS_UNINITIALIZED)
     {
-        return ARM_DRIVER_ERROR;
+        return ARM_DRIVER_OK;
     }
 
     if(csi2_init_status == DPHY_INIT_STATUS_UNINITIALIZED)
     {
         DPHY_PowerDisable();
     }
+
+    dsi_init_status = DPHY_INIT_STATUS_UNINITIALIZED;
 
     return ARM_DRIVER_OK;
 }
@@ -1052,13 +1072,15 @@ int32_t CSI2_DPHY_Uninitialize (void)
 {
     if(csi2_init_status == DPHY_INIT_STATUS_UNINITIALIZED)
     {
-        return ARM_DRIVER_ERROR;
+        return ARM_DRIVER_OK;
     }
 
     if(dsi_init_status  == DPHY_INIT_STATUS_UNINITIALIZED)
     {
         DPHY_PowerDisable();
     }
+
+    csi2_init_status = DPHY_INIT_STATUS_UNINITIALIZED;
 
     return ARM_DRIVER_OK;
 }

@@ -14,15 +14,23 @@
 #define __RTE_DEVICE_H
 
 
-// <e> RTSS_M55_HP (Core Selection)
-// <i> Select if the Configured core is M55_HP
-#define RTE_RTSS_M55_HP	1
-#if RTE_RTSS_M55_HP
-#define RTE_RTSS_M55_HE	0
+// <h> RTE_SELECT_RTSS_CORE (Core Selection)
+// <i> Select the Core
+#if !(defined(M55_HP) || defined(M55_HE))
+
+// <o> Select RTSS
+//     <1=> M55_HP
+//     <2=> M55_HE
+// <i> Select the Core
+// <i> Default: 1
+#define RTE_SELECT_RTSS_CORE  2
+#if (RTE_SELECT_RTSS_CORE == 1)
+#define M55_HP
 #else
-#define RTE_RTSS_M55_HE	1
+#define M55_HE
 #endif
-// </e> RTSS_M55_HP  (Core Selection)
+#endif
+// </h> RTSS_M55_HP  (Core Selection)
 
 // <e> FLASH_MRAM (Flash MRAM) [Driver_FLASH_MRAM]
 // <i> Configuration settings for Driver_FLASH_MRAM in component ::Drivers:FLASH_MRAM
@@ -47,7 +55,7 @@
 //     <1=> enable
 // <i> Defines CPI CSI halt enable/disable.
 // <i> Default: 0
-#define RTE_CPI_CSI_HALT                                       0
+#define RTE_CPI_CSI_HALT                                      0
 
 // <o> CPI Row roundup
 //     <0=> disable
@@ -61,29 +69,29 @@
 // <i> Default: 0x8
 #define RTE_CPI_FIFO_READ_WATERMARK                           0x8
 
-// <o> CPI FIFO read watermark
-// <i> Defines CPI FIFO read watermark.
+// <o> CPI FIFO write watermark
+// <i> Defines CPI FIFO write watermark.
 // <i> Default: 0x18
 #define RTE_CPI_FIFO_WRITE_WATERMARK                          0x18
 
 // <o> CPI Color mode
-//     <0> IPI-16 RAW 6
-//     <1> IPI-16 RAW 7
-//     <2> IPI-16 RAW 8
-//     <3> IPI-16 RAW 10
-//     <4> IPI-16 RAW 12
-//     <5> IPI-16 RAW 14
-//     <6> IPI-16 RAW 16
-//     <7> IPI-48 RGB444
-//     <8> IPI-48 RGB555
-//     <9> IPI-48 RGB666
-//     <10> IPI-48 XRGB888
-//     <11> IPI-48 RGBX888
-//     <12> IPI-48 RAW 32
-//     <13> IPI-48 RAW 48
+//     <0=> IPI-16 RAW 6
+//     <1=> IPI-16 RAW 7
+//     <2=> IPI-16 RAW 8
+//     <3=> IPI-16 RAW 10
+//     <4=> IPI-16 RAW 12
+//     <5=> IPI-16 RAW 14
+//     <6=> IPI-16 RAW 16
+//     <7=> IPI-48 RGB444
+//     <8=> IPI-48 RGB555
+//     <9=> IPI-48 RGB666
+//     <10=> IPI-48 XRGB888
+//     <11=> IPI-48 RGBX888
+//     <12=> IPI-48 RAW 32
+//     <13=> IPI-48 RAW 48
 // <i> Defines CPI color mode.
 // <i> Default: 0
-#define RTE_CPI_COLOR_MODE                                    0
+#define RTE_CPI_COLOR_MODE                                    2
 
 // <e> ARX3A0 [Driver_ARX3A0]
 // <o> Enable/Disable ARX3A0 camera sensor
@@ -91,9 +99,9 @@
 //     <1=> enable
 // <i> define if to enable or disable ARX3A0 camera sensor
 // <i> default: enable
-#define RTE_ARX3A0_CAMERA_SENSOR_ENABLE                   1
+#define RTE_ARX3A0_CAMERA_SENSOR_CPI_ENABLE                   1
 
-#if (RTE_ARX3A0_CAMERA_SENSOR_ENABLE)
+#if (RTE_ARX3A0_CAMERA_SENSOR_CPI_ENABLE)
 
 // <o> Select camera ARX3A0 pixel clock polarity
 //     <0=> not invert camera pixclk
@@ -140,7 +148,7 @@
 //     <1=> vsync wait enable
 // <i> Defines camera ARX3A0 VSYNC wait
 // <i> Default: vsync wait disable
-#define RTE_ARX3A0_CAMERA_SENSOR_CPI_VSYNC_WAIT               0
+#define RTE_ARX3A0_CAMERA_SENSOR_CPI_VSYNC_WAIT               1
 
 // <o> Select camera ARX3A0 HSYNC mode
 //     <0=> sync enable
@@ -204,44 +212,44 @@
 //     <1=> enable
 // <i> define if to enable or disable MT9M114 camera sensor
 // <i> default: disable
-#define RTE_MT9M114_CAMERA_SENSOR_ENABLE                   1
+#define RTE_MT9M114_CAMERA_SENSOR_CPI_ENABLE                  0
 
-#if RTE_MT9M114_CAMERA_SENSOR_ENABLE
+#if (RTE_MT9M114_CAMERA_SENSOR_CPI_ENABLE)
 
 // <o> Select camera MT9M114 pixel clock polarity
 //     <0=> not invert camera pixclk
 //     <1=> invert camera pixclk
 // <i> Defines camera MT9M114 pixel clock polarity
 // <i> Default: not invert camera pixclk
-#define RTE_MT9M114_CAMERA_SENSOR_CPI_PIXEL_CLK_POL            0
+#define RTE_MT9M114_CAMERA_SENSOR_CPI_PIXEL_CLK_POL           0
 
 // <o> Select camera MT9M114 HSYNC polarity
 //     <0=>  not invert HSYNC input
 //     <1=>  invert HSYNC input
 // <i> Defines camera MT9M114 HSYNC polarity
 // <i> Default:  not invert HSYNC input
-#define RTE_MT9M114_CAMERA_SENSOR_CPI_HSYNC_POL                0
+#define RTE_MT9M114_CAMERA_SENSOR_CPI_HSYNC_POL               0
 
 // <o> Select camera MT9M114 VSYNC polarity
 //     <0=> not invert VSYNC input
 //     <1=> invert VSYNC input
 // <i> Defines camera MT9M114 VSYNC polarity
 // <i> Default:  not invert VSYNC input
-#define RTE_MT9M114_CAMERA_SENSOR_CPI_VSYNC_POL                0
+#define RTE_MT9M114_CAMERA_SENSOR_CPI_VSYNC_POL               0
 
 // <o> Select camera MT9M114 VSYNC wait
 //     <0=> vsync wait disable
 //     <1=> vsync wait enable
 // <i> Defines camera MT9M114 VSYNC wait
 // <i> Default: vsync wait disable
-#define RTE_MT9M114_CAMERA_SENSOR_CPI_VSYNC_WAIT               0
+#define RTE_MT9M114_CAMERA_SENSOR_CPI_VSYNC_WAIT              0
 
 // <o> Select camera MT9M114 VSYNC mode
 //     <0=> sync enable
 //     <1=> data enable
 // <i> Defines camera MT9M114 VSYNC mode
 // <i> Default: sync enable
-#define RTE_MT9M114_CAMERA_SENSOR_CPI_VSYNC_MODE               0
+#define RTE_MT9M114_CAMERA_SENSOR_CPI_VSYNC_MODE              0
 
 // <o> Select video data mode
 //     <0=> 1 bit
@@ -251,21 +259,21 @@
 //     <4=> 16 bit
 // <i> Defines video data mode
 // <i> Default: 8 bit
-#define RTE_MT9M114_CAMERA_SENSOR_CPI_DATA_MODE                3
+#define RTE_MT9M114_CAMERA_SENSOR_CPI_DATA_MODE               3
 
 // <o> Select MSB/LSB
 //     <0=> LSB
 //     <1=> MSB
 // <i> Select MSB/LSB
 // <i> Default: LSB
-#define RTE_MT9M114_CAMERA_SENSOR_CPI_MSB                      0
+#define RTE_MT9M114_CAMERA_SENSOR_CPI_MSB                     0
 
 // <o> Select CODE10ON8
 //     <0=> Disable
 //     <1=> Enable
 // <i> Defines transfer 10-bit coding over 8-bit data bus.
 // <i> Default: 8 bit
-#define RTE_MT9M114_CAMERA_SENSOR_CPI_CODE10ON8                0
+#define RTE_MT9M114_CAMERA_SENSOR_CPI_CODE10ON8               0
 
 // <o> Select camera MT9M114 data mask
 //     <0=> 16 bit
@@ -274,7 +282,7 @@
 //     <3=> 14 bit
 // <i> Defines camera MT9M114 data mask
 // <i> Default: 10 bit
-#define RTE_MT9M114_CAMERA_SENSOR_CPI_DATA_MASK                1
+#define RTE_MT9M114_CAMERA_SENSOR_CPI_DATA_MASK               1
 
 #endif
 // </e> MT9M114 [Driver_MT9M114]
@@ -284,30 +292,30 @@
 
 // <e> LPCPI (Camera) [Driver_LPCPI]
 // <i> Configuration settings for Driver_LPCPI in component ::Drivers:LPCPI
-#define RTE_LPCPI                                               0
+#define RTE_LPCPI                                             0
 #if RTE_LPCPI
 
 // <o> LPCPI interrupt priority <0-255>
 // <i> Defines LPCPI interrupt priority.
 // <i> Default: 0
-#define RTE_LPCPI_IRQ_PRI                                       0
+#define RTE_LPCPI_IRQ_PRI                                     0
 
 // <o> LPCPI Row roundup
 //     <0=> disable
 //     <1=> enable
 // <i> Defines LPCPI row roundup to 64 bit.
 // <i> Default: 0
-#define RTE_LPCPI_ROW_ROUNDUP                                   0
+#define RTE_LPCPI_ROW_ROUNDUP                                 0
 
 // <o> LPCPI FIFO read watermark
 // <i> Defines LPCPI FIFO read watermark.
 // <i> Default: 0x8
-#define RTE_LPCPI_FIFO_READ_WATERMARK                           0x8
+#define RTE_LPCPI_FIFO_READ_WATERMARK                         0x8
 
-// <o> LPCPI FIFO read watermark
-// <i> Defines LPCPI FIFO read watermark.
+// <o> LPCPI FIFO write watermark
+// <i> Defines LPCPI FIFO write watermark.
 // <i> Default: 0x18
-#define RTE_LPCPI_FIFO_WRITE_WATERMARK                          0x18
+#define RTE_LPCPI_FIFO_WRITE_WATERMARK                        0x18
 
 // <e> MT9M114 [Driver_MT9M114]
 // <o> Enable/Disable MT9M114 camera sensor
@@ -315,44 +323,44 @@
 //     <1=> enable
 // <i> define if to enable or disable MT9M114 camera sensor
 // <i> default: disable
-#define RTE_MT9M114_CAMERA_SENSOR_ENABLE                  1
+#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_ENABLE                1
 
-#if RTE_MT9M114_CAMERA_SENSOR_ENABLE
+#if (RTE_MT9M114_CAMERA_SENSOR_LPCPI_ENABLE)
 
 // <o> Select camera MT9M114 pixel clock polarity
 //     <0=> not invert camera pixclk
 //     <1=> invert camera pixclk
 // <i> Defines camera MT9M114 pixel clock polarity
 // <i> Default: not invert camera pixclk
-#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_PIXEL_CLK_POL           0
+#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_PIXEL_CLK_POL         0
 
 // <o> Select camera MT9M114 HSYNC polarity
 //     <0=>  not invert HSYNC input
 //     <1=>  invert HSYNC input
 // <i> Defines camera MT9M114 HSYNC polarity
 // <i> Default:  not invert HSYNC input
-#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_HSYNC_POL               0
+#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_HSYNC_POL             0
 
 // <o> Select camera MT9M114 VSYNC polarity
 //     <0=> not invert VSYNC input
 //     <1=> invert VSYNC input
 // <i> Defines camera MT9M114 VSYNC polarity
 // <i> Default:  not invert VSYNC input
-#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_VSYNC_POL               0
+#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_VSYNC_POL             0
 
 // <o> Select camera MT9M114 VSYNC wait
 //     <0=> vsync wait disable
 //     <1=> vsync wait enable
 // <i> Defines camera MT9M114 VSYNC wait
 // <i> Default: vsync wait disable
-#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_VSYNC_WAIT              0
+#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_VSYNC_WAIT            0
 
 // <o> Select camera MT9M114 VSYNC mode
 //     <0=> sync enable
 //     <1=> data enable
 // <i> Defines camera MT9M114 VSYNC mode
 // <i> Default: sync enable
-#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_VSYNC_MODE              0
+#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_VSYNC_MODE            0
 
 // <o> Select video data mode
 //     <0=> 1 bit
@@ -361,21 +369,21 @@
 //     <3=> 8 bit
 // <i> Defines video data mode
 // <i> Default: 8 bit
-#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_DATA_MODE               3
+#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_DATA_MODE             3
 
 // <o> Select MSB/LSB
 //     <0=> LSB
 //     <1=> MSB
 // <i> Select MSB/LSB
 // <i> Default: LSB
-#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_MSB                     0
+#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_MSB                   0
 
 // <o> Select CODE10ON8
 //     <0=> Disable
 //     <1=> Enable
 // <i> Defines transfer 10-bit coding over 8-bit data bus.
 // <i> Default: 8 bit
-#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_CODE10ON8               0
+#define RTE_MT9M114_CAMERA_SENSOR_LPCPI_CODE10ON8             0
 
 #endif
 // </e> MT9M114 [Driver_MT9M114]
@@ -385,7 +393,7 @@
 
 // <e> MIPI_CSI2 (mipi csi2) [Driver_MIPI_CSI2]
 // <i> Configuration settings for Driver_MIPI_CSI2 in component ::Drivers:MIPI_CSI2
-#define RTE_MIPI_CSI2 0
+#define RTE_MIPI_CSI2                                           1
 #if RTE_MIPI_CSI2
 
 // <o> select clock mode
@@ -393,154 +401,180 @@
 //     <0=> continuous clock mode
 // <i> defines clock mode for mipi csi2
 // <i> default: non continuous clock mode
-#define RTE_MIPI_CSI2_NON_CONTINUOUS_CLOCK_MODE 1
+#define RTE_MIPI_CSI2_NON_CONTINUOUS_CLOCK_MODE                 1
 
 // <o> select CSI2 pixel clock divider [Divisor] <2-511>
 // <i> defines select CSI2 pixel clock divider value.
 // <i> default: 2
-#define RTE_MIPI_CSI2_PIXCLK_DIV                2
+#define RTE_MIPI_CSI2_PIXCLK_DIV                                2
 
 // <o> select number of lanes in DPHY
 //     <1=> one lane
 //     <2=> two lane
 // <i> defines select number of lanes in DPHY.
 // <i> default: two lane
-#define RTE_MIPI_CSI2_N_LANES                   2
+#define RTE_MIPI_CSI2_N_LANES                                   2
 
 // <o> select number of virtual channel ID
 //     <0=> one virtual channel
 // <i> defines select number of virtual channel IDs.
 // <i> default: one virtual channel
-#define RTE_MIPI_CSI2_VC_ID                     0
+#define RTE_MIPI_CSI2_VC_ID                                     0
 
 // <o> select CSI2 Data type
-//     <0=> YUV420_8
-//     <1=> YUV420_10
-//     <2=> YUV420_8_LEGACY
-//     <3=> YUV420_8_SHIFT
-//     <4=> YUV420_10_SHIFT
-//     <5=> YUV422_8
-//     <6=> YUV422_10
-//     <7=> RGB444
-//     <8=> RGB555
-//     <9=> RGB565
-//     <10=> RGB666
-//     <11=> RGB888
-//     <12=> RAW6
-//     <13=> RAW7
-//     <14=> RAW8
-//     <15=> RAW10
-//     <16=> RAW12
-//     <17=> RAW14
-//     <18=> RAW16
-//     <19=> USER_DEFINED_1
-//     <20=> USER_DEFINED_2
-//     <21=> USER_DEFINED_3
-//     <22=> USER_DEFINED_4
-//     <23=> USER_DEFINED_5
-//     <24=> USER_DEFINED_6
-//     <25=> USER_DEFINED_7
-//     <26=> USER_DEFINED_8
+//     <24=> YUV420_8
+//     <25=> YUV420_10
+//     <26=> YUV420_8_LEGACY
+//     <28=> YUV420_8_SHIFT
+//     <29=> YUV420_10_SHIFT
+//     <30=> YUV422_8
+//     <31=> YUV422_10
+//     <32=> RGB444
+//     <33=> RGB555
+//     <34=> RGB565
+//     <35=> RGB666
+//     <36=> RGB888
+//     <40=> RAW6
+//     <41=> RAW7
+//     <42=> RAW8
+//     <43=> RAW10
+//     <44=> RAW12
+//     <45=> RAW14
+//     <46=> RAW16
+//     <48=> USER_DEFINED_1
+//     <49=> USER_DEFINED_2
+//     <50=> USER_DEFINED_3
+//     <51=> USER_DEFINED_4
+//     <52=> USER_DEFINED_5
+//     <53=> USER_DEFINED_6
+//     <54=> USER_DEFINED_7
+//     <55=> USER_DEFINED_8
 // <i> defines select CSI2 Data type
 // <i> default: RAW10
-#define RTE_MIPI_CSI2_DATA_TYPE                 15
+#define RTE_MIPI_CSI2_DATA_TYPE                                 43
 
 // <o> select IPI mode
 //     <0=> camera mode
 //     <1=> controller mode
 // <i> defines select IPI mode
 // <i> default: camera mode
-#define RTE_MIPI_CSI2_IPI_MODE                  0
+#define RTE_MIPI_CSI2_IPI_MODE                                  0
 
 // <o> select color component
 //     <0=> 48 bit interface
 //     <1=> 16 bit interface
 // <i> defines select color component
 // <i> default: 16 bit interface
-#define RTE_MIPI_CSI2_COLOR_COP                 1
+#define RTE_MIPI_CSI2_COLOR_COP                                 1
 
 // <o> select memory flush
-//     <0=> auto
-//     <1=> manual
+//     <0=> manual
+//     <1=> auto
 // <i> defines select memory flush
 // <i> default: auto
-#define RTE_MIPI_CSI2_MEMFLUSH                  0
+#define RTE_MIPI_CSI2_MEMFLUSH                                  1
 
 // <o> select sync event mode
 //     <0=> not trigger by frame start
 //     <1=> trigger by frame start
 // <i> defines select sync event mode
 // <i> default : not trigger by frame start
-#define RTE_MIPI_CSI2_SYNC_ET_MODE              0
+#define RTE_MIPI_CSI2_SYNC_ET_MODE                              0
 
 // <o> select sync event select
 //     <0=> auto
 //     <1=> programmed
 // <i> defines select sync event select
 // <i> default : programmed
-#define RTE_MIPI_CSI2_SYNC_ET_SEL               1
+#define RTE_MIPI_CSI2_SYNC_ET_SEL                               1
 
 // <o> embedded packets for IPI synchronization events
 //     <0=> disable
 //     <1=> enable
 // <i> define if want to use embedded packets for IPI synchronization events
 // <i> default: disable
-#define RTE_MIPI_CSI2_EN_EMBEDDED               0
+#define RTE_MIPI_CSI2_EN_EMBEDDED                               0
 
 // <o> blanking packets for IPI synchronization events
 //     <0=> disable
 //     <1=> enable
 // <i> define if want to use blanking packets for IPI synchronization events
 // <i> default: disable
-#define RTE_MIPI_CSI2_EN_BLANKING               0
+#define RTE_MIPI_CSI2_EN_BLANKING                               0
 
 // <o> null packets for IPI synchronization events
 //     <0=> disable
 //     <1=> enable
 // <i> define if want to use null packets for IPI synchronization events
 // <i> default: disable
-#define RTE_MIPI_CSI2_EN_NULL                   0
+#define RTE_MIPI_CSI2_EN_NULL                                   0
 
 // <o> line start packets for IPI synchronization events
 //     <0=> disable
 //     <1=> enable
 // <i> define if want to use line start packets for IPI synchronization events
 // <i> default: disable
-#define RTE_MIPI_CSI2_EN_LINE_START             0
+#define RTE_MIPI_CSI2_EN_LINE_START                             0
 
 // <o> video packets for IPI synchronization events
 //     <0=> disable
 //     <1=> enable
 // <i> define if want to use video packets for IPI synchronization events
 // <i> default: enable
-#define RTE_MIPI_CSI2_EN_VIDEO                  1
+#define RTE_MIPI_CSI2_EN_VIDEO                                  1
 
 // <o> datatype to overwrite
-//     <0=> disable
-//     <1=> enable
-// <i> define if want to overwrite datatype
-// <i> default: disable
-#define RTE_MIPI_CSI2_EN_DT                     0
+// <o> select CSI2 Data type to overwrite
+//     <24=> YUV420_8
+//     <25=> YUV420_10
+//     <26=> YUV420_8_LEGACY
+//     <28=> YUV420_8_SHIFT
+//     <29=> YUV420_10_SHIFT
+//     <30=> YUV422_8
+//     <31=> YUV422_10
+//     <32=> RGB444
+//     <33=> RGB555
+//     <34=> RGB565
+//     <35=> RGB666
+//     <36=> RGB888
+//     <40=> RAW6
+//     <41=> RAW7
+//     <42=> RAW8
+//     <43=> RAW10
+//     <44=> RAW12
+//     <45=> RAW14
+//     <46=> RAW16
+//     <48=> USER_DEFINED_1
+//     <49=> USER_DEFINED_2
+//     <50=> USER_DEFINED_3
+//     <51=> USER_DEFINED_4
+//     <52=> USER_DEFINED_5
+//     <53=> USER_DEFINED_6
+//     <54=> USER_DEFINED_7
+//     <55=> USER_DEFINED_8
+// <i> defines select CSI2 Data type to be overwrite
+// <i> default: RAW10
+#define RTE_MIPI_CSI2_EN_DT                                     43
 
 // <o> datatype to overwrite with programmed datatype
 // <i> define if want to use programmed datatype ignoring datatype of the header
 // <i> default: 0
-#define RTE_MIPI_CSI2_EN_DT_OVERWRITE           0
+#define RTE_MIPI_CSI2_EN_DT_OVERWRITE                           0
 
 // <o> Horizontal Synchronism Active Time range <0-2047>
 // <i> Defines possible range for selecting horizontal sync active time
 // <i> Default: 0
-#define RTE_MIPI_CSI2_IPI_HSA_TIME              0
+#define RTE_MIPI_CSI2_IPI_HSA_TIME              5
 
 // <o> Horizontal Synchronism back porch Time range <0-2047>
 // <i> Defines possible range for selecting horizontal sync back porch time
 // <i> Default: 0
-#define RTE_MIPI_CSI2_IPI_HBP_TIME              0
+#define RTE_MIPI_CSI2_IPI_HBP_TIME              10
 
 // <o> Horizontal sync delay Time range <0-2047>
 // <i> Defines possible range for selecting horizontal sync delay time
 // <i> Default: 560
-#define RTE_MIPI_CSI2_IPI_HSD_TIME              560
+#define RTE_MIPI_CSI2_IPI_HSD_TIME              280
 
 // <o> Horizontal Active Time range <0-2047>
 // <i> Defines possible range for selecting horizontal active time
@@ -550,17 +584,17 @@
 // <o> Vertical sync active period range <0-511>
 // <i> Defines possible range for selecting vertical sync active period
 // <i> Default: 0
-#define RTE_MIPI_CSI2_IPI_VSA_LINE              0
+#define RTE_MIPI_CSI2_IPI_VSA_LINE              4
 
 // <o> Vertical back porch period range <0-511>
 // <i> Defines possible range for selecting vertical back porch period
 // <i> Default: 0
-#define RTE_MIPI_CSI2_IPI_VBP_LINE              0
+#define RTE_MIPI_CSI2_IPI_VBP_LINE              4
 
 // <o> Vertical front porch period range <0-511>
 // <i> Defines possible range for selecting vertical front porch period
 // <i> Default: 0
-#define RTE_MIPI_CSI2_IPI_VFP_LINE              0
+#define RTE_MIPI_CSI2_IPI_VFP_LINE              4
 
 // <o> Vertical active period range <0-8191>
 // <i> Defines possible range for selecting vertical active period
@@ -570,7 +604,7 @@
 // <o> CSI2 interrupt priority <0-255>
 // <i> Defines CSI2 interrupt priority.
 // <i> Default: 0
-#define RTE_MIPI_CSI2_IRQ_PRI                   0
+#define RTE_MIPI_CSI2_IRQ_PRI                                   0
 #endif
 // </e> MIPI_CSI2 (mipi csi2) [Driver_MIPI_CSI2]
 
@@ -979,7 +1013,7 @@
 // <h> SPI (Serial Peripheral Interface)
 // <e> SPI0 (Serial Peripheral Interface 0) [Driver_SPI0]
 // <i> Configuration settings for Driver_SPI0 in component ::Drivers:SPI
-#define RTE_SPI0 1
+#define RTE_SPI0    1
 
 #ifdef RTE_SPI0
 
@@ -1026,30 +1060,13 @@
 // <i> Defines slave selection for SPI0.
 // <i> Default: 0
 #define RTE_SPI0_CHIP_SELECTION_PIN             0
-
-// <o> SPI0 port of SS pin <1-4>
-// <i> Defines SPI0 port of SS pin in software controlled mode.
-// <i> Default: 1
-#define RTE_SPI0_SW_SPI_PORT                    3
-
-// <o> SPI0 SW SS pin number <0-31>
-// <i> Defines SPI0 SS pin number in software controlled mode.
-// <i> Default: 23
-#define RTE_SPI0_SW_SPI_PIN                     23
-
-// <o> SPI0 SW SS Polarity
-//    <0=> ACTIVE LOW
-//    <1=> ACTIVE HIGH
-// <i> Defines SW controlled slave select polarity for SPI0.
-// <i> Default: 0
-#define RTE_SPI0_SW_SPI_SS_POLARITY             0
 #endif
 // </e> SPI0 (Serial Peripheral Interface 0) [Driver_SPI0]
 
 
 // <e> SPI1 (Serial Peripheral Interface 1) [Driver_SPI1]
 // <i> Configuration settings for Driver_SPI1 in component ::Drivers:SPI
-#define RTE_SPI1 1
+#define RTE_SPI1    1
 
 #ifdef RTE_SPI1
 
@@ -1096,29 +1113,12 @@
 // <i> Defines slave selection for SPI1.
 // <i> Default: 0
 #define RTE_SPI1_CHIP_SELECTION_PIN             0
-
-// <o> SPI1 port of SS pin <1-4>
-// <i> Defines SPI1 port of SS pin in software controlled mode.
-// <i> Default: 1
-#define RTE_SPI1_SW_SPI_PORT                    1
-
-// <o> SPI1 SW SS pin number <0-31>
-// <i> Defines SPI1 SS pin number in software controlled mode.
-// <i> Default: 6
-#define RTE_SPI1_SW_SPI_PIN                     6
-
-// <o> SPI1 SW SS Polarity
-//    <0=> ACTIVE LOW
-//    <1=> ACTIVE HIGH
-// <i> Defines SW controlled slave select polarity for SPI1.
-// <i> Default: 0
-#define RTE_SPI1_SW_SPI_SS_POLARITY             0
 #endif
 // </e> SPI1 (Serial Peripheral Interface 1) [Driver_SPI1]
 
 // <e> SPI2 (Serial Peripheral Interface 2) [Driver_SPI2]
 // <i> Configuration settings for Driver_SPI2 in component ::Drivers:SPI
-#define RTE_SPI2 1
+#define RTE_SPI2    1
 
 #ifdef RTE_SPI2
 
@@ -1165,30 +1165,13 @@
 // <i> Defines slave selection for SPI2.
 // <i> Default: 0
 #define RTE_SPI2_CHIP_SELECTION_PIN             0
-
-// <o> SPI2 port of SS pin <1-4>
-// <i> Defines SPI2 port of SS pin in software controlled mode
-// <i> Default: 1
-#define RTE_SPI2_SW_SPI_PORT                    1
-
-// <o> SPI2 SW SS pin number <0-31>
-// <i> Defines SPI2 SS pin number in software controlled mode
-// <i> Default: 13
-#define RTE_SPI2_SW_SPI_PIN                     13
-
-// <o> SPI2 SW SS Polarity
-//    <0=> ACTIVE LOW
-//    <1=> ACTIVE HIGH
-// <i> Defines SW controlled slave select polarity for SPI2.
-// <i> Default: 0
-#define RTE_SPI2_SW_SPI_SS_POLARITY             0
 #endif
 // </e> SPI2 (Serial Peripheral Interface 2) [Driver_SPI2]
 
 
 // <e> SPI3 (Serial Peripheral Interface 3) [Driver_SPI3]
 // <i> Configuration settings for Driver_SPI3 in component ::Drivers:SPI
-#define RTE_SPI3 1
+#define RTE_SPI3    1
 
 #ifdef RTE_SPI3
 
@@ -1235,28 +1218,67 @@
 // <i> Defines slave selection for SPI3.
 // <i> Default: 0
 #define RTE_SPI3_CHIP_SELECTION_PIN             1
-
-// <o> SPI3 port of SS pin <1-4>
-// <i> Defines SPI3 port of SS pin in software controlled mode
-// <i> Default: 2
-#define RTE_SPI3_SW_SPI_PORT                    2
-
-// <o> SPI3 SW SS pin number <0-31>
-// <i> Defines SPI3 SS pin number in software controlled mode
-// <i> Default: 24
-#define RTE_SPI3_SW_SPI_PIN                     24
-
-// <o> SPI3 SW SS Polarity
-//    <0=> ACTIVE LOW
-//    <1=> ACTIVE HIGH
-// <i> Defines SW controlled slave select polarity for SPI3.
-// <i> Default: 1
-#define RTE_SPI3_SW_SPI_SS_POLARITY             1
 #endif
 // </e> SPI3 (Serial Peripheral Interface 3) [Driver_SPI3]
+
+// <e> LPSPI (Low Power Serial Peripheral Interface) [Driver_LPSPI]
+// <i> Configuration settings for Driver_LPSPI in component ::Drivers:SPI
+#if defined(M55_HE)
+
+#define RTE_LPSPI    1
+
+#ifdef RTE_LPSPI
+
+// <o> LPSPI IRQ priority <0-255>
+// <i> Defines Interrupt priority for LPSPI.
+// <i> Default: 0
+#define RTE_LPSPI_IRQ_PRIORITY                   0
+
+// <o> LPSPI frame format
+//     <0=> SPI
+//     <1=> SSP
+//     <2=> MicroWire
+// <i> Defines frame format for LPSPI.
+// <i> Default: SPI
+#define RTE_LPSPI_SPI_FRAME_FORMAT               0
+
+// <o> LPSPI TX FIFO Start level <0-15>
+// <i> Defines TX FIFO transfer start level for LPSPI.
+// <i> Default: 0
+#define RTE_LPSPI_TX_FIFO_LEVEL_TO_START_TRANSFER 0
+
+// <o> LPSPI load dummy data
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> load dummy data to start transfer for LPSPI.
+// <i> Default: 0
+#define RTE_LPSPI_TX_LOAD_DUMMY_TO_START_LEVEL   0
+
+// <o> LPSPI TX FIFO threshold <0-15>
+// <i> Defines TX FIFO threshold for LPSPI.
+// <i> Default: 0
+#define RTE_LPSPI_TX_FIFO_THRESHOLD              0
+
+// <o> LPSPI RX FIFO threshold <0-15>
+// <i> Defines RX FIFO threshold for LPSPI.
+// <i> Default: 0
+#define RTE_LPSPI_RX_FIFO_THRESHOLD              0
+
+// <o> LPSPI slave selection
+//    <0=> SS_0
+//    <1=> SS_1
+//    <2=> SS_2
+//    <3=> SS_3
+// <i> Defines slave selection for LPSPI.
+// <i> Default: 0
+#define RTE_LPSPI_CHIP_SELECTION_PIN             0
+#endif
+#endif //defined(M55_HE)
+
+// </e> LPSPI (Low Power Serial Peripheral Interface) [Driver_LPSPI]
 // </h> SPI (Serial Peripheral Interface)
 
-
+// <h> OSPI  (Octal Serial Peripheral Interface)
 // <e> OSPI0 (Octal Serial Peripheral Interface 0) [Driver_OSPI]
 // <i> Configuration settings for Driver_OSPI in component ::Drivers:OSPI
 #define RTE_OSPI0                               1
@@ -1268,12 +1290,15 @@
 #define RTE_OSPI0_TX_FIFO_THRESHOLD               64
 #define RTE_OSPI0_RX_FIFO_THRESHOLD               0
 #define RTE_OSPI0_CHIP_SELECTION_PIN              0
+#define RTE_OSPI0_RX_SAMPLE_DELAY                 0
+#define RTE_OSPI0_DDR_DRIVE_EDGE                  0
+#define RTE_OSPI0_RXDS_DELAY                      0
 #endif
 // </e> OSPI0 (Octal Serial Peripheral Interface 0) [Driver_OSPI]
 
 // <e> OSPI1 (Octal Serial Peripheral Interface 1) [Driver_OSPI]
 // <i> Configuration settings for Driver_OSPI in component ::Drivers:OSPI
-#define RTE_OSPI1                               0
+#define RTE_OSPI1                               1
 #ifdef RTE_OSPI1
 #define RTE_OSPI1_IRQ_PRIORITY                    0
 #define RTE_OSPI1_SPI_FRAME_FORMAT                3
@@ -1282,19 +1307,22 @@
 #define RTE_OSPI1_TX_FIFO_THRESHOLD               64
 #define RTE_OSPI1_RX_FIFO_THRESHOLD               0
 #define RTE_OSPI1_CHIP_SELECTION_PIN              0
+#define RTE_OSPI1_RX_SAMPLE_DELAY                 0
+#define RTE_OSPI1_DDR_DRIVE_EDGE                  0
+#define RTE_OSPI1_RXDS_DELAY                      16
 #endif
 // </e> OSPI1 (Octal Serial Peripheral Interface 1) [Driver_OSPI]
-
+//</h>
 // <e> FLASH (OSPI ISSI FLASH) [Driver_Flash]
 // <i> Configuration settings for Driver_Flash in component ::Drivers:Flash
 #define RTE_OSPI_ISSI_FLASH               1
 // </e> FLASH (OSPI ISSI FLASH) [Driver_Flash]
 
 
-// <h> I2S (Integrated Interchip Sound)
+// <h> I2S  (Integrated Interchip Sound)
 // <e> I2S0 (Integrated Interchip Sound 0) [Driver_SAI0]
 // <i> Configuration settings for Driver_SAI0 in component ::Drivers:SAI
-#define RTE_I2S0 1
+#define RTE_I2S0   1
 
 #if RTE_I2S0
 
@@ -1381,7 +1409,7 @@
 //    <1=> ENABLE
 // <i> Defines DMA feature for I2S0
 // <i> Default: ENABLE
-#define RTE_I2S0_DMA_ENABLE  0
+#define RTE_I2S0_DMA_ENABLE   1
 
 // <o> I2S0 DMA IRQ priority <0-255>
 // <i> Defines I2S0 DMA Interrupt priority
@@ -1481,7 +1509,7 @@
 //    <1=> ENABLE
 // <i> Defines DMA feature for I2S1
 // <i> Default: ENABLE
-#define RTE_I2S1_DMA_ENABLE  0
+#define RTE_I2S1_DMA_ENABLE   1
 
 // <o> I2S1 DMA IRQ priority <0-255>
 // <i> Defines I2S1 DMA Interrupt priority
@@ -1580,7 +1608,7 @@
 //    <1=> ENABLE
 // <i> Defines DMA feature for I2S2
 // <i> Default: ENABLE
-#define RTE_I2S2_DMA_ENABLE  0
+#define RTE_I2S2_DMA_ENABLE   1
 
 // <o> I2S2 DMA IRQ priority <0-255>
 // <i> Defines I2S2 DMA Interrupt priority
@@ -1679,7 +1707,7 @@
 //    <1=> ENABLE
 // <i> Defines DMA feature for I2S3
 // <i> Default: ENABLE
-#define RTE_I2S3_DMA_ENABLE  0
+#define RTE_I2S3_DMA_ENABLE   1
 
 // <o> I2S3 DMA IRQ priority <0-255>
 // <i> Defines I2S3 DMA Interrupt priority
@@ -1688,10 +1716,12 @@
 #endif
 // </e> I2S3 (Integrated Interchip Sound 3) [Driver_SAI3]
 
-#if RTE_RTSS_M55_HE
+
 // <e> LPI2S (Low Power Integrated Interchip Sound) [Driver_SAILP]
 // <i> Configuration settings for Driver_SAILP in component ::Drivers:SAI
-#define RTE_LPI2S   1
+#if defined(M55_HE)
+
+#define RTE_LPI2S     1
 
 #if RTE_LPI2S
 
@@ -1701,7 +1731,7 @@
 //    <2=> WSS_CLOCK_CYCLES_32
 // <i> Defines LPI2S size of word
 // <i> Default: WSS_CLOCK_CYCLES_32
-#define RTE_LPI2S_WSS_CLOCK_CYCLES 2
+#define RTE_LPI2S_WSS_CLOCK_CYCLES   2
 
 // <o> LPI2S SCLK GATING
 //    <0=> NO_CLOCK_GATING
@@ -1711,7 +1741,7 @@
 //    <4=> SCLKG_CLOCK_CYCLES_24
 // <i> Defines LPI2S SCLK Gating
 // <i> Default: NO_CLOCK_GATING
-#define RTE_LPI2S_SCLKG_CLOCK_CYCLES 0
+#define RTE_LPI2S_SCLKG_CLOCK_CYCLES     0
 
 // <o> LPI2S RX FIFO TRIGGER LEVEL
 //    <0=>  TRIGGER_LEVEL_1
@@ -1732,7 +1762,7 @@
 //    <15=> TRIGGER_LEVEL_16
 // <i> Defines LPI2S receive fifo trigger level
 // <i> Default: TRIGGER_LEVEL_8
-#define RTE_LPI2S_RX_TRIG_LVL 7
+#define RTE_LPI2S_RX_TRIG_LVL    7
 
 // <o> LPI2S TX FIFO TRIGGER LEVEL
 //    <0=>  TRIGGER_LEVEL_1
@@ -1753,12 +1783,12 @@
 //    <15=> TRIGGER_LEVEL_16
 // <i> Defines LPI2S transfer fifo trigger level
 // <i> Default: TRIGGER_LEVEL_9
-#define RTE_LPI2S_TX_TRIG_LVL 8
+#define RTE_LPI2S_TX_TRIG_LVL     8
 
 // <o> LPI2S IRQ priority <0-255>
 // <i> Defines LPI2S Interrupt priority
 // <i> Default: 0
-#define RTE_LPI2S_IRQ_PRI     0
+#define RTE_LPI2S_IRQ_PRI        0
 
 // <o> LPI2S Enable External Clock source
 //    <0=> DISABLE
@@ -1770,7 +1800,7 @@
 // <o> LPI2S External clock source in Hz
 // <i> Defines LPI2S External clock source in Hz
 // <i> Default: 0
-#define RTE_LPI2S_EXT_CLOCK_SOURCE  0
+#define RTE_LPI2S_EXT_CLOCK_SOURCE     0
 #endif
 
 // <o> LPI2S DMA ENABLE
@@ -1778,15 +1808,25 @@
 //    <1=> ENABLE
 // <i> Defines DMA feature for LPI2S
 // <i> Default: ENABLE
-#define RTE_LPI2S_DMA_ENABLE  0
+#define RTE_LPI2S_DMA_ENABLE    1
+#if RTE_LPI2S_DMA_ENABLE
+
+// <o> LPI2S DMA Selection
+//    <0=> DMA2
+//    <1=> DMA0
+// <i> Defines Select DMA0 for LPI2S. By default DMA2 will be considered
+// <i> Default: DMA2
+#define RTE_LPI2S_SELECT_DMA0 0
+#endif
 
 // <o> LPI2S DMA IRQ priority <0-255>
 // <i> Defines LPI2S DMA Interrupt priority
 // <i> Default: 0
-#define RTE_LPI2S_DMA_IRQ_PRI  0
+#define RTE_LPI2S_DMA_IRQ_PRI   0
 #endif //RTE_LPI2S
+#endif //defined(M55_HE)
+
 // </e> LPI2S (Low Power Integrated Interchip Sound) [Driver_SAILP]
-#endif //RTE_RTSS_M55_HE
 // </h> I2S (Integrated Interchip Sound)
 
 // <h> UART (Universal asynchronous receiver transmitter)
@@ -2140,7 +2180,7 @@
 
 // <e> LPUART (Low-Power Universal asynchronous receiver transmitter) [Driver_USARTLP]
 // <i> Configuration settings for Driver_USARTLP in component ::Drivers:USART
-#if RTE_RTSS_M55_HE
+#if defined(M55_HE)
 #define RTE_LPUART   1
 #endif
 
@@ -5727,6 +5767,7 @@
 #endif
 // </e> Analog configuration [vbat analog register2 and comparator register2]
 
+// <h> DAC (Digital to analog converter )
 // <e> DAC0 (Digital to analog converter ) [Driver_DAC0]
 // <i> Configuration settings for Driver_DAC0 in component ::Drivers:DAC
 #define RTE_DAC0                   1
@@ -5752,6 +5793,7 @@
 #define RTE_DAC1_IBIAS             (0X0C)
 #endif
 // </e> DAC1 (Digital to Analog converter) [Driver_DAC1]
+// </h>
 
 // <h> ADC12 (Analog to Digital Converter)
 // <e> ADC0 (Analog to Digital Converter 0) [Driver_ADC0]
@@ -5995,6 +6037,7 @@
 #endif
 // </e> ADC12 commmon bit for each instance
 
+// <h> CRC (Cyclic Redundancy Check)
 // <e> CRC0 (Cyclic Redundancy Check) [Driver_CRC0]
 // <i> Configuration settings for Driver_CRC0 in component ::Drivers:CRC
 #define RTE_CRC0      1
@@ -6004,7 +6047,9 @@
 // <i> Configuration settings for Driver_CRC1 in component ::Drivers:CRC
 #define RTE_CRC1      1
 // </e> CRC1 (Cyclic Redundancy Check) [Driver_CRC1]
+// </h>
 
+// <h> HWSEM (Hardware Semaphore)
 // <e> HWSEM0 (Hardware Semaphore) [Driver_HWSEM0]
 // <i> Configuration settings for Driver_HWSEM0 in component ::Drivers:HWSEM
 #define RTE_HWSEM0                                     1
@@ -6163,7 +6208,9 @@
 #endif
 
 // </e> HWSEM15 (Hardware Semaphore) [Driver_HWSEM15]
+// </h>
 
+// <h> CMP (Analog Comparator )
 // <e> CMP0 (Analog Comparator ) [Driver_CMP0]
 // <i> Configuration settings for Driver_CMP0 in component ::Drivers:Comparator
 #define RTE_HSCMP0    1
@@ -6264,6 +6311,7 @@
 
 #endif
 // </e> CMP3 (Analog Comparator) [Driver_CMP0]
+// </h>
 
 // <e> Comparator common bits for each instance
 // <i> Configuration settings for Comparator instances ::Drivers:Comparator
@@ -6277,6 +6325,7 @@
 #endif
 // </e> Comparator commmon bit for each instance
 
+// <h> I2C (Inter Integrated Circuit)
 // <e> I2C (Inter Integrated Circuit) [Driver_I2C0]
 // <i> Configuration settings for Driver_I2C0 in component ::Drivers:I2C
 #define RTE_I2C0      1
@@ -6308,6 +6357,7 @@
 #define RTE_I2C3_IRQ_PRIORITY        0
 #endif
 // </e> I2C (Inter Integrated Circuit) [Driver_I2C3]
+// </h>
 
 // <e> DMA0 (Direct Memory Access Controller) [Driver_DMA0]
 // <i> Configuration settings for Driver_DMA0 in component ::Drivers:DMA
@@ -6332,8 +6382,9 @@
 #endif
 // </e> DMA0 (Direct Memory Access Controller) [Driver_DMA0]
 
-#if RTE_RTSS_M55_HP
 // <e> DMA1 (Direct Memory Access Controller) [Driver_DMA1]
+#if defined(M55_HP)
+
 // <i> Configuration settings for Driver_DMA1 in component ::Drivers:DMA
 #define RTE_DMA1      1
 #if RTE_DMA1
@@ -6354,12 +6405,14 @@
 // <i> Default: 0
 #define RTE_DMA1_BOOT_PERIPH_NS_STATE 0
 #endif
-// </e> DMA1 (Direct Memory Access Controller) [Driver_DMA1]
-#endif
 
-#if RTE_RTSS_M55_HE
+#endif
+// </e> DMA1 (Direct Memory Access Controller) [Driver_DMA1]
+
 // <e> DMA2 (Direct Memory Access Controller) [Driver_DMA2]
 // <i> Configuration settings for Driver_DMA2 in component ::Drivers:DMA
+#if defined(M55_HE)
+
 #define RTE_DMA2      1
 #if RTE_DMA2
 //   DMA APB Interface to be used <0-1>
@@ -6379,8 +6432,9 @@
 // <i> Default: 0
 #define RTE_DMA2_BOOT_PERIPH_NS_STATE 0
 #endif
-// </e> DMA2 (Direct Memory Access Controller) [Driver_DMA2]
+
 #endif
+// </e> DMA2 (Direct Memory Access Controller) [Driver_DMA2]
 
 // <h> GPIO (general purpose input and output)
 // <e> GPIO0
@@ -6558,40 +6612,96 @@
 // <i> Default: 0
 #define RTE_GPIO3_PIN0_IRQ_PRIORITY     0
 
+// <o> GPIO3_PIN0 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO3_PIN0_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO3_PIN1 IRQ Priority
 // <i> Defines Interrupt priority for GPIO3_PIN1.
 // <i> Default: 0
 #define RTE_GPIO3_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO3_PIN1 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO3_PIN1_DMA_GLITCH_FILTER_ENABLE  0
 
 // <o> GPIO3_PIN2 IRQ Priority
 // <i> Defines Interrupt priority for GPIO3_PIN2.
 // <i> Default: 0
 #define RTE_GPIO3_PIN2_IRQ_PRIORITY     0
 
+// <o> GPIO3_PIN2 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO3_PIN2_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO3_PIN3 IRQ Priority
 // <i> Defines Interrupt priority for GPIO3_PIN3.
 // <i> Default: 0
 #define RTE_GPIO3_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO3_PIN3 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO3_PIN3_DMA_GLITCH_FILTER_ENABLE  0
 
 // <o> GPIO3_PIN4 IRQ Priority
 // <i> Defines Interrupt priority for GPIO3_PIN4.
 // <i> Default: 0
 #define RTE_GPIO3_PIN4_IRQ_PRIORITY     0
 
+// <o> GPIO3_PIN4 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO3_PIN4_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO3_PIN5 IRQ Priority
 // <i> Defines Interrupt priority for GPIO3_PIN5.
 // <i> Default: 0
 #define RTE_GPIO3_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO3_PIN5 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO3_PIN5_DMA_GLITCH_FILTER_ENABLE  0
 
 // <o> GPIO3_PIN6 IRQ Priority
 // <i> Defines Interrupt priority for GPIO3_PIN6.
 // <i> Default: 0
 #define RTE_GPIO3_PIN6_IRQ_PRIORITY     0
 
+// <o> GPIO3_PIN6 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO3_PIN6_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO3_PIN7 IRQ Priority
 // <i> Defines Interrupt priority for GPIO3_PIN7.
 // <i> Default: 0
 #define RTE_GPIO3_PIN7_IRQ_PRIORITY     0
+
+// <o> GPIO3_PIN7 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO3_PIN7_DMA_GLITCH_FILTER_ENABLE  0
 #endif
 // </e> GPIO3
 
@@ -6611,40 +6721,97 @@
 // <i> Default: 0
 #define RTE_GPIO4_PIN0_IRQ_PRIORITY     0
 
+// <o> GPIO4_PIN0 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO4_PIN0_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO4_PIN1 IRQ Priority
 // <i> Defines Interrupt priority for GPIO4_PIN1.
 // <i> Default: 0
 #define RTE_GPIO4_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO4_PIN1 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO4_PIN1_DMA_GLITCH_FILTER_ENABLE  0
 
 // <o> GPIO4_PIN2 IRQ Priority
 // <i> Defines Interrupt priority for GPIO4_PIN2.
 // <i> Default: 0
 #define RTE_GPIO4_PIN2_IRQ_PRIORITY     0
 
+// <o> GPIO4_PIN2 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO4_PIN2_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO4_PIN3 IRQ Priority
 // <i> Defines Interrupt priority for GPIO4_PIN3.
 // <i> Default: 0
 #define RTE_GPIO4_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO4_PIN3 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO4_PIN3_DMA_GLITCH_FILTER_ENABLE  0
 
 // <o> GPIO4_PIN4 IRQ Priority
 // <i> Defines Interrupt priority for GPIO4_PIN4.
 // <i> Default: 0
 #define RTE_GPIO4_PIN4_IRQ_PRIORITY     0
 
+// <o> GPIO4_PIN4 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO4_PIN4_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO4_PIN5 IRQ Priority
 // <i> Defines Interrupt priority for GPIO4_PIN5.
 // <i> Default: 0
 #define RTE_GPIO4_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO4_PIN5 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO4_PIN5_DMA_GLITCH_FILTER_ENABLE  0
 
 // <o> GPIO4_PIN6 IRQ Priority
 // <i> Defines Interrupt priority for GPIO4_PIN6.
 // <i> Default: 0
 #define RTE_GPIO4_PIN6_IRQ_PRIORITY     0
 
+// <o> GPIO4_PIN6 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO4_PIN6_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO4_PIN7 IRQ Priority
 // <i> Defines Interrupt priority for GPIO4_PIN7.
 // <i> Default: 0
 #define RTE_GPIO4_PIN7_IRQ_PRIORITY     0
+
+// <o> GPIO4_PIN7 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO4_PIN7_DMA_GLITCH_FILTER_ENABLE  0
+
 #endif
 // </e> GPIO4
 
@@ -6770,40 +6937,96 @@
 // <i> Default: 0
 #define RTE_GPIO7_PIN0_IRQ_PRIORITY     0
 
+// <o> GPIO7_PIN0 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO7_PIN0_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO7_PIN1 IRQ Priority
 // <i> Defines Interrupt priority for GPIO7_PIN1.
 // <i> Default: 0
 #define RTE_GPIO7_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO7_PIN1 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO7_PIN1_DMA_GLITCH_FILTER_ENABLE  0
 
 // <o> GPIO7_PIN2 IRQ Priority
 // <i> Defines Interrupt priority for GPIO7_PIN2.
 // <i> Default: 0
 #define RTE_GPIO7_PIN2_IRQ_PRIORITY     0
 
+// <o> GPIO7_PIN2 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO7_PIN2_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO7_PIN3 IRQ Priority
 // <i> Defines Interrupt priority for GPIO7_PIN3.
 // <i> Default: 0
 #define RTE_GPIO7_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO7_PIN3 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO7_PIN3_DMA_GLITCH_FILTER_ENABLE  0
 
 // <o> GPIO7_PIN4 IRQ Priority
 // <i> Defines Interrupt priority for GPIO7_PIN4.
 // <i> Default: 0
 #define RTE_GPIO7_PIN4_IRQ_PRIORITY     0
 
+// <o> GPIO7_PIN4 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO7_PIN4_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO7_PIN5 IRQ Priority
 // <i> Defines Interrupt priority for GPIO7_PIN5.
 // <i> Default: 0
 #define RTE_GPIO7_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO7_PIN5 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO7_PIN5_DMA_GLITCH_FILTER_ENABLE  0
 
 // <o> GPIO7_PIN6 IRQ Priority
 // <i> Defines Interrupt priority for GPIO7_PIN6.
 // <i> Default: 0
 #define RTE_GPIO7_PIN6_IRQ_PRIORITY     0
 
+// <o> GPIO7_PIN6 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO7_PIN6_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO7_PIN7 IRQ Priority
 // <i> Defines Interrupt priority for GPIO7_PIN7.
 // <i> Default: 0
 #define RTE_GPIO7_PIN7_IRQ_PRIORITY     0
+
+// <o> GPIO7_PIN7 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO7_PIN7_DMA_GLITCH_FILTER_ENABLE  0
 #endif /* RTE_GPIO7 */
 // </e> GPIO7
 
@@ -6823,40 +7046,96 @@
 // <i> Default: 0
 #define RTE_GPIO8_PIN0_IRQ_PRIORITY     0
 
+// <o> GPIO8_PIN0 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO8_PIN0_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO8_PIN1 IRQ Priority
 // <i> Defines Interrupt priority for GPIO8_PIN1.
 // <i> Default: 0
 #define RTE_GPIO8_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO8_PIN1 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO8_PIN1_DMA_GLITCH_FILTER_ENABLE  0
 
 // <o> GPIO8_PIN2 IRQ Priority
 // <i> Defines Interrupt priority for GPIO8_PIN2.
 // <i> Default: 0
 #define RTE_GPIO8_PIN2_IRQ_PRIORITY     0
 
+// <o> GPIO8_PIN2 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO8_PIN2_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO8_PIN3 IRQ Priority
 // <i> Defines Interrupt priority for GPIO8_PIN3.
 // <i> Default: 0
 #define RTE_GPIO8_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO8_PIN3 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO8_PIN3_DMA_GLITCH_FILTER_ENABLE  0
 
 // <o> GPIO8_PIN4 IRQ Priority
 // <i> Defines Interrupt priority for GPIO8_PIN4.
 // <i> Default: 0
 #define RTE_GPIO8_PIN4_IRQ_PRIORITY     0
 
+// <o> GPIO8_PIN4 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO8_PIN4_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO8_PIN5 IRQ Priority
 // <i> Defines Interrupt priority for GPIO8_PIN5.
 // <i> Default: 0
 #define RTE_GPIO8_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO8_PIN5 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO8_PIN5_DMA_GLITCH_FILTER_ENABLE  0
 
 // <o> GPIO8_PIN6 IRQ Priority
 // <i> Defines Interrupt priority for GPIO8_PIN6.
 // <i> Default: 0
 #define RTE_GPIO8_PIN6_IRQ_PRIORITY     0
 
+// <o> GPIO8_PIN6 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO8_PIN6_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO8_PIN7 IRQ Priority
 // <i> Defines Interrupt priority for GPIO8_PIN7.
 // <i> Default: 0
 #define RTE_GPIO8_PIN7_IRQ_PRIORITY     0
+
+// <o> GPIO8_PIN7 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO8_PIN7_DMA_GLITCH_FILTER_ENABLE  0
 #endif /* RTE_GPIO8 */
 // </e> GPIO8
 
@@ -6876,40 +7155,96 @@
 // <i> Default: 0
 #define RTE_GPIO9_PIN0_IRQ_PRIORITY     0
 
+// <o> GPIO9_PIN0 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO9_PIN0_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO9_PIN1 IRQ Priority
 // <i> Defines Interrupt priority for GPIO9_PIN1.
 // <i> Default: 0
 #define RTE_GPIO9_PIN1_IRQ_PRIORITY     0
+
+// <o> GPIO9_PIN1 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO9_PIN1_DMA_GLITCH_FILTER_ENABLE  0
 
 // <o> GPIO9_PIN2 IRQ Priority
 // <i> Defines Interrupt priority for GPIO9_PIN2.
 // <i> Default: 0
 #define RTE_GPIO9_PIN2_IRQ_PRIORITY     0
 
+// <o> GPIO9_PIN2 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO9_PIN2_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO9_PIN3 IRQ Priority
 // <i> Defines Interrupt priority for GPIO9_PIN3.
 // <i> Default: 0
 #define RTE_GPIO9_PIN3_IRQ_PRIORITY     0
+
+// <o> GPIO9_PIN3 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO9_PIN3_DMA_GLITCH_FILTER_ENABLE  0
 
 // <o> GPIO9_PIN4 IRQ Priority
 // <i> Defines Interrupt priority for GPIO9_PIN4.
 // <i> Default: 0
 #define RTE_GPIO9_PIN4_IRQ_PRIORITY     0
 
+// <o> GPIO9_PIN4 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO9_PIN4_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO9_PIN5 IRQ Priority
 // <i> Defines Interrupt priority for GPIO9_PIN5.
 // <i> Default: 0
 #define RTE_GPIO9_PIN5_IRQ_PRIORITY     0
+
+// <o> GPIO9_PIN5 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO9_PIN5_DMA_GLITCH_FILTER_ENABLE  0
 
 // <o> GPIO9_PIN6 IRQ Priority
 // <i> Defines Interrupt priority for GPIO9_PIN6.
 // <i> Default: 0
 #define RTE_GPIO9_PIN6_IRQ_PRIORITY     0
 
+// <o> GPIO9_PIN6 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO9_PIN6_DMA_GLITCH_FILTER_ENABLE  0
+
 // <o> GPIO9_PIN7 IRQ Priority
 // <i> Defines Interrupt priority for GPIO9_PIN7.
 // <i> Default: 0
 #define RTE_GPIO9_PIN7_IRQ_PRIORITY     0
+
+// <o> GPIO9_PIN7 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_GPIO9_PIN7_DMA_GLITCH_FILTER_ENABLE  0
 #endif /* RTE_GPIO9 */
 // </e> GPIO9
 
@@ -7178,53 +7513,110 @@
 #endif /* RTE_GPIO14 */
 // </e> GPIO14
 
-// <e> GPIO15
-// <i> Configuration settings for Driver_GPIO15 in component ::Drivers:GPIO
-#define RTE_GPIO15   1
+// <e> LPGPIO
+// <i> Configuration settings for Driver_LPGPIO in component ::Drivers:GPIO
+#define RTE_LPGPIO   1
 
-#if RTE_GPIO15
+#if RTE_LPGPIO
 
-// <o> GPIO15_PIN0 IRQ Priority
-// <i> Defines Interrupt priority for GPIO15_PIN0.
+// <o> LPGPIO_PIN0 IRQ Priority
+// <i> Defines Interrupt priority for LPGPIO_PIN0.
 // <i> Default: 0
-#define RTE_GPIO15_PIN0_IRQ_PRIORITY     0
+#define RTE_LPGPIO_PIN0_IRQ_PRIORITY     0
 
-// <o> GPIO15_PIN1 IRQ Priority
-// <i> Defines Interrupt priority for GPIO15_PIN1.
-// <i> Default: 0
-#define RTE_GPIO15_PIN1_IRQ_PRIORITY     0
+// <o> LPGPIO_PIN0 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_LPGPIO_PIN0_DMA_GLITCH_FILTER_ENABLE  0
 
-// <o> GPIO15_PIN2 IRQ Priority
-// <i> Defines Interrupt priority for GPIO15_PIN2.
+// <o> LPGPIO_PIN1 IRQ Priority
+// <i> Defines Interrupt priority for LPGPIO_PIN1.
 // <i> Default: 0
-#define RTE_GPIO15_PIN2_IRQ_PRIORITY     0
+#define RTE_LPGPIO_PIN1_IRQ_PRIORITY     0
 
-// <o> GPIO15_PIN3 IRQ Priority
-// <i> Defines Interrupt priority for GPIO15_PIN3.
-// <i> Default: 0
-#define RTE_GPIO15_PIN3_IRQ_PRIORITY     0
+// <o> LPGPIO_PIN1 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_LPGPIO_PIN1_DMA_GLITCH_FILTER_ENABLE  0
 
-// <o> GPIO15_PIN4 IRQ Priority
-// <i> Defines Interrupt priority for GPIO15_PIN4.
+// <o> LPGPIO_PIN2 IRQ Priority
+// <i> Defines Interrupt priority for LPGPIO_PIN2.
 // <i> Default: 0
-#define RTE_GPIO15_PIN4_IRQ_PRIORITY     0
+#define RTE_LPGPIO_PIN2_IRQ_PRIORITY     0
 
-// <o> GPIO15_PIN5 IRQ Priority
-// <i> Defines Interrupt priority for GPIO15_PIN5.
-// <i> Default: 0
-#define RTE_GPIO15_PIN5_IRQ_PRIORITY     0
+// <o> LPGPIO_PIN2 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_LPGPIO_PIN2_DMA_GLITCH_FILTER_ENABLE  0
 
-// <o> GPIO15_PIN6 IRQ Priority
-// <i> Defines Interrupt priority for GPIO15_PIN6.
+// <o> LPGPIO_PIN3 IRQ Priority
+// <i> Defines Interrupt priority for LPGPIO_PIN3.
 // <i> Default: 0
-#define RTE_GPIO15_PIN6_IRQ_PRIORITY     0
+#define RTE_LPGPIO_PIN3_IRQ_PRIORITY     0
 
-// <o> GPIO15_PIN7 IRQ Priority
-// <i> Defines Interrupt priority for GPIO15_PIN7.
+// <o> LPGPIO_PIN3 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_LPGPIO_PIN3_DMA_GLITCH_FILTER_ENABLE  0
+
+// <o> LPGPIO_PIN4 IRQ Priority
+// <i> Defines Interrupt priority for LPGPIO_PIN4.
 // <i> Default: 0
-#define RTE_GPIO15_PIN7_IRQ_PRIORITY     0
-#endif /* RTE_GPIO15 */
-// </e> GPIO15
+#define RTE_LPGPIO_PIN4_IRQ_PRIORITY     0
+
+// <o> LPGPIO_PIN4 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_LPGPIO_PIN4_DMA_GLITCH_FILTER_ENABLE  0
+
+// <o> LPGPIO_PIN5 IRQ Priority
+// <i> Defines Interrupt priority for LPGPIO_PIN5.
+// <i> Default: 0
+#define RTE_LPGPIO_PIN5_IRQ_PRIORITY     0
+
+// <o> LPGPIO_PIN5 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_LPGPIO_PIN5_DMA_GLITCH_FILTER_ENABLE  0
+
+// <o> LPGPIO_PIN6 IRQ Priority
+// <i> Defines Interrupt priority for LPGPIO_PIN6.
+// <i> Default: 0
+#define RTE_LPGPIO_PIN6_IRQ_PRIORITY     0
+
+// <o> LPGPIO_PIN6 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_LPGPIO_PIN6_DMA_GLITCH_FILTER_ENABLE  0
+
+// <o> LPGPIO_PIN7 IRQ Priority
+// <i> Defines Interrupt priority for LPGPIO_PIN7.
+// <i> Default: 0
+#define RTE_LPGPIO_PIN7_IRQ_PRIORITY     0
+
+// <o> LPGPIO_PIN7 DMA Glitch Filter enable
+//    <0=> DISABLE
+//    <1=> ENABLE
+// <i> Defines Enable Glitch Filter
+// <i> Default: DISABLE
+#define RTE_LPGPIO_PIN7_DMA_GLITCH_FILTER_ENABLE  0
+
+#endif /* RTE_LPGPIO */
+// </e> LPGPIO
 
 // </h> GPIO (general purpose input and output)
 
@@ -7242,4 +7634,23 @@
 
 // </h> PDM (Pulse density modulation)
 
+#if defined(M55_HE)
+// <h> LPPDM(Low Power Pulse Density Modulation)
+// <e> LPPDM (Low Power Pulse density modulation) [Driver_LPPDM]
+// <i> Configuration settings for Driver_LPPDM in component ::Drivers:LPPDM
+#define RTE_LPPDM      1
+
+#if RTE_LPPDM
+
+// <o> LPPDM IRQ priority <0-255>
+// <i> Defines Interrupt priority for LPPDM.
+// <i> Default: 0
+#define RTE_LPPDM_IRQ_PRIORITY   0
+#endif
+// </e> LPPDM (Low Power Pulse density modulation) [Driver_LPPDM]
+#endif //defined(M55_HE)
+// </h> LPPDM (Low Power Pulse density modulation)
+
 #endif  /* __RTE_DEVICE_H */
+
+

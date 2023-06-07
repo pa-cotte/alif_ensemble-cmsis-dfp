@@ -13,7 +13,7 @@
   -->
 
   <releases>
-    <release version="1.0.0-rc4" date="2023-05-03">
+    <release version="1.0.0-rc5" date="2023-06-05">
       Initial release
     </release>
   </releases>
@@ -560,7 +560,9 @@
         <!-- Baremetal Templates -->
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/LED_blink_baremetal.c" attr="template" select="Baremetal LED Blinky"/>
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/LPTimer_Baremetal.c" attr="template" select="Baremetal LPTIMER APP"/>
-        <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/Thermometer_Baremetal.c" attr="template" select="Baremetal Thermometer App"/>
+        <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/I3C_Baremetal_masterside.c" attr="template" select="I3C Master Baremetal testApp"/>
+	    <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/I3C_Baremetal_slaveside.c" attr="template" select="I3C Slave Baremetal testapp"/>
+	    <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/SPI0_SPI1_baremetal.c" attr="template" select="SPI Baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/ADC_Baremetal.c" attr="template" select="ADC baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/CRC_baremetal.c" attr="template" select="CRC baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/Dac_baremetal.c" attr="template" select="DAC baremetal testApp"/>
@@ -570,7 +572,7 @@
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/WDT_Baremetal.c" attr="template" select="WDT baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/i2c_using_i3c_Baremetal.c" attr="template" select="I2C over I3C baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/Comparator_baremetal.c" attr="template" select="Comparator baremetal testApp"/>
-		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/Flash_MRAM_Baremetal.c" attr="template" select="MRAM Flash baremetal testapp"/>
+		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/Flash_MRAM_Baremetal.c" attr="template" select="MRAM baremetal testapp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/HWSEM_Baremetal.c" attr="template" select="HWSEM baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/I2S_Baremetal.c" attr="template" select="I2S baremetal testApp"/>
 		<file category="header" name="Boards/DevKit-e7/Templates/Baremetal/Include/i2s_samples.h" attr="template" select="I2S baremetal testApp"/>
@@ -591,7 +593,12 @@
 	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/UTIMER_app.c" attr="template" select="FreeRTOS UTIMER test App"/>
 	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/LPTimer_testApp.c" attr="template" select="FreeRTOS LPTIMER test App"/>
 	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/uart4_testapp.c" attr="template" select="FreeRTOS UART4 test App"/>
-	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/THERMOMETER_app.c" attr="template" select="FreeRTOS SPI based Temperature sensor test App"/>
+	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/CRC_testApp.c" attr="template" select="CRC FreeRTOS testApp"/>
+	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/LED_Blinky_testapp.c" attr="template" select="LED Blinky FreeRTOS testApp"/>
+	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/PDM_testApp.c" attr="template" select="PDM FreeRTOS testApp"/>
+	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/SPI0_SPI1_app.c" attr="template" select="SPI FreeRTOS testApp"/>
+    <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/uart2_testapp.c" attr="template" select="UART2 FreeRTOS testApp"/>
+	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/i2c_testApp.c" attr="template" select="I2C FreeRTOS testApp"/>
 
 	<file category="source" name="Boards/DevKit-e7/Templates/lwip/httpd/fs.c" attr="template" select="LWIP httpd example"/>
 	<file category="source" name="Boards/DevKit-e7/Templates/lwip/httpd/httpd.c" attr="template" select="LWIP httpd example"/>
@@ -599,6 +606,7 @@
 	<file category="source" name="Boards/DevKit-e7/Templates/lwip/httpd/main.c" attr="template" select="LWIP httpd example"/>
 	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/HWSEM_FreeRTOS.c" attr="template" select="FreeRTOS HWSEM test App"/>
 	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/Flash_ISSI_FreeRTOS_app.c" attr="template" select="FreeRTOS OSPI Flash test App"/>
+	
 
       </files>
     </component>
@@ -628,7 +636,11 @@
         <!-- Baremetal Templates -->
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/LED_blink_baremetal.c" attr="template" select="Baremetal LED Blinky"/>
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/LPTimer_Baremetal.c" attr="template" select="Baremetal LPTIMER APP"/>
-        <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/Thermometer_Baremetal.c" attr="template" select="Baremetal Thermometer App"/>
+	    <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/I3C_Baremetal_masterside.c" attr="template" select="I3C Master Baremetal testApp"/>
+	    <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/I3C_Baremetal_slaveside.c" attr="template" select="I3C Slave Baremetal testapp"/>
+	    <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/LPPDM_baremetal.c" attr="template" select="LPPDM Baremetal testApp"/>
+	    <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/LPSPI_SPI_baremetal.c" attr="template" select="LPSPI Baremetal testApp"/>
+	    <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/SPI0_SPI1_baremetal.c" attr="template" select="SPI Baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/ADC_Baremetal.c" attr="template" select="ADC baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/CRC_baremetal.c" attr="template" select="CRC baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/Dac_baremetal.c" attr="template" select="DAC baremetal testApp"/>
@@ -638,7 +650,7 @@
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/WDT_Baremetal.c" attr="template" select="WDT baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/i2c_using_i3c_Baremetal.c" attr="template" select="I2C over I3C baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/Comparator_baremetal.c" attr="template" select="Comparator baremetal testApp"/>
-		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/Flash_MRAM_Baremetal.c" attr="template" select="MRAM Flash baremetal testapp"/>
+		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/Flash_MRAM_Baremetal.c" attr="template" select="MRAM baremetal testapp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/HWSEM_Baremetal.c" attr="template" select="HWSEM baremetal testApp"/>
 		<file category="source" name="Boards/DevKit-e7/Templates/Baremetal/I2S_Baremetal.c" attr="template" select="I2S baremetal testApp"/>
 	    <file category="header" name="Boards/DevKit-e7/Templates/Baremetal/Include/i2s_samples.h" attr="template" select="I2S baremetal testApp"/>
@@ -658,7 +670,16 @@
 	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/UTIMER_app.c" attr="template" select="FreeRTOS UTIMER test App"/>
 	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/LPTimer_testApp.c" attr="template" select="FreeRTOS LPTIMER test App"/>
 	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/uart4_testapp.c" attr="template" select="FreeRTOS UART4 test App"/>
-	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/THERMOMETER_app.c" attr="template" select="FreeRTOS SPI based Temperature sensor test App"/>
+	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/CRC_testApp.c" attr="template" select="CRC FreeRTOS testApp"/>
+	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/LED_Blinky_testapp.c" attr="template" select="LED Blinky FreeRTOS testApp"/>
+	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/LPPDM_testApp.c" attr="template" select="LPPDM FreeRTOS testApp"/>
+	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/LPSPI_SPI_app.c" attr="template" select="LPSPI FreeRTOS testApp"/>
+	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/PDM_testApp.c" attr="template" select="PDM FreeRTOS testApp"/>
+	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/SPI0_SPI1_app.c" attr="template" select="SPI FreeRTOS testApp"/>
+	<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/LPUART_testapp.c" attr="template" select="LPUART FreeRTOS testApp"/>
+    <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/uart2_testapp.c" attr="template" select="UART2 FreeRTOS testApp"/>
+    <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/i2c_testApp.c" attr="template" select="I2C FreeRTOS testApp"/>
+
 
 	<file category="source" name="Boards/DevKit-e7/Templates/lwip/httpd/fs.c" attr="template" select="LWIP httpd example"/>
 	<file category="source" name="Boards/DevKit-e7/Templates/lwip/httpd/httpd.c" attr="template" select="LWIP httpd example"/>
@@ -759,6 +780,8 @@
       <description>GPIO Driver for Alif Semiconductor SOC</description>
       <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
         #define RTE_Drivers_GPIO   1           /* Driver GPIO */
+        /* ----------  Local LPGPIO instance name Aliases  ---------- */
+        #define Driver_GPIO15               Driver_GPIOLP
       </RTE_Components_h>
       <files>
         <file category="source" name="Alif_CMSIS/Source/Driver_GPIO.c"/>
@@ -853,25 +876,31 @@
       </files>
     </component>
 
-    <!--<component Cclass="Device" Cgroup="SOC Peripherals" Csub="CAMERA Controller" Cversion="1.0.0" condition="Ensemble Camera Driver">
+    <component Cclass="Device" Cgroup="SOC Peripherals" Csub="CPI" Cversion="1.0.0" condition="Ensemble Camera Driver">
       <description>CAMERA Driver for Alif Semiconductor SOC</description>
-      <RTE_Components_h> --> <!-- the following content goes into file 'RTE_Components.h' -->
-        <!--#define RTE_Drivers_CAMERA0   1           /* Driver CAMERA Controller */
+      <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
+        #define RTE_Drivers_CPI   1           /* Driver CAMERA Controller */
       </RTE_Components_h>
       <files>
-        <file category="source" name="Alif_CMSIS/Source/Driver_Camera_Controller.c"/>
+        <file category="source" name="Alif_CMSIS/Source/Driver_CPI.c"/>
+		<file category="header" name="Alif_CMSIS/Source/Driver_CPI_Private.h"/>
         <file category="source" name="Alif_CMSIS/Source/Camera_Sensor_i2c.c"/>
-        <file category="header" name="Alif_CMSIS/Source/Camera_Controller_dev.h"/>
 		<file category="header" name="Alif_CMSIS/Include/Camera_Common.h"/>
-		<file category="header" name="Alif_CMSIS/Include/Driver_Camera_Controller.h"/>
+		<file category="header" name="Alif_CMSIS/Include/Driver_CPI.h"/>
 		<file category="header" name="Alif_CMSIS/Source/Camera_Sensor_i2c.h"/>
 		<file category="header" name="Alif_CMSIS/Include/Camera_Sensor.h"/>
+		<file category="header" name="drivers/include/cpi.h"/>
+		<file category="header" name="drivers/include/csi.h"/>
+	    <file category="header" name="drivers/include/sys_ctrl_cpi.h"/>
+	    <file category="header" name="drivers/include/sys_ctrl_csi.h"/>
+	    <file category="source" name="drivers/source/cpi.c"/>
+	    <file category="source" name="drivers/source/csi.c"/>
       </files>
     </component>
     <component Cclass="BSP" Cgroup="External peripherals" Csub="CAMERA Sensor MT9M114" Cversion="1.0.0" condition="Camera Sensor MT9M114 Driver">
       <description>CAMERA Sensor Driver for MT9M114</description>
-      <RTE_Components_h> -->  <!-- the following content goes into file 'RTE_Components.h' -->
-        <!--#define RTE_Drivers_CAMERA_SENSOR_MT9M114			1           /* Driver CAMERA Sensor */
+      <RTE_Components_h> <!-- the following content goes into file 'RTE_Components.h' -->
+        #define RTE_Drivers_CAMERA_SENSOR_MT9M114			1           /* Driver CAMERA Sensor */
       </RTE_Components_h>
       <files>
         <file category="source" name="components/Source/MT9M114_Camera_Sensor.c"/>
@@ -881,14 +910,14 @@
 
 <component Cclass="BSP" Cgroup="External peripherals" Csub="CAMERA Sensor ARX3A0" Cversion="1.0.0" condition="Ensemble CMSIS_Driver">
       <description>CAMERA Sensor Driver for ARX3A0</description>
-      <RTE_Components_h>-->  <!-- the following content goes into file 'RTE_Components.h' -->
-        <!--#define RTE_Drivers_CAMERA_SENSOR_ARX3A0			1           /* Driver CAMERA Sensor */
+      <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
+        #define RTE_Drivers_CAMERA_SENSOR_ARX3A0			1           /* Driver CAMERA Sensor */
       </RTE_Components_h>
       <files>
         <file category="source" name="components/Source/arx3A0_camera_sensor.c"/>
         <file category="header" name="components/Include/arx3A0_camera_sensor.h"/>
       </files>
-    </component>-->
+    </component>
 
     <component Cclass="Device" Cgroup="SOC Peripherals" Csub="I3C" Cversion="1.0.0" condition="Ensemble CMSIS_Driver">
       <description>I3C Driver for Alif Semiconductor SOC</description>
@@ -936,20 +965,22 @@
       </files>
     </component>
 
-    <!--<component Cclass="Device" Cgroup="SOC Peripherals" Csub="MIPI CSI2" Cversion="1.0.0" condition="Ensemble CMSIS_Driver">
+    <component Cclass="Device" Cgroup="SOC Peripherals" Csub="MIPI CSI2" Cversion="1.0.0" condition="Ensemble CMSIS_Driver">
       <description>MIPI CSI2 Driver for Alif Semiconductor SOC</description>
-      <RTE_Components_h>   the following content goes into file 'RTE_Components.h' -->
-        <!--#define RTE_Drivers_MIPI_CSI2			1   /* Driver MIPI CSI2 */
+      <RTE_Components_h>   <!--the following content goes into file 'RTE_Components.h' -->
+        #define RTE_Drivers_MIPI_CSI2			1   /* Driver MIPI CSI2 */
       </RTE_Components_h>
       <files>
         <file category="source" name="Alif_CMSIS/Source/Driver_MIPI_CSI2.c"/>
         <file category="source" name="Alif_CMSIS/Source/DPHY_init.c"/>
         <file category="header" name="Alif_CMSIS/Source/DPHY_init.h"/>
 		<file category="header" name="Alif_CMSIS/Source/DPHY_Private.h"/>
-        <file category="header" name="Alif_CMSIS/Source/MIPI_CSI2_dev.h"/>
+        <file category="header" name="Alif_CMSIS/Source/Driver_CSI_Private.h"/>
 	    <file category="header" name="Alif_CMSIS/Include/Driver_MIPI_CSI2.h"/>
+		<file category="source" name="drivers/source/dsi.c"/>
+		<file category="header" name="drivers/include/dsi.h"/>
       </files>
-    </component>-->
+    </component>
 
     <component Cclass="Device" Cgroup="SOC Peripherals" Csub="MIPI DSI" Cversion="1.0.0" condition="Ensemble CMSIS_Driver">
       <description>MIPI DSI Driver for Alif Semiconductor SOC</description>
@@ -1060,20 +1091,20 @@
 	   </files>
     </component>
 
-<!--<component Cclass="Device" Cgroup="SOC Peripherals" Csub="Focus LCD panel" Cversion="1.0.0" condition="Ensemble CMSIS_Driver">
+<component Cclass="BSP" Cgroup="External peripherals" Csub="Focus LCD panel" Cversion="1.0.0" condition="Ensemble CMSIS_Driver">
       <description>Focus LCD panel Display Driver for Alif Semiconductor SOC</description>
-      <RTE_Components_h>-->  <!-- the following content goes into file 'RTE_Components.h' -->
-       <!-- #define RTE_Drive_FOCUS_LCD_panel0	1   /* Driver Focus LCD panel*/
+      <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
+       #define RTE_Drive_FOCUS_LCD_panel0	1   /* Driver Focus LCD panel*/
       </RTE_Components_h>
       <files>
-	   <file category="source" name="CMSIS/Driver/Src/FOCUS_LCD_PANEL_800_480.c"/>
+	   <file category="source" name="components/Source/FOCUS_LCD_PANEL_800_480.c"/>
 	   </files>
-    </component>-->
+    </component>
 
 
 
     <component Cclass="Device" Cgroup="SOC Peripherals" Csub="MRAM" Cversion="1.0.0" condition="Ensemble CMSIS_Driver">
-      <description>MRAM Flash Driver for Alif Semiconductor SOC</description>
+      <description>MRAM Driver for Alif Semiconductor SOC</description>
       <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
         #define RTE_Drivers_FLASH_MRAM   1           /* Driver MRAM FLASH */
       </RTE_Components_h>
@@ -1093,6 +1124,7 @@
         <file category="source" name="Alif_CMSIS/Source/OSPI_ll_drv.c"/>
         <file category="header" name="Alif_CMSIS/Include/Driver_OSPI.h"/>
         <file category="header" name="Alif_CMSIS/Source/OSPI_ll_drv.h"/>
+		<file category="header" name="drivers/include/sys_ctrl_aes.h"/>
       </files>
     </component>
 
@@ -1145,16 +1177,16 @@
       </files>
     </component>
 
-    <component Cclass="BSP" Cgroup="External peripherals" Csub="GT911 Touch Controller" Cversion="1.0.0" condition="Ensemble CMSIS_Driver">
+    <!--<component Cclass="BSP" Cgroup="External peripherals" Csub="GT911 Touch Controller" Cversion="1.0.0" condition="Ensemble CMSIS_Driver">
       <description>External Peripherals Drivers</description>
-      <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
-        #define RTE_Drivers_GT911	1
+      <RTE_Components_h>-->  <!-- the following content goes into file 'RTE_Components.h' -->
+        <!---#define RTE_Drivers_GT911	1
       </RTE_Components_h>
       <files>
         <file category="source" name="components/Source/GT911_touch_driver.c"/>
 	<file category="header" name="components/Include/Driver_Touch_Screen.h"/>
       </files>
-    </component>
+    </component>-->
 
     <component Cclass="Device" Cgroup="SE Services" Csub="MHU Driver" Cversion="0.69.0" condition="SE SERVICES MHU">
       <description>Message Handling Unit driver for Alif Soc</description>

@@ -78,9 +78,9 @@ typedef enum _DPHY_MODE_CFG {
 
 /** \brief hsfreqrange and osc_freq_target range */
 typedef struct _DPHY_FREQ_RANGE {
-	uint32_t bitrate_in_mbps;           /**< DPHY data rate in mbps            */
+	uint16_t bitrate_in_mbps;           /**< DPHY data rate in mbps            */
 	uint8_t  hsfreqrange;               /**< DPHY HS frequency range           */
-	uint32_t osc_freq_target;           /**< DPHY oscillator frequency target  */
+	uint16_t osc_freq_target;           /**< DPHY oscillator frequency target  */
 }DPHY_FREQ_RANGE;
 
 /** \brief PLL vco_cntrl range */

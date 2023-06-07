@@ -21,8 +21,8 @@
 
 #include "Driver_SPI.h"
 #include "Driver_SPI_Private.h"
-#include "spi.h"
 #include "sys_ctrl_spi.h"
+#include "spi.h"
 
 #ifdef RTE_Drivers_SPI_MultiSlave
 #include "SPI_MultiSlave.h"
@@ -121,8 +121,6 @@ static int32_t ARM_SPI_Initialize(SPI_RESOURCES *SPI, ARM_SPI_SignalEvent_t cb_e
 
     SPI->cb_event = cb_event;
 
-    spi_mask_interrupts(SPI->regs);
-
     SPI->state.initialized = 1;
 
     return ARM_DRIVER_OK;
@@ -187,10 +185,18 @@ static int32_t ARM_SPI_PowerControl(SPI_RESOURCES *SPI, ARM_POWER_STATE state)
                 return ARM_DRIVER_OK;
             }
 
-            NVIC_ClearPendingIRQ(SPI_IRQ_NUM(SPI->drv_instance));
-            NVIC_DisableIRQ(SPI_IRQ_NUM(SPI->drv_instance));
+            NVIC_ClearPendingIRQ(SPI->irq);
+            NVIC_DisableIRQ(SPI->irq);
 
-            ctrl_spi_clk(SPI->drv_instance, 0);
+            if (SPI->drv_instance == LPSPI_INSTANCE)
+            {
+                disable_lpspi_clk();
+            }
+            else
+            {
+                /* reset to default value */
+                ctrl_ss_in(SPI->drv_instance, SS_IN_IO_PIN);
+            }
 
             SPI->state.powered = 0;
 
@@ -204,11 +210,24 @@ static int32_t ARM_SPI_PowerControl(SPI_RESOURCES *SPI, ARM_POWER_STATE state)
                 return ARM_DRIVER_OK;
             }
 
-            NVIC_ClearPendingIRQ(SPI_IRQ_NUM(SPI->drv_instance));
-            NVIC_SetPriority(SPI_IRQ_NUM(SPI->drv_instance), SPI->irq_priority);
-            NVIC_EnableIRQ(SPI_IRQ_NUM(SPI->drv_instance));
+            if (SPI->drv_instance == LPSPI_INSTANCE)
+            {
+                enable_lpspi_clk();
+            }
 
-            ctrl_spi_clk(SPI->drv_instance, 1);
+            spi_mask_interrupts(SPI->regs);
+
+            NVIC_ClearPendingIRQ(SPI->irq);
+            NVIC_SetPriority(SPI->irq, SPI->irq_priority);
+            NVIC_EnableIRQ(SPI->irq);
+
+            spi_set_tx_threshold(SPI->regs, SPI->tx_fifo_threshold);
+            spi_set_rx_threshold(SPI->regs, SPI->rx_fifo_threshold);
+
+            if (SPI->drv_instance != LPSPI_INSTANCE)
+            {
+                spi_set_tx_fifo_start_level(SPI->regs, SPI->tx_fifo_start_level);
+            }
 
             SPI->state.powered = 1;
 
@@ -256,15 +275,20 @@ static int32_t ARM_SPI_Send(SPI_RESOURCES *SPI, const void *data, uint32_t num)
 
     SPI->status.busy = 1;
 
-    spi_set_tx_fifo_start_level(SPI->regs, SPI->tx_fifo_start_level);
-    spi_set_tx_threshold(SPI->regs, SPI->tx_fifo_threshold);
-
     SPI->transfer.tx_buff        = (const uint8_t *) data;
     SPI->transfer.total_cnt      = num;
     SPI->transfer.tx_current_cnt = 0;
     SPI->transfer.status         = SPI_TRANSFER_STATUS_NONE;
+    SPI->transfer.mode           = SPI_TMOD_TX;
 
-    spi_send(SPI->regs);
+    if (SPI->drv_instance == LPSPI_INSTANCE)
+    {
+        lpspi_send(SPI->regs);
+    }
+    else
+    {
+        spi_send(SPI->regs);
+    }
 
     return ARM_DRIVER_OK;
 }
@@ -301,9 +325,16 @@ static int32_t ARM_SPI_Receive(SPI_RESOURCES *SPI, void *data, uint32_t num)
     SPI->transfer.total_cnt       = num;
     SPI->transfer.rx_current_cnt  = 0;
     SPI->transfer.status          = SPI_TRANSFER_STATUS_NONE;
+    SPI->transfer.mode            = SPI_TMOD_RX;
 
-    spi_set_rx_threshold(SPI->regs, SPI->rx_fifo_threshold);
-    spi_receive(SPI->regs, &(SPI->transfer));
+    if (SPI->drv_instance == LPSPI_INSTANCE)
+    {
+        lpspi_receive(SPI->regs, SPI->transfer.total_cnt);
+    }
+    else
+    {
+        spi_receive(SPI->regs, SPI->transfer.total_cnt);
+    }
 
     return ARM_DRIVER_OK;
 }
@@ -348,12 +379,16 @@ static int32_t ARM_SPI_Transfer(SPI_RESOURCES *SPI, const void *data_out, void *
     SPI->transfer.tx_current_cnt = 0;
     SPI->transfer.rx_current_cnt = 0;
     SPI->transfer.status         = SPI_TRANSFER_STATUS_NONE;
+    SPI->transfer.mode           = SPI_TMOD_TX_AND_RX;
 
-    spi_set_tx_fifo_start_level(SPI->regs, SPI->tx_fifo_start_level);
-    spi_set_tx_threshold(SPI->regs, SPI->tx_fifo_threshold);
-    spi_set_rx_threshold(SPI->regs, SPI->rx_fifo_threshold);
-
-    spi_transfer(SPI->regs, &(SPI->transfer));
+    if (SPI->drv_instance == LPSPI_INSTANCE)
+    {
+        lpspi_transfer(SPI->regs, SPI->transfer.total_cnt);
+    }
+    else
+    {
+        spi_transfer(SPI->regs, SPI->transfer.total_cnt);
+    }
 
     return ARM_DRIVER_OK;
 }
@@ -368,8 +403,16 @@ static int32_t ARM_SPI_Transfer(SPI_RESOURCES *SPI, const void *data_out, void *
 static uint32_t ARM_SPI_GetDataCount(SPI_RESOURCES *SPI)
 {
     uint32_t count = 0;
+    SPI_TMOD tmod;
 
-    SPI_TMOD tmod = spi_get_tmod(SPI->regs);
+    if (SPI->drv_instance == LPSPI_INSTANCE)
+    {
+        tmod = lpspi_get_tmod(SPI->regs);
+    }
+    else
+    {
+        tmod = spi_get_tmod(SPI->regs);
+    }
 
     switch (tmod)
     {
@@ -421,18 +464,29 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
         /* SPI Master (Output on MOSI, Input on MISO); arg = Bus Speed in bps */
         case ARM_SPI_MODE_MASTER:
         {
-            spi_mode_master(SPI->regs);
-            clk = getSpiCoreClock();
-            spi_set_bus_speed(SPI->regs, arg, clk);
+            if (!(SPI->drv_instance == LPSPI_INSTANCE))
+            {
+                ctrl_ss_in(SPI->drv_instance, SS_IN_SS_IN_VAL);
+
+                spi_mode_master(SPI->regs);
+                clk = getSpiCoreClock(SPI->drv_instance);
+                spi_set_bus_speed(SPI->regs, arg, clk);
+            }
+
             break;
         }
 
         /* SPI Slave  (Output on MISO, Input on MOSI) arg = Bus speed in bps */
         case ARM_SPI_MODE_SLAVE:
         {
-            spi_mode_slave(SPI->regs);
-            clk = getSpiCoreClock();
-            spi_set_bus_speed(SPI->regs, arg, clk);
+            if (SPI->drv_instance == LPSPI_INSTANCE)
+            {
+                return ARM_DRIVER_ERROR_UNSUPPORTED;
+            }
+            else
+            {
+                spi_mode_slave(SPI->regs);
+            }
             break;
         }
         /* SPI Master (Output/Input on MOSI); arg = Bus Speed in bps */
@@ -445,7 +499,7 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
         /* SPI Slave  (Output/Input on MISO) */
         case ARM_SPI_SET_BUS_SPEED:
         {
-            clk = getSpiCoreClock();
+            clk = getSpiCoreClock(SPI->drv_instance);
             spi_set_bus_speed(SPI->regs, arg, clk);
             break;
         }
@@ -453,7 +507,7 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
         /* Get Bus Speed in bps */
         case ARM_SPI_GET_BUS_SPEED:
         {
-            clk = getSpiCoreClock();
+            clk = getSpiCoreClock(SPI->drv_instance);
             return (int32_t) spi_get_bus_speed(SPI->regs, clk);
         }
 
@@ -514,36 +568,78 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
         /* SPI Mode configuration */
         case ARM_SPI_CPOL0_CPHA0:
         {
-            spi_set_mode(SPI->regs, SPI_MODE_0);
+            if (SPI->drv_instance == LPSPI_INSTANCE)
+            {
+                lpspi_set_mode(SPI->regs, SPI_MODE_0);
+            }
+            else
+            {
+                spi_set_mode(SPI->regs, SPI_MODE_0);
+            }
             break;
         }
         case ARM_SPI_CPOL0_CPHA1:
         {
-            spi_set_mode(SPI->regs, SPI_MODE_1);
+            if (SPI->drv_instance == LPSPI_INSTANCE)
+            {
+                lpspi_set_mode(SPI->regs, SPI_MODE_1);
+            }
+            else
+            {
+                spi_set_mode(SPI->regs, SPI_MODE_1);
+            }
             break;
         }
         case ARM_SPI_CPOL1_CPHA0:
         {
-            spi_set_mode(SPI->regs, SPI_MODE_2);
+            if (SPI->drv_instance == LPSPI_INSTANCE)
+            {
+                lpspi_set_mode(SPI->regs, SPI_MODE_2);
+            }
+            else
+            {
+                spi_set_mode(SPI->regs, SPI_MODE_2);
+            }
             break;
         }
         case ARM_SPI_CPOL1_CPHA1:
         {
-            spi_set_mode(SPI->regs, SPI_MODE_3);
+            if (SPI->drv_instance == LPSPI_INSTANCE)
+            {
+                lpspi_set_mode(SPI->regs, SPI_MODE_3);
+            }
+            else
+            {
+                spi_set_mode(SPI->regs, SPI_MODE_3);
+            }
             break;
         }
 
         /* Texas Instruments Frame Format */
         case ARM_SPI_TI_SSI:
         {
-            spi_set_protocol(SPI->regs, SPI_PROTO_SSP);
+            if (SPI->drv_instance == LPSPI_INSTANCE)
+            {
+                lpspi_set_protocol(SPI->regs, SPI_PROTO_SSP);
+            }
+            else
+            {
+                spi_set_protocol(SPI->regs, SPI_PROTO_SSP);
+            }
             break;
         }
 
         /* National Microwire Frame Format */
         case ARM_SPI_MICROWIRE:
         {
-            spi_set_protocol(SPI->regs, SPI_PROTO_MICROWIRE);
+            if (SPI->drv_instance == LPSPI_INSTANCE)
+            {
+                lpspi_set_protocol(SPI->regs, SPI_PROTO_MICROWIRE);
+            }
+            else
+            {
+                spi_set_protocol(SPI->regs, SPI_PROTO_MICROWIRE);
+            }
             break;
         }
 
@@ -557,7 +653,16 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
     /* Configure frame size */
     if (control & ARM_SPI_DATA_BITS_Msk)
     {
-        spi_set_dfs(SPI->regs, ((control & ARM_SPI_DATA_BITS_Msk) >> ARM_SPI_DATA_BITS_Pos));
+        SPI->transfer.frame_size = ((control & ARM_SPI_DATA_BITS_Msk) >> ARM_SPI_DATA_BITS_Pos);
+
+        if (SPI->drv_instance == LPSPI_INSTANCE)
+        {
+            lpspi_set_dfs(SPI->regs, SPI->transfer.frame_size);
+        }
+        else
+        {
+            spi_set_dfs(SPI->regs, SPI->transfer.frame_size);
+        }
     }
 
     switch (control & ARM_SPI_BIT_ORDER_Msk)
@@ -609,18 +714,23 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
 
     switch (control & ARM_SPI_SS_SLAVE_MODE_Msk)
     {
-        /* SPI Slave Select when Slave: Hardware monitored (default) */
-        case ARM_SPI_SS_SLAVE_HW:
+        if (SPI->drv_instance == LPSPI_INSTANCE)
         {
-            //TODO: Need to Implement
-            break;
+            return ARM_DRIVER_ERROR_UNSUPPORTED;
         }
-
-        /* SPI Slave Select when Slave: Software controlled */
-        case ARM_SPI_SS_SLAVE_SW:
+        else
         {
-            //TODO: Need to Implement
-            break;
+            /* SPI Slave Select when Slave: Hardware monitored (default) */
+            case ARM_SPI_SS_SLAVE_HW:
+            {
+                break;
+            }
+
+            /* SPI Slave Select when Slave: Software controlled */
+            case ARM_SPI_SS_SLAVE_SW:
+            {
+                return ARM_DRIVER_ERROR_UNSUPPORTED;
+            }
         }
     }
     return ret;
@@ -681,7 +791,8 @@ static SPI_RESOURCES SPI0_RES = {
     .spi_frf                = RTE_SPI0_SPI_FRAME_FORMAT,
     .tx_fifo_threshold      = RTE_SPI0_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_SPI0_TX_FIFO_LEVEL_TO_START_TRANSFER,
-    .rx_fifo_threshold      = RTE_SPI0_RX_FIFO_THRESHOLD
+    .rx_fifo_threshold      = RTE_SPI0_RX_FIFO_THRESHOLD,
+    .irq                    = SPI0_IRQ_IRQn
 };
 
 extern void SPI0_IRQHandler(void);
@@ -788,7 +899,8 @@ static SPI_RESOURCES SPI1_RES = {
     .spi_frf                = RTE_SPI1_SPI_FRAME_FORMAT,
     .tx_fifo_threshold      = RTE_SPI1_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_SPI1_TX_FIFO_LEVEL_TO_START_TRANSFER,
-    .rx_fifo_threshold      = RTE_SPI1_RX_FIFO_THRESHOLD
+    .rx_fifo_threshold      = RTE_SPI1_RX_FIFO_THRESHOLD,
+    .irq                    = SPI1_IRQ_IRQn
 };
 
 extern void SPI1_IRQHandler(void);
@@ -894,7 +1006,8 @@ static SPI_RESOURCES SPI2_RES = {
     .spi_frf                = RTE_SPI2_SPI_FRAME_FORMAT,
     .tx_fifo_threshold      = RTE_SPI2_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_SPI2_TX_FIFO_LEVEL_TO_START_TRANSFER,
-    .rx_fifo_threshold      = RTE_SPI2_RX_FIFO_THRESHOLD
+    .rx_fifo_threshold      = RTE_SPI2_RX_FIFO_THRESHOLD,
+    .irq                    = SPI2_IRQ_IRQn
 };
 
 extern void SPI2_IRQHandler(void);
@@ -1000,7 +1113,8 @@ static SPI_RESOURCES SPI3_RES = {
     .spi_frf                = RTE_SPI3_SPI_FRAME_FORMAT,
     .tx_fifo_threshold      = RTE_SPI3_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_SPI3_TX_FIFO_LEVEL_TO_START_TRANSFER,
-    .rx_fifo_threshold      = RTE_SPI3_RX_FIFO_THRESHOLD
+    .rx_fifo_threshold      = RTE_SPI3_RX_FIFO_THRESHOLD,
+    .irq                    = SPI3_IRQ_IRQn
 };
 
 extern void SPI3_IRQHandler(void);
@@ -1109,3 +1223,111 @@ void SPI_Control_SlaveSelect(uint32_t device, uint32_t ss_state)
 }
 #endif
 #endif /* RTE_SPI3 */
+
+/* LPSPI driver instance */
+#if RTE_LPSPI
+static SPI_RESOURCES LPSPI_RES = {
+    .regs                   = (SPI_Type*) LPSPI_BASE,
+    .cb_event               = NULL,
+    .irq_priority           = RTE_LPSPI_IRQ_PRIORITY,
+    .drv_instance           = LPSPI_INSTANCE,
+    .slave_select           = RTE_LPSPI_CHIP_SELECTION_PIN,
+    .spi_frf                = RTE_LPSPI_SPI_FRAME_FORMAT,
+    .tx_fifo_threshold      = RTE_LPSPI_TX_FIFO_THRESHOLD,
+    .tx_fifo_start_level    = RTE_LPSPI_TX_FIFO_LEVEL_TO_START_TRANSFER,
+    .rx_fifo_threshold      = RTE_LPSPI_RX_FIFO_THRESHOLD,
+    .irq                    = LPSPI_IRQ_IRQn
+};
+
+extern void LPSPI_IRQHandler(void);
+void LPSPI_IRQHandler(void)
+{
+    spi_transfer_t *transfer = &(LPSPI_RES.transfer);
+
+    spi_irq_handler(LPSPI_RES.regs, transfer);
+
+    if (transfer->status == SPI_TRANSFER_STATUS_COMPLETE)
+    {
+        transfer->status = SPI_TRANSFER_STATUS_NONE;
+        LPSPI_RES.status.busy = 0;
+        LPSPI_RES.cb_event(ARM_SPI_EVENT_TRANSFER_COMPLETE);
+    }
+
+    if (transfer->status == SPI_TRANSFER_STATUS_OVERFLOW)
+    {
+        transfer->status = SPI_TRANSFER_STATUS_NONE;
+        LPSPI_RES.status.data_lost = 1;
+        LPSPI_RES.status.busy = 0;
+        LPSPI_RES.cb_event(ARM_SPI_EVENT_DATA_LOST);
+    }
+}
+
+static int32_t ARM_LPSPI_Initialize(ARM_SPI_SignalEvent_t cb_event)
+{
+    return ARM_SPI_Initialize(&LPSPI_RES, cb_event);
+}
+
+static int32_t ARM_LPSPI_Uninitialize(void)
+{
+    return ARM_SPI_Uninitialize(&LPSPI_RES);
+}
+
+static int32_t ARM_LPSPI_PowerControl(ARM_POWER_STATE state)
+{
+    return ARM_SPI_PowerControl(&LPSPI_RES, state);
+}
+
+static int32_t ARM_LPSPI_Send(const void *data, uint32_t num)
+{
+    return ARM_SPI_Send(&LPSPI_RES, data, num);
+}
+
+static int32_t ARM_LPSPI_Receive(void *data, uint32_t num)
+{
+    return ARM_SPI_Receive(&LPSPI_RES, data, num);
+}
+
+static int32_t ARM_LPSPI_Transfer(const void *data_out, void *data_in, uint32_t num)
+{
+    return ARM_SPI_Transfer(&LPSPI_RES, data_out, data_in, num);
+}
+
+static uint32_t ARM_LPSPI_GetDataCount(void)
+{
+    return ARM_SPI_GetDataCount(&LPSPI_RES);
+}
+
+static int32_t ARM_LPSPI_Control(uint32_t control, uint32_t arg)
+{
+    return ARM_SPI_Control(&LPSPI_RES, control, arg);
+}
+
+static ARM_SPI_STATUS ARM_LPSPI_GetStatus(void)
+{
+    return ARM_SPI_GetStatus(&LPSPI_RES);
+}
+
+#ifdef RTE_Drivers_SPI_MultiSlave
+    #if SPI_DRIVER == 0
+    static int32_t ARM_LPSPI_Control_SlaveSelect(uint32_t device, uint32_t ss_state)
+    {
+        return ARM_SPI_Control_SlaveSelect(&LPSPI_RES, device, ss_state);
+    }
+    #endif
+#endif
+
+extern ARM_DRIVER_SPI Driver_SPILP;
+ARM_DRIVER_SPI Driver_SPILP = {
+    ARM_SPI_GetVersion,
+    ARM_SPI_GetCapabilities,
+    ARM_LPSPI_Initialize,
+    ARM_LPSPI_Uninitialize,
+    ARM_LPSPI_PowerControl,
+    ARM_LPSPI_Send,
+    ARM_LPSPI_Receive,
+    ARM_LPSPI_Transfer,
+    ARM_LPSPI_GetDataCount,
+    ARM_LPSPI_Control,
+    ARM_LPSPI_GetStatus
+};
+#endif /* RTE_LPSPI */

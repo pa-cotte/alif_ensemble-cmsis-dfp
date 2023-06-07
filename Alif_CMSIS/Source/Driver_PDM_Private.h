@@ -20,6 +20,16 @@
 #include "Driver_PDM.h"
 #include "pdm.h"
 
+/**
+ * enum PDM_INSTANCE.
+ * PDM instances.
+ */
+typedef enum _PDM_INSTANCE
+{
+    PDM_INSTANCE_PDM0,    /* PDM instance   */
+    PDM_INSTANCE_LPPDM    /* LPPDM instance */
+}PDM_INSTANCE;
+
 /** \brief PDM Driver states. */
 typedef volatile struct _PDM_DRIVER_STATE {
     uint32_t initialized : 1;              /* Driver Initialized*/
@@ -36,6 +46,7 @@ typedef struct _PDM_RESOURCES
     PDM_Type                         *regs;                 /* PDM register address               */
     pdm_transfer_t                    transfer;             /* To store PDM Capture Configuration */
     PDM_DRIVER_STATE                  state;                /* PDM Driver state                   */
+    PDM_INSTANCE                      instance;             /* PDM Driver instance                */
     IRQn_Type                         error_irq;            /* PDM error IRQ number               */
     IRQn_Type                         warning_irq;          /* PDM warning IRQ number             */
     IRQn_Type                         audio_detect_irq;     /* PDM audio detect IRQ number        */

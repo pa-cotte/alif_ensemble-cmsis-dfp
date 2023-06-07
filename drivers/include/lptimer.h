@@ -122,6 +122,19 @@ static inline void lptimer_load_count (LPTIMER_Type *lptimer, uint8_t channel, u
 }
 
 /**
+  \fn          static inline void lptimer_load_max_count (LPTIMER_Type *lptimer, uint8_t channel)
+  \brief       Load maximum counter value
+  \param[in]   lptimer   Pointer to the LPTIMER register map
+  \param[in]   channel   lptimer channel
+  \return      none
+*/
+static inline void lptimer_load_max_count (LPTIMER_Type *lptimer, uint8_t channel)
+{
+    LPTIMER_CHANNEL_Type *lptimer_ch = (LPTIMER_CHANNEL_Type *)lptimer + channel;
+    lptimer_ch->LPTIMER_LOADCOUNT = 0xFFFFFFFF;
+}
+
+/**
   \fn          static inline uint32_t lptimer_get_count (LPTIMER_Type *lptimer, uint8_t channel, uint32_t *value)
   \brief       Get current counter value
   \param[in]   lptimer   Pointer to the LPTIMER register map

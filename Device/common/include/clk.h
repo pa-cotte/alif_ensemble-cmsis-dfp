@@ -127,14 +127,4 @@ static inline void disable_usb_periph_clk(void)
     CLKCTL_PER_MST->PERIPH_CLK_ENA &= ~PERIPH_CLK_ENA_USB_CKEN;
 }
 
-static inline void enable_csi_periph_clk(void)
-{
-    CLKCTL_PER_MST->PERIPH_CLK_ENA |= PERIPH_CLK_ENA_CSI_CKEN;
-}
-
-static inline void disable_csi_periph_clk(void)
-{
-    CLKCTL_PER_MST->PERIPH_CLK_ENA &= ~PERIPH_CLK_ENA_CSI_CKEN;
-}
-
 #endif /* CLK_H_ */

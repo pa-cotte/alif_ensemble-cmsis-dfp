@@ -202,7 +202,7 @@ static int32_t CDC200_Uninit (CDC_RESOURCES *cdc)
 static int32_t CDC200_PowerCtrl (ARM_POWER_STATE state, CDC_RESOURCES *cdc)
 {
     uint32_t pixclk, htotal, vtotal;
-    float pixclk_div;
+    int pixclk_div;
     int32_t ret = ARM_DRIVER_OK;
 
     if (cdc->state.initialized == 0)
@@ -276,15 +276,13 @@ static int32_t CDC200_PowerCtrl (ARM_POWER_STATE state, CDC_RESOURCES *cdc)
 
             pixclk = (htotal * vtotal * RTE_CDC200_DPI_FPS);
 
-            pixclk_div = (float)CDC200_PIXCLK / (htotal * vtotal * RTE_CDC200_DPI_FPS);
+            pixclk_div = (int) ((float)CDC200_PIXCLK / (htotal * vtotal * RTE_CDC200_DPI_FPS) + 0.5f);
 
             /*Checking clk divider is less than 2 because 0 and 1 are illegal value*/
-            if (pixclk_div < 2)
+            if (pixclk_div < 2 || pixclk_div > 511)
             {
                 return ARM_DRIVER_ERROR_PARAMETER;
             }
-
-            pixclk_div = (int)pixclk_div + ((pixclk_div - (int)pixclk_div) > 0.5);
 
             /* Enabling Source clock */
             enable_dpi_periph_clk();

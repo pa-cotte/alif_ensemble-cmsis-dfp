@@ -32,22 +32,8 @@ extern "C"
 #include CMSIS_device_header
 
 #include "Driver_SPI.h"
-
+#include "sys_ctrl_spi.h"
 #include "spi.h"
-
-#define SPI_IRQ_NUM(instance)                         (SPI0_IRQ_IRQn + instance)
-
-/**
- * enum SPI_INSTANCE.
- * SPI instances.
- */
-typedef enum _SPI_INSTANCE
-{
-    SPI_INSTANCE_0,                         /**< SPI instance - 0 */
-    SPI_INSTANCE_1,                         /**< SPI instance - 1 */
-    SPI_INSTANCE_2,                         /**< SPI instance - 2 */
-    SPI_INSTANCE_3                          /**< SPI instance - 3 */
-} SPI_INSTANCE;
 
 /** \brief SPI Driver states. */
 typedef volatile struct _SPI_DRIVER_STATE {
@@ -61,8 +47,6 @@ typedef struct _SPI_RESOURCES
 {
     SPI_Type                    *regs;              /**< Pointer to regs                            */
     ARM_SPI_SignalEvent_t       cb_event;           /**< Pointer to call back function              */
-    SPI_INSTANCE                drv_instance;       /**< Driver instance                            */
-    SPI_FRF                     spi_frf;            /**< SPI frame format - Standard/Dual/Quad/Octal*/
     ARM_SPI_STATUS              status;             /**< SPI driver status                          */
     SPI_DRIVER_STATE            state;              /**< SPI driver state                           */
     spi_transfer_t              transfer;           /**< Transfer structure for the SPI instance    */
@@ -70,17 +54,26 @@ typedef struct _SPI_RESOURCES
     uint8_t                     irq_priority;       /**< Interrupt priority                         */
     uint8_t                     slave_select;       /**< chip selection pin from 0-3                */
     uint8_t                     rx_fifo_threshold;  /**< Rx FIFO threshold                          */
-    uint16_t                    tx_fifo_start_level;/**< TX FIFO start level                        */
     uint8_t                     tx_fifo_threshold;  /**< Tx FIFO threshold                          */
+    SPI_FRF                     spi_frf;            /**< SPI frame format - Standard/Dual/Quad/Octal*/
+    SPI_INSTANCE                drv_instance;       /**< Driver instance                            */
+    uint16_t                    tx_fifo_start_level;/**< TX FIFO start level                        */
+    IRQn_Type                   irq;                /**< Instance IRQ number                        */
 } SPI_RESOURCES;
 
 /**
-  \fn          static inline uint32_t getSpiCoreClock(void)
+  \fn          static inline uint32_t getSpiCoreClock(SPI_INSTANCE instance)
   \brief       Get the SPI input clock rate
+  \param[in]   instance  spi instance
   \return      SPI input clock rate
 */
-static inline uint32_t getSpiCoreClock(void)
+static inline uint32_t getSpiCoreClock(SPI_INSTANCE instance)
 {
+    /* LPSPI will be enabled only for M55 HE */
+    if (instance == LPSPI_INSTANCE)
+    {
+        return SystemCoreClock;
+    }
     return AHB_CLOCK;
 }
 

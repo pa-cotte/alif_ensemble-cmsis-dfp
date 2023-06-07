@@ -54,6 +54,7 @@ extern "C"
 #define ISSI_4BYTE_FAST_READ                              0x0C
 #define ISSI_4BYTE_OCTAL_OUTPUT_FAST_READ                 0x7C
 #define ISSI_4BYTE_OCTAL_IO_FAST_READ                     0xCC
+#define ISSI_DDR_OCTAL_IO_FAST_READ                       0xFD
 
 /* WRITE OPERATIONS */
 #define ISSI_WRITE_ENABLE                                 0x06

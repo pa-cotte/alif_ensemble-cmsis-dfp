@@ -298,7 +298,6 @@ void i2c_master_init(I2C_Type *i2c, uint32_t clk_khz, uint32_t bus_speed,
                      uint32_t tar_addr, uint32_t caploading)
 {
     uint32_t ic_con_reg_value = 0;
-    uint32_t speed = 0;
 
     i2c_disable(i2c);
 
@@ -379,7 +378,6 @@ void i2c_master_tx_isr(I2C_Type *i2c, i2c_transfer_info_t *transfer)
     uint32_t last_cond = 0;
     uint32_t xmit_data = 0;
     uint32_t xmit_end  = 0;
-    uint32_t event     = 0;
 
     if (transfer->pending)
     {
@@ -510,7 +508,6 @@ void i2c_master_rx_isr(I2C_Type *i2c, i2c_transfer_info_t *transfer)
     uint32_t i2c_int_status;
     uint32_t last_cond = 0;
     uint32_t xmit_data = 0;
-    uint32_t event     = 0;
 
     if (transfer->pending)
     {
@@ -662,7 +659,6 @@ void i2c_slave_tx_isr(I2C_Type *i2c, i2c_transfer_info_t *transfer)
     uint32_t i2c_int_status;
     uint32_t xmit_data = 0;
     uint32_t xmit_end  = 0;
-    uint32_t event     = 0;
 
     i2c_int_status =(i2c->I2C_INTR_STAT);
 
@@ -739,9 +735,6 @@ void i2c_slave_tx_isr(I2C_Type *i2c, i2c_transfer_info_t *transfer)
 void i2c_slave_rx_isr(I2C_Type *i2c, i2c_transfer_info_t *transfer)
 {
     uint32_t i2c_int_status;
-    uint32_t last_cond = 0;
-    uint32_t xmit_data = 0;
-    uint32_t event     = 0;
 
     i2c_int_status = (i2c->I2C_INTR_STAT);
 

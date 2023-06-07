@@ -170,6 +170,21 @@ __STATIC_INLINE int32_t I2S_DMA_Allocate (DMA_PERIPHERAL_CONFIG *dma_periph)
         return ARM_DRIVER_ERROR;
     }
 
+    /* Enable the channel in the Event Router */
+    if(dma_periph->evtrtr_cfg.instance == 0)
+    {
+        evtrtr0_enable_dma_channel(dma_periph->evtrtr_cfg.channel,
+                                   dma_periph->evtrtr_cfg.group,
+                                   DMA_ACK_COMPLETION_PERIPHERAL);
+        evtrtr0_enable_dma_handshake(dma_periph->evtrtr_cfg.channel,
+                                     dma_periph->evtrtr_cfg.group);
+    }
+    else
+    {
+        evtrtrlocal_enable_dma_channel(dma_periph->evtrtr_cfg.channel,
+                                       DMA_ACK_COMPLETION_PERIPHERAL);
+    }
+
     return ARM_DRIVER_OK;
 }
 
@@ -190,6 +205,19 @@ __STATIC_INLINE int32_t I2S_DMA_DeAllocate (DMA_PERIPHERAL_CONFIG *dma_periph)
     {
         return ARM_DRIVER_ERROR;
     }
+
+    /* Disable the channel in the Event Router */
+    if(dma_periph->evtrtr_cfg.instance == 0)
+    {
+        evtrtr0_disable_dma_channel(dma_periph->evtrtr_cfg.channel);
+        evtrtr0_disable_dma_handshake(dma_periph->evtrtr_cfg.channel,
+                                      dma_periph->evtrtr_cfg.group);
+    }
+    else
+    {
+        evtrtrlocal_disable_dma_channel(dma_periph->evtrtr_cfg.channel);
+    }
+
 
     return ARM_DRIVER_OK;
 }
@@ -1709,11 +1737,26 @@ static I2S_DMA_HW_CONFIG I2S0_DMA_HW_CONFIG = {
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S0_DMA),
         .dma_periph_req = I2S0_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S0_DMA,
+             .group    = I2S0_DMA_GROUP,
+             .channel  = I2S0_DMA_RX_PERIPH_REQ,
+             .enable_handshake = I2S0_DMA_HANDSHAKE_ENABLE,
+        },
     },
     .dma_tx =
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S0_DMA),
         .dma_periph_req = I2S0_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S0_DMA,
+             .group    = I2S0_DMA_GROUP,
+             .channel  = I2S0_DMA_TX_PERIPH_REQ,
+             .enable_handshake = I2S0_DMA_HANDSHAKE_ENABLE,
+        },
+
     },
 };
 
@@ -1892,11 +1935,25 @@ static I2S_DMA_HW_CONFIG I2S1_DMA_HW_CONFIG = {
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S1_DMA),
         .dma_periph_req = I2S1_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S1_DMA,
+             .group    = I2S1_DMA_GROUP,
+             .channel  = I2S1_DMA_RX_PERIPH_REQ,
+             .enable_handshake = I2S1_DMA_HANDSHAKE_ENABLE,
+        },
     },
     .dma_tx =
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S1_DMA),
         .dma_periph_req = I2S1_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S1_DMA,
+             .group    = I2S1_DMA_GROUP,
+             .channel  = I2S1_DMA_TX_PERIPH_REQ,
+             .enable_handshake = I2S1_DMA_HANDSHAKE_ENABLE,
+        },
     },
 };
 
@@ -2075,11 +2132,25 @@ static I2S_DMA_HW_CONFIG I2S2_DMA_HW_CONFIG = {
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S2_DMA),
         .dma_periph_req = I2S2_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S2_DMA,
+             .group    = I2S2_DMA_GROUP,
+             .channel  = I2S2_DMA_RX_PERIPH_REQ,
+             .enable_handshake = I2S2_DMA_HANDSHAKE_ENABLE,
+        },
     },
     .dma_tx =
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S2_DMA),
         .dma_periph_req = I2S2_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S2_DMA,
+             .group    = I2S2_DMA_GROUP,
+             .channel  = I2S2_DMA_TX_PERIPH_REQ,
+             .enable_handshake = I2S2_DMA_HANDSHAKE_ENABLE,
+        },
     },
 };
 
@@ -2259,11 +2330,25 @@ static I2S_DMA_HW_CONFIG I2S3_DMA_HW_CONFIG = {
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S3_DMA),
         .dma_periph_req = I2S3_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S3_DMA,
+             .group    = I2S3_DMA_GROUP,
+             .channel  = I2S3_DMA_RX_PERIPH_REQ,
+             .enable_handshake = I2S3_DMA_HANDSHAKE_ENABLE,
+        },
     },
     .dma_tx =
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S3_DMA),
         .dma_periph_req = I2S3_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S3_DMA,
+             .group    = I2S3_DMA_GROUP,
+             .channel  = I2S3_DMA_TX_PERIPH_REQ,
+             .enable_handshake = I2S3_DMA_HANDSHAKE_ENABLE,
+        },
     },
 };
 
@@ -2443,11 +2528,25 @@ static I2S_DMA_HW_CONFIG LPI2S_DMA_HW_CONFIG = {
     {
         .dma_drv        = &ARM_Driver_DMA_(LPI2S_DMA),
         .dma_periph_req = LPI2S_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = LPI2S_DMA,
+             .group    = LPI2S_DMA_GROUP,
+             .channel  = LPI2S_DMA_RX_PERIPH_REQ,
+             .enable_handshake = LPI2S_DMA_HANDSHAKE_ENABLE,
+        },
     },
     .dma_tx =
     {
         .dma_drv        = &ARM_Driver_DMA_(LPI2S_DMA),
         .dma_periph_req = LPI2S_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = LPI2S_DMA,
+             .group    = LPI2S_DMA_GROUP,
+             .channel  = LPI2S_DMA_TX_PERIPH_REQ,
+             .enable_handshake = LPI2S_DMA_HANDSHAKE_ENABLE,
+        },
     },
 };
 

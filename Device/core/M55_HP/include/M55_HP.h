@@ -85,6 +85,40 @@ extern "C" {
 /* ----------  Local DMA IRQ Number Aliases  ---------- */
 #define DMALOCAL_IRQ0_IRQn          DMA1_IRQ0_IRQn
 
+/* ----------  Local MHU IRQ Handler Aliases  ---------- */
+#define MHU_APSS_S_RX_IRQHandler    MHU_A32_M55HP_0_RX_IRQHandler
+#define MHU_APSS_S_TX_IRQHandler    MHU_M55HP_A32_0_TX_IRQHandler
+#define MHU_APSS_NS_RX_IRQHandler   MHU_A32_M55HP_1_RX_IRQHandler
+#define MHU_APSS_NS_TX_IRQHandler   MHU_M55HP_A32_1_TX_IRQHandler
+#define MHU_SESS_S_RX_IRQHandler    MHU_SECPU_M55HP_0_RX_IRQHandler
+#define MHU_SESS_S_TX_IRQHandler    MHU_M55HP_SECPU_0_TX_IRQHandler
+#define MHU_SESS_NS_RX_IRQHandler   MHU_SECPU_M55HP_1_RX_IRQHandler
+#define MHU_SESS_NS_TX_IRQHandler   MHU_M55HP_SECPU_1_TX_IRQHandler
+#define MHU_RTSS_S_RX_IRQHandler    MHU_M55HE_M55HP_0_RX_IRQHandler
+#define MHU_RTSS_S_TX_IRQHandler    MHU_M55HP_M55HE_0_TX_IRQHandler
+#define MHU_RTSS_NS_RX_IRQHandler   MHU_M55HE_M55HP_1_RX_IRQHandler
+#define MHU_RTSS_NS_TX_IRQHandler   MHU_M55HP_M55HE_1_TX_IRQHandler
+
+/* ----------  Local MHU IRQ Number Aliases  ---------- */
+#define MHU_APSS_S_RX_IRQ_IRQn      MHU_A32_M55HP_0_RX_IRQ_IRQn
+#define MHU_APSS_S_TX_IRQ_IRQn      MHU_M55HP_A32_0_TX_IRQ_IRQn
+#define MHU_APSS_NS_RX_IRQ_IRQn     MHU_A32_M55HP_1_RX_IRQ_IRQn
+#define MHU_APSS_NS_TX_IRQ_IRQn     MHU_M55HP_A32_1_TX_IRQ_IRQn
+#define MHU_SESS_S_RX_IRQ_IRQn      MHU_SECPU_M55HP_0_RX_IRQ_IRQn
+#define MHU_SESS_S_TX_IRQ_IRQn      MHU_M55HP_SECPU_0_TX_IRQ_IRQn
+#define MHU_SESS_NS_RX_IRQ_IRQn     MHU_SECPU_M55HP_1_RX_IRQ_IRQn
+#define MHU_SESS_NS_TX_IRQ_IRQn     MHU_M55HP_SECPU_1_TX_IRQ_IRQn
+#define MHU_RTSS_S_RX_IRQ_IRQn      MHU_M55HE_M55HP_0_RX_IRQ_IRQn
+#define MHU_RTSS_S_TX_IRQ_IRQn      MHU_M55HP_M55HE_0_TX_IRQ_IRQn
+#define MHU_RTSS_NS_RX_IRQ_IRQn     MHU_M55HE_M55HP_1_RX_IRQ_IRQn
+#define MHU_RTSS_NS_TX_IRQ_IRQn     MHU_M55HP_M55HE_1_TX_IRQ_IRQn
+
+/* ----------  Local NPU IRQ Handler Aliases  ---------- */
+#define LOCAL_NPU_IRQHandler        NPU_HP_IRQHandler
+
+/* ----------  Local NPU IRQ Number Aliases  ---------- */
+#define LOCAL_NPU_IRQ_IRQn          NPU_HP_IRQ_IRQn
+
 /* -------------------------  Interrupt Number Definition  ------------------------ */
 
 typedef enum {
@@ -180,7 +214,22 @@ typedef enum {
   MHU_M55HP_M55HE_0_TX_IRQ_IRQn=  42,           /*!< 42 Interrupt                                                              */
   MHU_M55HE_M55HP_1_RX_IRQ_IRQn=  43,           /*!< 43 Interrupt                                                              */
   MHU_M55HP_M55HE_1_TX_IRQ_IRQn=  44,           /*!< 44 Interrupt                                                              */
+  NPU_HP_IRQ_IRQn	    =  55,              /*!< 55 NPU interrupt request		                                       */
+  LPCMP_IRQ_IRQn	    =  56,              /*!< 56 LPCMP interrupt request		                                       */
   LPGPIO_COMB_IRQ_IRQn      =  57,              /*!< 57 LPGPIO combined interrupt request                                      */
+  LPRTC_IRQ_IRQn            =  58,
+  LPTIMER0_IRQ_IRQn         =  60,
+  LPTIMER1_IRQ_IRQn         =  61,
+  LPTIMER2_IRQ_IRQn         =  62,
+  LPTIMER3_IRQ_IRQn         =  63,
+  REFCLK_CNTBASE0_IRQ_IRQn  =  67,              /*!< 67 refclk cntbase0 interrupt request                                      */
+  REFCLK_CNTBASE1_IRQ_IRQn  =  68,              /*!< 68 refclk cntbase1 interrupt request                                      */
+  REFCLK_CNTBASE2_IRQ_IRQn  =  69,              /*!< 69 refclk cntbase2 interrupt request                                      */
+  REFCLK_CNTBASE3_IRQ_IRQn  =  70,              /*!< 70 refclk cntbase3 interrupt request                                      */
+  S32K_CNTBASE0_IRQ_IRQn    =  71,              /*!< 71 s32k cntbase0 interrupt request                                        */
+  S32K_CNTBASE1_IRQ_IRQn    =  72,              /*!< 72 s32k cntbase1 interrupt request                                        */
+  SOC_ETR_IRQ_IRQn      =  73,              /*!< 73 SOC ETR interrupt request                                                  */
+  SOC_CATU_IRQ_IRQn       =  74,              /*!< 74 SOC CATU interrupt request                                               */
   OSPI0_IRQ_IRQn            =  96,              /*!< 96 Combined interrupt request from OSPI0 routed to the interrupt
                                                      controllers in the device. For more information on the
                                                      internal interrupt requests, see Section OSPI Interrupt
@@ -197,6 +246,7 @@ typedef enum {
                                                      controllers in the device. For more information on the
                                                      internal interrupt requests, see Section OSPI Interrupt
                                                      Requests.                                                                 */
+  BOD_IRQ_IRQn              = 100,              /*!< 100  BOD interrupt                                                        */
   USB_IRQ_IRQn              = 101,              /*!< 101  USB interrupt                                                        */
   SDMMC_IRQ_IRQn            = 102,              /*!< 102  SDMMC Interrupt request                                              */
   SDMMC_WAKEUP_IRQ_IRQn     = 103,              /*!< 103  SDMMC Wakeup event interrupt request                                 */
@@ -217,6 +267,9 @@ typedef enum {
   HWSEM_IRQ13_IRQn          = 118,              /*!< 118  HWSEM interrupt request 13                                           */
   HWSEM_IRQ14_IRQn          = 119,              /*!< 119  HWSEM interrupt request 14                                           */
   HWSEM_IRQ15_IRQn          = 120,              /*!< 120  HWSEM interrupt request 15                                           */
+  PPU0_IRQ_IRQn             = 121,              /*!< 121  PPU0 interrupt request                                               */
+  PPU1_IRQ_IRQn             = 122,              /*!< 122  PPU1 interrupt request                                               */
+  PPU2_IRQ_IRQn             = 123,              /*!< 123  PPU2 interrupt request                                               */
   UART0_IRQ_IRQn            = 124,              /*!< 124  UART0 interrupt request                                              */
   UART1_IRQ_IRQn            = 125,              /*!< 125  UART1 interrupt request                                              */
   UART2_IRQ_IRQn            = 126,              /*!< 126  UART2 interrupt request                                              */
@@ -472,11 +525,11 @@ typedef enum {
   DSI_IRQ_IRQn              = 343,              /*!< 343  DSI error interrupt                                                  */
   CSI_IRQ_IRQn              = 344,              /*!< 344  CSI interrupt                                                        */
   CAM_IRQ_IRQn              = 345,              /*!< 345  CPI interrupt                                                        */
-  LPTIMER0_IRQ_IRQn         = 346,              /*!< 346  LPTIMER0 interrupt request                                           */
-  LPTIMER1_IRQ_IRQn         = 347,              /*!< 347  LPTIMER1 interrupt request                                           */
-  LPTIMER2_IRQ_IRQn         = 348,              /*!< 348  LPTIMER2 interrupt request                                           */
-  LPTIMER3_IRQ_IRQn         = 349,              /*!< 349  LPTIMER3 interrupt request                                           */
-  LPRTC_IRQ_IRQn            = 350,              /*!< 350  LPRTC interrupt request                                              */
+//  LPTIMER0_IRQ_IRQn         = 346,              /*!< 346  LPTIMER0 interrupt request                                           */
+//  LPTIMER1_IRQ_IRQn         = 347,              /*!< 347  LPTIMER1 interrupt request                                           */
+//  LPTIMER2_IRQ_IRQn         = 348,              /*!< 348  LPTIMER2 interrupt request                                           */
+//  LPTIMER3_IRQ_IRQn         = 349,              /*!< 349  LPTIMER3 interrupt request                                           */
+//  LPRTC_IRQ_IRQn            = 350,              /*!< 350  LPRTC interrupt request                                              */
   QEC0_CMPA_IRQ_IRQn        = 369,              /*!< 369  Channel 12 interrupt request at driver A                             */
   QEC0_CMPB_IRQ_IRQn        = 370,              /*!< 370  Channel 12 interrupt request at driver B                             */
   QEC1_CMPA_IRQ_IRQn        = 371,              /*!< 371  Channel 13 interrupt request at driver A                             */
@@ -583,7 +636,6 @@ typedef enum {
   UTIMER_IRQ95_IRQn         = 472               /*!< 472  Channel 11, interrupt request 95                                     */
 } IRQn_Type;
 
-
 /* ================================================================================ */
 /* ================      Processor and Core Peripheral Section     ================ */
 /* ================================================================================ */
@@ -612,7 +664,7 @@ typedef enum {
 
 
 /* --------  Configuration of Core Peripherals  ----------------------------------- */
-#define __CM55_REV                0x0001U   /* Core revision r0p1 */
+#define __CM55_REV                0x0100U   /* Core revision r1p0 */
 #define __NVIC_PRIO_BITS          8U        /* Number of Bits used for Priority Levels */
 #define __Vendor_SysTickConfig    0U        /* Set to 1 if different SysTick Config is used */
 #define __VTOR_PRESENT            1U        /* VTOR present */
@@ -660,6 +712,16 @@ typedef enum {
 #endif
 
 #define HWSEM_MASTERID                           0x410FD221
+
+/*
+ * Prefetch Control Default Values
+ */
+ /* Max Outstanding line-fills issued on AXI. Possible values <1-6>*/
+#define MEMSYSCTL_PFCR_MAX_OS_DEFAULT_VALUE      5
+/* Max Look Ahead distance. Possible values <0-6>*/
+#define MEMSYSCTL_PFCR_MAX_LA_DEFAULT_VALUE      6
+/* Min Look Ahead distance. Possible values <0-6>*/
+#define MEMSYSCTL_PFCR_MIN_LA_DEFAULT_VALUE      2
 
 #ifdef __cplusplus
 }
