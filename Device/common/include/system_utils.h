@@ -140,10 +140,10 @@ uint32_t LocalToGlobal(const volatile void *local_addr)
      */
     uint32_t addr = (uint32_t)local_addr;
 
-    if((addr >= DTCM_BASE) && (addr < (DTCM_BASE + DTCM_SIZE)))
-        return (addr - DTCM_BASE + DTCM_GLOBAL_BASE);
-    else if((addr < (ITCM_BASE + ITCM_SIZE)))
-        return (addr - ITCM_BASE + ITCM_GLOBAL_BASE);
+    if((addr >= DTCM_BASE) && (addr < (DTCM_BASE + DTCM_REGION_SIZE)))
+        return (addr & (DTCM_ALIAS_BIT-1)) + DTCM_GLOBAL_BASE;
+    else if((addr < (ITCM_BASE + DTCM_REGION_SIZE)))
+        return (addr & (ITCM_ALIAS_BIT-1)) + ITCM_GLOBAL_BASE;
     else
         return (addr);
 }
