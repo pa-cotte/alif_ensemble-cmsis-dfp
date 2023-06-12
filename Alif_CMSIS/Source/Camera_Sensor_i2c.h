@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -67,7 +67,6 @@ typedef enum _CAMERA_SENSOR_I2C_REG_SIZE {
 \brief Camera Sensor Slave i2c Configuration
 */
 typedef struct CAMERA_SENSOR_SLAVE_I2C_CONFIG {
-  CAMERA_SENSOR_I2C_USING_I3Cx_INSTANCE I3Cx_instance;                   /* Camera Sensor slave i2c using I3Cx instance   */
   CAMERA_SENSOR_I2C_SPEED_MODE          speed_mode;                      /* Camera Sensor slave i2c Speed Mode            */
   uint8_t                               cam_sensor_slave_addr;           /* Camera Sensor slave i2c Address               */
   CAMERA_SENSOR_I2C_REG_ADDR_TYPE       cam_sensor_slave_reg_addr_type;  /* Camera Sensor slave i2c Register Address type */

@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -13,29 +13,28 @@
  * @author   Sudarshan Iyengar
  * @email    sudarshan.iyengar@alifsemi.com
  * @version  V1.0.0
- * @date     23-August-2021
+ * @date     27-May-2023
  * @brief    TestApp to verify UART interface using FreeRTOS as an operating system.
  *           UART interactive console application (using UART4 instance):
  *             UART waits for a char on serial terminal;
  *               if 'Enter' key is received; UART Sends back "Hello World!".
  *               else, it sends back received character.
  * @bug      None.
- * @Note     None.
+ * @Note     Updated for B0 PinMux.
  ******************************************************************************/
 
-/* Includes --------------------------------------------------------------------------- */
+/* Includes ----------------------------------------------------------------- */
 
 /* System Includes */
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-/* Project Includes */
 
+/* Project Includes */
 /* include for UART Driver */
 #include "Driver_USART.h"
-#include "Driver_GPIO.h"
-#include "Driver_PINMUX_AND_PINPAD.h"
+#include "pinconf.h"
 
 /*RTOS Includes*/
 #include "RTE_Components.h"
@@ -47,8 +46,8 @@
 
 /*Define for FreeRTOS*/
 #define STACK_SIZE     1024
-#define TIMER_SERVICE_TASK_STACK_SIZE configTIMER_TASK_STACK_DEPTH // 512
-#define IDLE_TASK_STACK_SIZE          configMINIMAL_STACK_SIZE // 1024
+#define TIMER_SERVICE_TASK_STACK_SIZE configTIMER_TASK_STACK_DEPTH
+#define IDLE_TASK_STACK_SIZE          configMINIMAL_STACK_SIZE
 
 StackType_t IdleStack[2 * IDLE_TASK_STACK_SIZE];
 StaticTask_t IdleTcb;
@@ -72,7 +71,8 @@ __asm(".global __use_no_semihosting");
             #error Unsupported compiler
     #endif
 
-void _sys_exit(int return_code) {
+void _sys_exit(int return_code)
+{
    while (1);
 }
 #endif
@@ -92,7 +92,8 @@ TaskHandle_t Uart_xHandle;
 /****************************** FreeRTOS functions **********************/
 
 void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
-      StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize) {
+      StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize)
+{
    *ppxIdleTaskTCBBuffer = &IdleTcb;
    *ppxIdleTaskStackBuffer = IdleStack;
    *pulIdleTaskStackSize = IDLE_TASK_STACK_SIZE;
@@ -101,7 +102,6 @@ void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
 void vApplicationStackOverflowHook(TaskHandle_t pxTask, char *pcTaskName)
 {
    (void) pxTask;
-
    for (;;);
 }
 
@@ -129,18 +129,35 @@ void vApplicationIdleHook(void)
  */
 void myUART_callback(uint32_t event)
 {
-   if (event & ARM_USART_EVENT_SEND_COMPLETE) {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE, xResult = pdFALSE;
+
+   if (event & ARM_USART_EVENT_SEND_COMPLETE)
+   {
       /* Success: Wakeup Thread */
-      xTaskNotifyFromISR(Uart_xHandle,UART_TX_CB_EVENT,eSetBits, NULL);
+      xTaskNotifyFromISR(Uart_xHandle,UART_TX_CB_EVENT,eSetBits, &xHigherPriorityTaskWoken);
+      if (xResult == pdTRUE)
+      {
+          portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+      }
    }
-   if (event & ARM_USART_EVENT_RECEIVE_COMPLETE) {
+
+   if (event & ARM_USART_EVENT_RECEIVE_COMPLETE)
+   {
       /* Success: Wakeup Thread */
-      xTaskNotifyFromISR(Uart_xHandle,UART_RX_CB_EVENT,eSetBits, NULL);
+      xTaskNotifyFromISR(Uart_xHandle,UART_RX_CB_EVENT,eSetBits, &xHigherPriorityTaskWoken);
+      if (xResult == pdTRUE)
+      {
+          portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+      }
    }
-   if (event & ARM_USART_EVENT_RX_TIMEOUT) {
+
+   if (event & ARM_USART_EVENT_RX_TIMEOUT)
+   {
       /* Error: Call debugger or replace with custom error handling */
    }
-   if (event & (ARM_USART_EVENT_RX_OVERFLOW | ARM_USART_EVENT_TX_UNDERFLOW)) {
+
+   if (event & (ARM_USART_EVENT_RX_OVERFLOW | ARM_USART_EVENT_TX_UNDERFLOW))
+   {
       /* Error: Call debugger or replace with custom error handling */
    }
 }
@@ -154,34 +171,17 @@ void myUART_callback(uint32_t event)
  */
 int hardware_init(void)
 {
-   int ret;
+   /* UART4_RX_B */
+   pinconf_set( PORT_12, PIN_1, PINMUX_ALTERNATE_FUNCTION_2, PADCTRL_READ_ENABLE);
 
-   /* PINMUX UART4_B */
-
-   /* Configure GPIO Pin : P3_1 as UART4_RX_B */
-   ret = PINMUX_Config(PORT_NUMBER_3, PIN_NUMBER_1,
-   PINMUX_ALTERNATE_FUNCTION_1);
-   if (ret != ARM_DRIVER_OK)
-   {
-      printf("\r\n Error in PINMUX \r\n");
-      return -1;
-   }
-
-   /* Configure GPIO Pin : P3_2 as UART4_TX_B */
-   ret = PINMUX_Config(PORT_NUMBER_3, PIN_NUMBER_2,
-   PINMUX_ALTERNATE_FUNCTION_1);
-   if (ret != ARM_DRIVER_OK)
-   {
-      printf("\r\n Error in PINMUX.\r\n");
-      return -1;
-   }
+   /* UART4_TX_B */
+   pinconf_set( PORT_12, PIN_2, PINMUX_ALTERNATE_FUNCTION_2, 0);
 
    return 0;
 }
 
 void Uart_Thread(void *pvParameters)
 {
-
    uint8_t cmd = 0;
    uint32_t ret = 0;
    uint32_t events = 0;
@@ -217,11 +217,11 @@ void Uart_Thread(void *pvParameters)
    }
 
    /* Configure UART to 115200 Bits/sec */
-   ret = USARTdrv->Control(ARM_USART_MODE_ASYNCHRONOUS |
-   ARM_USART_DATA_BITS_8 |
-   ARM_USART_PARITY_NONE |
-   ARM_USART_STOP_BITS_1 |
-   ARM_USART_FLOW_CONTROL_NONE, 115200);
+   ret = USARTdrv->Control(ARM_USART_MODE_ASYNCHRONOUS        |
+                           ARM_USART_DATA_BITS_8              |
+                           ARM_USART_PARITY_NONE              |
+                           ARM_USART_STOP_BITS_1              |
+                           ARM_USART_FLOW_CONTROL_NONE, 115200);
    if (ret != ARM_DRIVER_OK)
    {
       printf("\r\n Error in UART Control.\r\n");
@@ -245,7 +245,7 @@ void Uart_Thread(void *pvParameters)
 
    printf("\r\n Press Enter or any character on serial terminal to receive a message:\r\n");
 
-   ret = USARTdrv->Send("\nPress Enter or any character to receive a message\n", 51);
+   ret = USARTdrv->Send("\r\nPress Enter or any character to receive a message\r\n", 53);
    if (ret != ARM_DRIVER_OK)
    {
       printf("\r\n Error in UART Send.\r\n");
@@ -268,15 +268,13 @@ void Uart_Thread(void *pvParameters)
 
       if (cmd == 13) /* CR, send greeting  */
       {
-         USARTdrv->Send("\nHello World!", 14);
-
+         USARTdrv->Send("\r\nHello World!\r\n", 16);
       }
       else /* else send back received character. */
       {
-         ret = USARTdrv->Send(&cmd, 1);
+         USARTdrv->Send(&cmd, 1);
       }
       xTaskNotifyWait(NULL,UART_TX_CB_EVENT,NULL, portMAX_DELAY);
-
    }
 
    printf("\r\n XXX UART demo thread exiting XXX...\r\n");
@@ -285,7 +283,8 @@ error_poweroff:
 
    /* Received error Power off UART peripheral */
    ret = USARTdrv->PowerControl(ARM_POWER_OFF);
-   if (ret != ARM_DRIVER_OK) {
+   if (ret != ARM_DRIVER_OK)
+   {
       printf("\r\n Error in UART Power OFF.\r\n");
    }
 
@@ -293,10 +292,13 @@ error_uninitialize:
 
    /* Received error Un-initialize UART driver */
    ret = USARTdrv->Uninitialize();
-   if (ret != ARM_DRIVER_OK) {
+   if (ret != ARM_DRIVER_OK)
+   {
       printf("\r\n Error in UART Uninitialize.\r\n");
    }
 
+   /* thread delete */
+   vTaskDelete( NULL );
 }
 
 /*----------------------------------------------------------------------------
@@ -308,7 +310,7 @@ int main(void)
    SystemCoreClockUpdate();
 
    /* Create application main thread */
-   BaseType_t xReturned = xTaskCreate(Uart_Thread, "UartThread", 1024, NULL,configMAX_PRIORITIES-1, &Uart_xHandle);
+   BaseType_t xReturned = xTaskCreate(Uart_Thread, "UartThread", 256, NULL,configMAX_PRIORITIES-1, &Uart_xHandle);
    if (xReturned != pdPASS)
    {
       vTaskDelete(Uart_xHandle);

@@ -16,10 +16,17 @@
  * @date     04-April-2022
  * @brief    Baremetal TestApp to verify i2c communication with
  *           multiple i2c slave devices using i3c IP
+ *
+ *           hardware setup
+ *           BMI Slave is internally connected with the I3C_D
+ *           No hardware setup required.
+ *           Pins used:
+ *           P7_6 (SDA)
+ *           P7_7 (SCL)
+ *
  * @bug      None.
  * @Note     None.
  ******************************************************************************/
-
 
 /* System Includes */
 #include <stdio.h>
@@ -29,9 +36,9 @@
 #include <RTE_Components.h>
 #include CMSIS_device_header
 
-/* i3c Driver instance 0 */
-extern ARM_DRIVER_I3C Driver_I3C0;
-static ARM_DRIVER_I3C *I3Cdrv = &Driver_I3C0;
+/* i3c Driver */
+extern ARM_DRIVER_I3C Driver_I3C;
+static ARM_DRIVER_I3C *I3Cdrv = &Driver_I3C;
 
 /* Comment this if output is to be observed on debugger console via semihosting */
 #define DISABLE_PRINTF
@@ -55,11 +62,16 @@ static ARM_DRIVER_I3C *I3Cdrv = &Driver_I3C0;
 
 void i2c_using_i3c_demo_thread_entry();
 
-/* i2c callback events */
-typedef enum {
-	I2C_CB_EVENT_SUCCESS   = (1 << 0),
-	I2C_CB_EVENT_ERROR     = (1 << 1)
-}I2C_CB_EVENTS;
+/* i3c callback events */
+typedef enum _I3C_CB_EVENT{
+    I3C_CB_EVENT_SUCCESS        = (1 << 0),
+    I3C_CB_EVENT_ERROR          = (1 << 1),
+    I3C_CB_EVENT_MST_TX_DONE    = (1 << 2),
+    I3C_CB_EVENT_MST_RX_DONE    = (1 << 3),
+    I3C_CB_EVENT_SLV_TX_DONE    = (1 << 4),
+    I3C_CB_EVENT_SLV_RX_DONE    = (1 << 5),
+    I3C_CB_EVENT_DYN_ADDR_ASSGN = (1 << 6)
+}I3C_CB_EVENT;
 
 volatile int32_t cb_event_flag = 0;
 
@@ -73,17 +85,18 @@ volatile int32_t cb_event_flag = 0;
 */
 int32_t hardware_init(void)
 {
-	/* I3C_SDA_A */
-	pinconf_set( PORT_0, PIN_0, PINMUX_ALTERNATE_FUNCTION_3, \
-			PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP | \
-			PADCTRL_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS);
 
-	/* I3C_SCL_A */
-	pinconf_set( PORT_0, PIN_1, PINMUX_ALTERNATE_FUNCTION_3, \
-			PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP | \
-			PADCTRL_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS);
+  /* I3C_SDA_D */
+  pinconf_set(PORT_7, PIN_6, PINMUX_ALTERNATE_FUNCTION_6,
+          PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP | \
+          PADCTRL_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS);
 
-	return ARM_DRIVER_OK;
+  /* I3C_SCL_D */
+  pinconf_set( PORT_7, PIN_7, PINMUX_ALTERNATE_FUNCTION_6,
+          PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP | \
+          PADCTRL_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS);
+
+    return ARM_DRIVER_OK;
 }
 
 /**
@@ -97,43 +110,43 @@ void I3C_callback(uint32_t event)
 	if (event & ARM_I3C_EVENT_TRANSFER_DONE)
 	{
 		/* Transfer Success */
-		cb_event_flag = I2C_CB_EVENT_SUCCESS;
+		cb_event_flag = I3C_CB_EVENT_SUCCESS;
 	}
 
 	if (event & ARM_I3C_EVENT_TRANSFER_ERROR)
 	{
 		/* Transfer Error */
-		cb_event_flag = I2C_CB_EVENT_ERROR;
+		cb_event_flag = I3C_CB_EVENT_ERROR;
 	}
 
 	if (event & ARM_I3C_EVENT_MST_TX_DONE)
 	{
 		/* Transfer Success */
-		cb_event_flag = I2C_CB_EVENT_SUCCESS;
+		cb_event_flag = I3C_CB_EVENT_MST_TX_DONE;
 	}
 
 	if (event & ARM_I3C_EVENT_MST_RX_DONE)
 	{
 		/* Transfer Success */
-		cb_event_flag = I2C_CB_EVENT_SUCCESS;
+		cb_event_flag = I3C_CB_EVENT_MST_RX_DONE;
 	}
 
 	if (event & ARM_I3C_EVENT_SLV_TX_DONE)
 	{
 		/* Transfer Success */
-		cb_event_flag = I2C_CB_EVENT_SUCCESS;
+		cb_event_flag = I3C_CB_EVENT_SLV_TX_DONE;
 	}
 
 	if (event & ARM_I3C_EVENT_SLV_RX_DONE)
 	{
 		/* Transfer Success */
-		cb_event_flag = I2C_CB_EVENT_SUCCESS;
+		cb_event_flag = I3C_CB_EVENT_SLV_RX_DONE;
 	}
 
-	if (event & ARM_I3C_DYN_ADDR_ASSGN)
+	if (event & ARM_I3C_EVENT_SLV_DYN_ADDR_ASSGN)
 	{
 		/* Transfer Success */
-		cb_event_flag = I2C_CB_EVENT_SUCCESS;
+		cb_event_flag = I3C_CB_EVENT_DYN_ADDR_ASSGN;
 	}
 }
 
@@ -157,43 +170,29 @@ void i2c_using_i3c_demo_thread_entry()
 {
 
 /* Maximum 8 Slave Devices are supported */
-#define MAX_SLAVE_SUPPORTED   8
+#define MAX_SLAVE_SUPPORTED   3
 
-/* ONsemi MT9M114 Camera slave address (chip-id 0x2481) */
-#define ONSEMI_CAM_ADDR       0x48
-
-/* Himax Camera slave address (chip-id 0x01B0) */
-#define HIMAX_CAM_ADDR        0x24
-
-/* Imax 219 Camera slave address (chip-id 0x0219) */
-#define IMAX_CAM_ADDR         0x10
-
-/* Touch controller Gt911 slave address */
-#define TOUCH_CTRL_ADDR       0x14
-
-/* ICM-42670-P Accelerometer Slave address(On-chip attached to A1 Base Board) */
-#define ACCERO_ADDR           0x68
+/* BMI slave address (chip-id 0x43) */
+#define BMI_ADDR              0x69
 
 /* Dummy Slave */
 #define DUMMY_SLAVE1          0x50
 #define DUMMY_SLAVE2          0x55
-#define DUMMY_SLAVE3          0x56
 
 	int32_t   i      = 0;
 	int32_t   ret    = 0;
 	int32_t   len    = 0;
-	uint32_t  timeout = 0;
+	uint32_t  retry_cnt = 0;
 	uint8_t   tx_data[2] = {0};   /* transmit data to   i3c */
-	uint8_t   rx_data[2] = {0};   /* receive  data from i3c */
+	uint8_t   rx_data[3] = {0};   /* receive  data from i3c */
 	ARM_DRIVER_VERSION version;
 
     /* array of i2c slave address(static) */
 	uint8_t slave_addr[MAX_SLAVE_SUPPORTED] =
 	{
-		ACCERO_ADDR,    ONSEMI_CAM_ADDR,  \
-		IMAX_CAM_ADDR,  TOUCH_CTRL_ADDR,  \
-		HIMAX_CAM_ADDR, DUMMY_SLAVE1,     \
-		DUMMY_SLAVE2,   DUMMY_SLAVE3      \
+	         BMI_ADDR,
+		 DUMMY_SLAVE1,
+		 DUMMY_SLAVE2
 	};
 
 	printf("\r\n \t\t >>> i2c using i3c demo starting up!!! <<< \r\n");
@@ -232,7 +231,7 @@ void i2c_using_i3c_demo_thread_entry()
 	 *  I3C_BUS_MODE_MIXED_FAST_I2C_FM_SPEED_400_KBPS : Fast Mode      400 KBPS
 	 *  I3C_BUS_MODE_MIXED_SLOW_I2C_SS_SPEED_100_KBPS : Standard Mode  100 KBPS
 	 */
-	ret = I3Cdrv->Control(I3C_MASTER_SET_BUS_MODE,  \
+	ret = I3Cdrv->Control(I3C_MASTER_SET_BUS_MODE,
                            I3C_BUS_MODE_MIXED_SLOW_I2C_SS_SPEED_100_KBPS);
 	if(ret != ARM_DRIVER_OK)
 	{
@@ -259,9 +258,6 @@ void i2c_using_i3c_demo_thread_entry()
 	 * @Note:
 	 *  How much data(register address + actual data) user has to Transmit/Receive ?
 	 *   it depends on Slave's register address location bytes.
-	 *
-	 *  Generally, Camera Slave supports      16-bit(2 Byte) reg-addr and (8/16/32 bit) data
-	 *   Others Accelerometer/EEPROM supports  8-bit(1 Byte) reg-addr and (8/16/32 bit) data
 	 *
 	 *  First LSB[7-0] will be added to TX FIFO and first transmitted on the i3c bus;
 	 *   remaining bytes will be added in LSB -> MSB order.
@@ -324,12 +320,12 @@ void i2c_using_i3c_demo_thread_entry()
 			}
 
 			/* wait till any event success/error comes in isr callback */
-			timeout = 1000;
-			while (timeout--)
+			retry_cnt = 1000;
+			while (retry_cnt--)
 			{
 				/* delay for 1 milli sec */
 				PMU_delay_loop_us (1000);
-				if(cb_event_flag == I2C_CB_EVENT_SUCCESS)
+				if(cb_event_flag == I3C_CB_EVENT_MST_TX_DONE)
 				{
 					/* TX Success: Got ACK from slave */
 					printf("\r\n \t\t >> i=%d TX Success: Got ACK from slave addr:0x%X.\r\n",  \
@@ -337,7 +333,7 @@ void i2c_using_i3c_demo_thread_entry()
 					break;
 				}
 
-				if(cb_event_flag == I2C_CB_EVENT_ERROR)
+				if(cb_event_flag == I3C_CB_EVENT_ERROR)
 				{
 					/* TX Error: Got NACK from slave */
 					printf("\r\n \t\t >> i=%d TX Error: Got NACK from slave addr:0x%X \r\n",  \
@@ -346,9 +342,9 @@ void i2c_using_i3c_demo_thread_entry()
 				}
 			}
 
-			if ( (!(timeout)) && (!(cb_event_flag)) )
+			if ( (!(retry_cnt)) && (!(cb_event_flag)) )
 			{
-				printf("Error: event timeout \r\n");
+				printf("Error: event retry_cnt \r\n");
 				goto error_detach;
 			}
 
@@ -357,7 +353,9 @@ void i2c_using_i3c_demo_thread_entry()
 			/* clear rx data buffer. */
 			rx_data[0] = 0;
 			rx_data[1] = 0;
+			rx_data[2] = 0;
 
+			len = 3;
 			/* For RX, User has to pass
 			 * Slave Address + Pointer to RX data + length of the RX data.
 			 */
@@ -370,22 +368,22 @@ void i2c_using_i3c_demo_thread_entry()
 			}
 
 			/* wait till any event success/error comes in isr callback */
-			timeout = 1000;
-			while (timeout--)
+			retry_cnt = 1000;
+			while (retry_cnt--)
 			{
 				/* delay for 1 milli sec */
 				PMU_delay_loop_us (1000);
-				if(cb_event_flag == I2C_CB_EVENT_SUCCESS)
+				if(cb_event_flag == I3C_CB_EVENT_MST_RX_DONE)
 				{
 					/* RX Success: Got ACK from slave */
 					printf("\r\n \t\t >> i=%d RX Success: Got ACK from slave addr:0x%X.\r\n",  \
 								   i, slave_addr[i]);
-					printf("\r\n \t\t >> i=%d RX Received Data from slave:[0]0x%X [1]0x%X.\r\n",  \
-								   i,rx_data[0],rx_data[1]);
+					printf("\r\n \t\t >> i=%d RX Received Data from slave:[0]0x%X [1]0x%X [2]0x%X\r\n",  \
+								   i,rx_data[0],rx_data[1],rx_data[2]);
 					break;
 				}
 
-				if(cb_event_flag == I2C_CB_EVENT_ERROR)
+				if(cb_event_flag == I3C_CB_EVENT_ERROR)
 				{
 					/* RX Error: Got NACK from slave */
 					printf("\r\n \t\t >> i=%d RX Error: Got NACK from slave addr:0x%X \r\n",  \
@@ -395,9 +393,9 @@ void i2c_using_i3c_demo_thread_entry()
 
 			}
 
-			if ( (!(timeout)) && (!(cb_event_flag)) )
+			if ( (!(retry_cnt)) && (!(cb_event_flag)) )
 			{
-				printf("Error: event timeout \r\n");
+				printf("Error: event retry_cnt \r\n");
 				goto error_detach;
 			}
 
@@ -439,7 +437,7 @@ error_uninitialize:
 		printf("\r\n Error: I3C Uninitialize failed.\r\n");
 	}
 
-	printf("\r\n XXX I3C demo thread exiting XXX...\r\n");
+	printf("\r\nI3C demo thread exiting...\r\n");
 }
 
 int main()

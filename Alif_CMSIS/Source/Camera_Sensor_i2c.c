@@ -39,7 +39,7 @@
  */
 
 /* i3c Driver instance 0 */
-extern ARM_DRIVER_I3C Driver_I3C0;
+extern ARM_DRIVER_I3C Driver_I3C;
 
 /* i3c Driver Access structure variable. */
 static ARM_DRIVER_I3C *I3Cdrv;
@@ -77,7 +77,7 @@ typedef enum _CAMERA_SENSOR_I3C_DRIVER_ERROR {
 */
 static void camera_sensor_i3c_callback(uint32_t event)
 {
-  if (event & ARM_I3C_EVENT_TRANSFER_DONE)
+  if (event & (ARM_I3C_EVENT_MST_TX_DONE | ARM_I3C_EVENT_MST_RX_DONE | ARM_I3C_EVENT_TRANSFER_DONE))
   {
     /* Transfer Done. */
     CB_XferCompletionFlag = CB_XferDone;
@@ -144,13 +144,7 @@ int32_t camera_sensor_i2c_init(CAMERA_SENSOR_SLAVE_I2C_CONFIG *i2c)
 {
   int32_t ret = 0;
 
-  /* @Note: i3c has only one instance i3c0,
-   *        which can be used for i2c and i3c.
-   */
-  if(i2c->I3Cx_instance != CAMERA_SENSOR_I2C_USING_I3C0_INSTANCE)
-      return ARM_DRIVER_ERROR_PARAMETER;
-
-  I3Cdrv = &Driver_I3C0;
+  I3Cdrv = &Driver_I3C;
 
   /* Initialize i3c driver */
   ret = I3Cdrv->Initialize(camera_sensor_i3c_callback);

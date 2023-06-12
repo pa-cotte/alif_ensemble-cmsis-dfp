@@ -10,10 +10,10 @@
 
 /**************************************************************************//**
  * @file     mix_bus_i2c_i3c_testApp.c
- * @author   Nisarga A M
- * @email    nisarga.am@alifsemi.com
+ * @author   Tanay Rami
+ * @email    tanay@alifsemi.com
  * @version  V1.0.0
- * @date     23-May-2022
+ * @date     04-April-2022
  * @brief    Baremetal testapp to verify Mix Bus i2c and i3c communication with
  *            multiple i2c + i3c slave devices using i3c IP
  *
@@ -22,22 +22,27 @@
  *             I3C_BUS_MODE_MIXED_FAST_I2C_FMP_SPEED_1_MBPS  : Fast Mode Plus   1 Mbps
  *             I3C_BUS_MODE_MIXED_FAST_I2C_FM_SPEED_400_KBPS : Fast Mode      400 Kbps
  *             I3C_BUS_MODE_MIXED_SLOW_I2C_SS_SPEED_100_KBPS : Standard Mode  100 Kbps
+ *
+ *           hardware setup
+ *           Connecting flat board pin P1_2(SDA) and P1_3(SCL) line to
+ *           A1 baseboard J409 header pin no. 39(P3_8 SDA) and 40(P3_9 SCL)
+ *           SDA P1_2(flat board) -> P3_8 (J409 A1 baseboard)
+ *           SCL P1_3(flat board) -> P3_9 (J409 A1 baseboard)
+ *           GND -> GND
  * @bug      None.
  * @Note     None.
  ******************************************************************************/
-
 
 /* System Includes */
 #include <stdio.h>
 #include <string.h>
 
 /* Project Includes */
-/* I3C Driver */
 #include "Driver_I3C.h"
 #include "system_utils.h"
 
 /* PINMUX Driver */
-#include "Driver_PINMUX_AND_PINPAD.h"
+#include "pinconf.h"
 
 /* For Release build disable printf and semihosting */
 #define DISABLE_PRINTF
@@ -59,16 +64,21 @@
 #endif
 
 /* i3c Driver instance 0 */
-extern ARM_DRIVER_I3C Driver_I3C0;
-static ARM_DRIVER_I3C *I3Cdrv = &Driver_I3C0;
+extern ARM_DRIVER_I3C Driver_I3C;
+static ARM_DRIVER_I3C *I3Cdrv = &Driver_I3C;
 
 void mix_bus_i2c_i3c_demo_entry();
 
 /* i3c callback events */
-typedef enum {
-	I3C_CB_EVENT_SUCCESS   = (1 << 0),
-	I3C_CB_EVENT_ERROR     = (1 << 1)
-}I3C_CB_EVENTS;
+typedef enum _I3C_CB_EVENT{
+    I3C_CB_EVENT_SUCCESS        = (1 << 0),
+    I3C_CB_EVENT_ERROR          = (1 << 1),
+    I3C_CB_EVENT_MST_TX_DONE    = (1 << 2),
+    I3C_CB_EVENT_MST_RX_DONE    = (1 << 3),
+    I3C_CB_EVENT_SLV_TX_DONE    = (1 << 4),
+    I3C_CB_EVENT_SLV_RX_DONE    = (1 << 5),
+    I3C_CB_EVENT_DYN_ADDR_ASSGN = (1 << 6)
+}I3C_CB_EVENT;
 
 volatile int32_t cb_event_flag = 0;
 
@@ -82,57 +92,17 @@ volatile int32_t cb_event_flag = 0;
 */
 int32_t hardware_init(void)
 {
-	int32_t ret = 0;
+	/* I3C_SDA_B */
+	pinconf_set( PORT_1, PIN_2, PINMUX_ALTERNATE_FUNCTION_3,
+		PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP | \
+		PADCTRL_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS);
 
-	/* i3c Pin-Mux */
+	/* I3C_SCL_B */
+	pinconf_set( PORT_1, PIN_3, PINMUX_ALTERNATE_FUNCTION_3,
+		PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP | \
+		PADCTRL_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS);
 
-	/* Configure GPIO Pin : P3_8 as I3C_SDA_B */
-	ret = PINMUX_Config(PORT_NUMBER_3, PIN_NUMBER_8, PINMUX_ALTERNATE_FUNCTION_3);
-	if(ret != 0)
-	{
-		printf("\r\n Error: PINMUX failed.\r\n");
-		return -1;
-	}
-
-	/* Configure GPIO Pin : P3_9 as I3C_SCL_B */
-	ret = PINMUX_Config(PORT_NUMBER_3, PIN_NUMBER_9, PINMUX_ALTERNATE_FUNCTION_4);
-	if(ret != 0)
-	{
-		printf("\r\n Error: PINMUX failed.\r\n");
-		return -1;
-	}
-
-	/* i3c Pin-Pad */
-
-	/* Pin-Pad P3_8 as I3C_SDA_B
-	 * Pad function: weak pull up(0x8) + read enable(0x01)
-	 *               + Output drive strength 4mA(0x20)
-	 */
-	ret = PINPAD_Config(PORT_NUMBER_3, PIN_NUMBER_8,  \
-                          ( PAD_FUNCTION_READ_ENABLE                          |
-                            PAD_FUNCTION_DRIVER_DISABLE_STATE_WITH_PULL_UP    |
-                            PAD_FUNCTION_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS ) );
-	if(ret != 0)
-	{
-		printf("\r\n Error: PINPAD failed.\r\n");
-		return -1;
-	}
-
-	/* Pin-Pad P3_9 as I3C_SCL_B
-	 * Pad function: weak pull up(0x8) + read enable(0x01)
-	 *               + Output drive strength 4mA(0x20)
-	 */
-	ret = PINPAD_Config(PORT_NUMBER_3, PIN_NUMBER_9,  \
-                          ( PAD_FUNCTION_READ_ENABLE                          |
-                            PAD_FUNCTION_DRIVER_DISABLE_STATE_WITH_PULL_UP    |
-                            PAD_FUNCTION_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS ) );
-	if(ret != 0)
-	{
-		printf("\r\n Error: PINPAD failed.\r\n");
-		return -1;
-	}
-
-	return 0;
+	return ARM_DRIVER_OK;
 }
 
 /**
@@ -153,6 +123,36 @@ void I3C_callback(uint32_t event)
 	{
 		/* Transfer Error */
 		cb_event_flag = I3C_CB_EVENT_ERROR;
+	}
+
+	if (event & ARM_I3C_EVENT_MST_TX_DONE)
+	{
+		/* Transfer Success */
+		cb_event_flag = I3C_CB_EVENT_MST_TX_DONE;
+	}
+
+	if (event & ARM_I3C_EVENT_MST_RX_DONE)
+	{
+		/* Transfer Success */
+		cb_event_flag = I3C_CB_EVENT_MST_RX_DONE;
+	}
+
+	if (event & ARM_I3C_EVENT_SLV_TX_DONE)
+	{
+		/* Transfer Success */
+		cb_event_flag = I3C_CB_EVENT_SLV_TX_DONE;
+	}
+
+	if (event & ARM_I3C_EVENT_SLV_RX_DONE)
+	{
+		/* Transfer Success */
+		cb_event_flag = I3C_CB_EVENT_SLV_RX_DONE;
+	}
+
+	if (event & ARM_I3C_EVENT_SLV_DYN_ADDR_ASSGN)
+	{
+		/* Transfer Success */
+		cb_event_flag = I3C_CB_EVENT_DYN_ADDR_ASSGN;
 	}
 }
 
@@ -211,10 +211,10 @@ void mix_bus_i2c_i3c_demo_entry()
 #define I2C_EEPROM_LOCATION                 0x32
 #define I2C_EEPROM_LOCATION_VALUE           0xCD
 
-	uint32_t   i      = 0;
-	uint32_t   len    = 0;
-	uint32_t  timeout = 0;
-	int32_t   ret     = 0;
+	uint32_t   i        = 0;
+	uint32_t   len      = 0;
+	uint32_t  retry_cnt = 0;
+	int32_t   ret       = 0;
 
     /* Array of slave address :
      *       Dynamic Address for i3c and
@@ -296,7 +296,7 @@ void mix_bus_i2c_i3c_demo_entry()
 	 *  I3C_BUS_MODE_MIXED_SLOW_I2C_SS_SPEED_100_KBPS : Standard Mode  100 Kbps
 	 */
 	ret = I3Cdrv->Control(I3C_MASTER_SET_BUS_MODE,  \
-                      I3C_BUS_MODE_MIXED_FAST_I2C_FM_SPEED_400_KBPS);
+			      I3C_BUS_MODE_MIXED_FAST_I2C_FM_SPEED_400_KBPS);
 	if(ret != ARM_DRIVER_OK)
 	{
 		printf("\r\n Error: I3C Control failed.\r\n");
@@ -308,9 +308,7 @@ void mix_bus_i2c_i3c_demo_entry()
 	 */
 	PMU_delay_loop_us(1000);
 
-	/* Attach all i3c slave using dynamic address */
-
-	/* Assign Dynamic Address to i3c Accelerometer */
+	/* Assign Dynamic Address */
 	printf("\r\n >> i3c: Get dynamic addr for static addr:0x%X.\r\n",I3C_ACCERO_ADDR);
 
 	ret = I3Cdrv->MasterAssignDA(&slave_addr[0], I3C_ACCERO_ADDR);
@@ -321,6 +319,16 @@ void mix_bus_i2c_i3c_demo_entry()
 	}
 	printf("\r\n >> i3c: Received dyn_addr:0x%X for static addr:0x%X. \r\n",   \
                                  slave_addr[0],I3C_ACCERO_ADDR);
+
+       while(!((cb_event_flag == I3C_CB_EVENT_SUCCESS) || (cb_event_flag == I3C_CB_EVENT_ERROR)));
+
+       if(cb_event_flag == I3C_CB_EVENT_ERROR)
+       {
+           printf("\nError: I3C MasterAssignDA failed\n");
+           while(1);
+       }
+
+       cb_event_flag = 0;
 
 	/* Assign Dynamic Address to i3c Magnometer */
 	printf("\r\n >> i3c: Get dynamic addr for static addr:0x%X.\r\n",I3C_MAGNETO_ADDR);
@@ -337,6 +345,15 @@ void mix_bus_i2c_i3c_demo_entry()
 		goto error_poweroff;
 	}
 
+        while(!((cb_event_flag == I3C_CB_EVENT_SUCCESS) || (cb_event_flag == I3C_CB_EVENT_ERROR)));
+
+        if(cb_event_flag == I3C_CB_EVENT_ERROR)
+        {
+            printf("\nError: I3C MasterAssignDA failed\n");
+            while(1);
+        }
+
+        cb_event_flag = 0;
 	printf("\r\n >> i3c: Received dyn_addr:0x%X for static addr:0x%X. \r\n",   \
                                  slave_addr[1],I3C_MAGNETO_ADDR);
 
@@ -359,6 +376,15 @@ void mix_bus_i2c_i3c_demo_entry()
 		goto error_detach;
 	}
 
+        while(!((cb_event_flag == I3C_CB_EVENT_SUCCESS) || (cb_event_flag == I3C_CB_EVENT_ERROR)));
+
+        if(cb_event_flag == I3C_CB_EVENT_ERROR)
+        {
+            printf("\nError: I3C MasterSendCommand failed\n");
+            while(1);
+        }
+
+        cb_event_flag = 0;
 	/* Delay for 1000 micro second. */
 	PMU_delay_loop_us(1000);
 
@@ -393,6 +419,15 @@ void mix_bus_i2c_i3c_demo_entry()
 		goto error_detach;
 	}
 
+        while(!((cb_event_flag == I3C_CB_EVENT_SUCCESS) || (cb_event_flag == I3C_CB_EVENT_ERROR)));
+
+        if(cb_event_flag == I3C_CB_EVENT_ERROR)
+        {
+            printf("\nError: I3C MasterSendCommand failed\n");
+            while(1);
+        }
+
+        cb_event_flag = 0;
 	/* Delay for 1000 micro second. */
 	PMU_delay_loop_us(1000);
 
@@ -491,13 +526,13 @@ void mix_bus_i2c_i3c_demo_entry()
 			}
 
 			/* wait till any event success/error comes in isr callback */
-			timeout = 100;
-			while (timeout--)
+			retry_cnt = 100;
+			while (retry_cnt--)
 			{
 				/* Delay for 1000 micro second. */
 				PMU_delay_loop_us(1000);
 
-				if(cb_event_flag == I3C_CB_EVENT_SUCCESS)
+				if(cb_event_flag == I3C_CB_EVENT_MST_TX_DONE)
 				{
 					printf("\r\n \t\t >> i=%d TX Success: Got ACK from slave addr:0x%X.\r\n",  \
 					                               i, slave_addr[i]);
@@ -512,9 +547,9 @@ void mix_bus_i2c_i3c_demo_entry()
 				}
 			}
 
-			if ( (!(timeout)) && (!(cb_event_flag)) )
+			if ( (!(retry_cnt)) && (!(cb_event_flag)) )
 			{
-				printf("Error: event timeout \r\n");
+				printf("Error: event retry_cnt \r\n");
 				goto error_detach;
 			}
 
@@ -542,13 +577,13 @@ void mix_bus_i2c_i3c_demo_entry()
 			}
 
 			/* wait till any event success/error comes in isr callback */
-			timeout =100;
-			while (timeout--)
+			retry_cnt =100;
+			while (retry_cnt--)
 			{
 				/* Delay for 1000 micro second. */
 				PMU_delay_loop_us(1000);
 
-				if(cb_event_flag == I3C_CB_EVENT_SUCCESS)
+				if(cb_event_flag == I3C_CB_EVENT_MST_RX_DONE)
 				{
 					/* RX Success: Got ACK from slave */
 					printf("\r\n \t\t >> i=%d RX Success: Got ACK from slave addr:0x%X.\r\n",  \
@@ -577,9 +612,9 @@ void mix_bus_i2c_i3c_demo_entry()
 				}
 			}
 
-			if ( (!(timeout)) && (!(cb_event_flag)) )
+			if ( (!(retry_cnt)) && (!(cb_event_flag)) )
 			{
-				printf("Error: event timeout \r\n");
+				printf("Error: event retry_cnt \r\n");
 				goto error_detach;
 			}
 
@@ -627,7 +662,6 @@ int main()
 {
 	mix_bus_i2c_i3c_demo_entry();
 	return 0;
-
 }
 
 /************************ (C) COPYRIGHT ALIF SEMICONDUCTOR *****END OF FILE****/

@@ -35,7 +35,24 @@
 #include "FreeRTOSConfig.h"
 #include "task.h"
 
-/*Define for the CMSIS-RTOS2 objects*/
+/* For Release build disable printf and semihosting */
+#define DISABLE_PRINTF
+
+#ifdef DISABLE_PRINTF
+  #define printf( fmt, ... ) ( 0 )
+  /* Also Disable Semihosting */
+  #if __ARMCC_VERSION >= 6000000
+    __asm( ".global __use_no_semihosting" );
+  #elif __ARMCC_VERSION >= 5000000
+    #pragma import( __use_no_semihosting )
+  #else
+    #error Unsupported compiler
+  #endif
+  void _sys_exit( int return_code ) { while ( 1 ); }
+#endif
+
+
+/*Define for the FreeRTOS objects*/
 #define UTIMER_BASIC_MODE_CB_EVENT               (0x01)
 #define UTIMER_BUFFERING_MODE_CB_EVENT           (0x02)
 
@@ -93,11 +110,15 @@ void vApplicationIdleHook(void)
 /*****************Only for FreeRTOS use *************************/
 
 
-void utimer_basic_mode_cb_fun (uint8_t event)
+void utimer_basic_mode_cb_fun (uint32_t event)
 {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE, xResult = pdFALSE;
+
     if (event & ARM_UTIMER_OVER_FLOW_EVENT)
     {
-	xTaskNotifyFromISR(Utimer_basic_xHandle,UTIMER_BASIC_MODE_CB_EVENT,eSetBits, NULL);
+        xTaskNotifyFromISR(Utimer_basic_xHandle,UTIMER_BASIC_MODE_CB_EVENT,eSetBits, &xHigherPriorityTaskWoken);
+
+        if (xResult == pdTRUE)        {    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );    }
     }
 }
 
@@ -190,15 +211,20 @@ error_basic_mode_uninstall:
         printf("utimer channel %d failed to un-initialize \n", channel);
     }
     printf("demo application: basic mode completed \r\n");
-    /*To wait here until another Thread finishes job or it will enter wait forever in app_main Thread*/
-    vTaskDelay(portMAX_DELAY);
+
+    /* thread self delete */
+    vTaskDelete( NULL );
 }
 
-void utimer_buffering_mode_cb_fun (uint8_t event)
+void utimer_buffering_mode_cb_fun (uint32_t event)
 {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE, xResult = pdFALSE;
+
     if (event & ARM_UTIMER_OVER_FLOW_EVENT)
     {
-	xTaskNotifyFromISR(Utimer_buffer_xHandle,UTIMER_BUFFERING_MODE_CB_EVENT,eSetBits, NULL);
+        xTaskNotifyFromISR(Utimer_buffer_xHandle,UTIMER_BUFFERING_MODE_CB_EVENT,eSetBits, &xHigherPriorityTaskWoken);
+
+        if (xResult == pdTRUE)        {    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );    }
     }
 }
 
@@ -277,8 +303,8 @@ void utimer_buffering_mode_app (void *pvParameters)
         xReturned = xTaskNotifyWait(NULL,UTIMER_BUFFERING_MODE_CB_EVENT,NULL, UTIMER_BUFFERING_MODE_WAIT_TIME);
         if( xReturned != pdTRUE )
         {
-		printf("\r\n Task notify wait timeout expired\r\n");
-		goto error_buffering_mode_poweroff;
+             printf("\r\n Task notify wait timeout expired\r\n");
+             goto error_buffering_mode_poweroff;
         }
 
         printf("utimer channel %d: %d ms timer expired\n", channel, (500+(500*index)));
@@ -306,6 +332,9 @@ error_buffering_mode_uninstall:
     }
 
     printf("demo application: buffering mode completed \r\n");
+
+    /* thread delete */
+    vTaskDelete( NULL );
 }
 
 /*----------------------------------------------------------------------------
@@ -317,7 +346,7 @@ int main( void )
    SystemCoreClockUpdate();
 
    /* Create application main thread */
-   BaseType_t xReturned = xTaskCreate(utimer_buffering_mode_app, "utimer_buffering_mode_app",512, NULL,configMAX_PRIORITIES-1, &Utimer_buffer_xHandle);
+   BaseType_t xReturned = xTaskCreate(utimer_buffering_mode_app, "utimer_buffering_mode_app",256, NULL,configMAX_PRIORITIES-1, &Utimer_buffer_xHandle);
    if (xReturned != pdPASS)
    {
        vTaskDelete(Utimer_buffer_xHandle);
@@ -325,7 +354,7 @@ int main( void )
     }
 
    /* Create application main thread */
-    xReturned = xTaskCreate(utimer_basic_mode_app, "utimer_basic_mode_app",512, NULL,configMAX_PRIORITIES-1, &Utimer_basic_xHandle);
+    xReturned = xTaskCreate(utimer_basic_mode_app, "utimer_basic_mode_app",256, NULL,configMAX_PRIORITIES-1, &Utimer_basic_xHandle);
     if (xReturned != pdPASS)
     {
        vTaskDelete(Utimer_basic_xHandle);

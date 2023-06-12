@@ -22,6 +22,7 @@
 
 #include <Driver_DMA.h>
 #include <RTE_Device.h>
+#include <evtrtr.h>
 
 #ifdef  __cplusplus
 extern "C"
@@ -53,6 +54,9 @@ typedef struct _DMA_PERIPHERAL_CONFIG {
 
     /*!< DMA handle */
     DMA_Handle_Type dma_handle;
+
+    /*!< Event Router Configuration */
+    EVTRTR_CONFIG evtrtr_cfg;
 } DMA_PERIPHERAL_CONFIG;
 
 #ifdef  __cplusplus

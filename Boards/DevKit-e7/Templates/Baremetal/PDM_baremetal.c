@@ -8,7 +8,7 @@
  *
  */
 
-/****************************************************************************
+/******************************************************************************
  * @file     PDM_baremetal.c
  * @author   Nisarga A M
  * @email    nisarga.am@alifsemi.com
@@ -20,21 +20,22 @@
  *           -> Select the mode of operation in the Control API.
  *           -> Then build the project and flash the generated axf file on the target
  *           -> Then Start playing some audio or speak near to the PDM microphone which
- *              is on ASIC A0 board.
+ *              is on B0 Flat board.
  *           -> Once the sample count reaches the maximum value,the PCM samples will be
  *              stored in the particular buffer.
  *           -> Export the memory and To play the PCM data, use pcmplay.c file which
  *              will generate the pcm_samples.pcm audio file
  *           -> Use ffplay command to play the audio.
  *           Hardware setup:
- *           -> Connect A0 Microphone PDM data line to data line of FPGA J3
- *               connector on the FMC 105(HPC) board.
- *            For channel 0 and channel 1
+ *           -> Flat board has internal PDM Mics which is connected to channel 4
+ *              and channel 5 internally, no hardware connection is required for
+ *              channel 4 and 5.
+ *              For channel 4 and channel 5
  *           -> Clock line:
-                pin J3_21 (FMC-105 HPC) --> P3_21 (on A0 board)
-             -> Data line:
-                P3_20 (on A0 board) --> pin J3_25 (FMC-105 HPC)
-
+ *               PDM_C2 (PDM_C2_A) -> P6_7
+ *           -> Data line:
+ *               PDM_D2 (PDM_D2_B) -> P5_4
+ *
  ******************************************************************************/
 /* System Includes */
 #include <stdio.h>
@@ -68,23 +69,17 @@
 #define ENABLE              1
 #define DISABLE             0
 
-/* To select the PDM channel 0 and channel 1 */
-#define AUDIO_EN_CHANNEL  (ARM_PDM_AUDIO_CHANNEL_0 | ARM_PDM_AUDIO_CHANNEL_1 )
+/* To select the PDM channel 4 and channel 5 */
+#define AUDIO_EN_CHANNEL  (ARM_PDM_AUDIO_CHANNEL_4 | ARM_PDM_AUDIO_CHANNEL_5 )
 
 /* Store the number of samples */
-/* For 50000 samples user can hear maximum up to 4 sec of audio
+/* For 40000 samples user can hear maximum up to 4 sec of audio
  * to store maximum samples then change the scatter file and increase the memory */
 #define NUM_SAMPLE  40000
 
 /* channel number used for channel configuration and status register */
-#define CHANNEL_0  0
-#define CHANNEL_1  1
-#define CHANNEL_2  2
-#define CHANNEL_3  3
 #define CHANNEL_4  4
 #define CHANNEL_5  5
-#define CHANNEL_6  6
-#define CHANNEL_7  7
 
 /* PDM driver instance */
 extern ARM_DRIVER_PDM Driver_PDM;
@@ -92,17 +87,17 @@ static ARM_DRIVER_PDM *PDMdrv = &Driver_PDM;
 
 PDM_CH_CONFIG pdm_coef_reg;
 
-/* For Demo purpose use channel 0  and channel 1 */
-/* To store the PCM samples for Channel 0 and channel 1 */
-uint32_t ch_0_1[NUM_SAMPLE];
+/* For Demo purpose use channel 4  and channel 5 */
+/* To store the PCM samples for Channel 4 and channel 5 */
+uint32_t ch_4_5[NUM_SAMPLE];
 
-/* Channel 0 FIR coefficient */
-uint32_t ch0_fir[18] = { 0x00000000,0x000007FF,0x00000000,0x00000004,0x00000004,0x000007FC,0x00000000,0x000007FB,0x000007E4,
-                         0x00000000,0x0000002B,0x00000009,0x00000016,0x00000049,0x00000793,0x000006F8,0x00000045,0x00000178};
-
-/* Channel 1 FIR coefficient */
-uint32_t ch1_fir[18] = {0x00000001, 0x00000003,0x00000003,0x000007F4,0x00000004,0x000007ED,0x000007F5,0x000007F4,0x000007D3,
+/* Channel 4 FIR coefficient */
+uint32_t ch4_fir[18] = { 0x00000001,0x00000003,0x00000003,0x000007F4,0x00000004,0x000007ED,0x000007F5,0x000007F4,0x000007D3,
                         0x000007FE,0x000007BC,0x000007E5,0x000007D9,0x00000793,0x00000029,0x0000072C,0x00000072,0x000002FD};
+
+/* Channel 5 FIR coefficient */
+uint32_t ch5_fir[18] = {0x00000000, 0x000007FF,0x00000000,0x00000004,0x00000004,0x000007FC,0x00000000,0x000007FB,0x000007E4,
+                       0x00000000,0x0000002B,0x00000009,0x00000016,0x00000049,0x00000793,0x000006F8,0x00000045,0x00000178};
 
 /* PDM callback events */
 typedef enum {
@@ -167,37 +162,13 @@ void pdm_demo()
     printf("\r\n >>> PDM demo starting up!!! <<< \r\n");
 
     version = PDMdrv->GetVersion();
-    printf("\r\n PDM version api:%X driver:%X...\r\n",version.api, version.drv);
-
-    retval = pinconf_set(PORT_3, PIN_0, PINMUX_ALTERNATE_FUNCTION_3, PADCTRL_READ_ENABLE);
-    if (retval)
-        printf("pinconf_set failed\n");
-
-    retval = pinconf_set(PORT_3, PIN_2, PINMUX_ALTERNATE_FUNCTION_2, PADCTRL_READ_ENABLE);
-    if (retval)
-        printf("pinconf_set failed\n");
+    printf("\r\n PDM version api:%X driver:%X...\r\n", version.api, version.drv);
 
     retval = pinconf_set(PORT_5, PIN_4, PINMUX_ALTERNATE_FUNCTION_3, PADCTRL_READ_ENABLE);
     if (retval)
         printf("pinconf_set failed\n");
 
-    retval = pinconf_set(PORT_5, PIN_5, PINMUX_ALTERNATE_FUNCTION_3, PADCTRL_READ_ENABLE);
-    if (retval)
-        printf("pinconf_set failed\n");
-
-    retval = pinconf_set(PORT_3, PIN_1, PINMUX_ALTERNATE_FUNCTION_3, 0x0);
-    if (retval)
-        printf("pinconf_set failed\n");
-
-    retval = pinconf_set(PORT_3, PIN_3, PINMUX_ALTERNATE_FUNCTION_2, 0x0);
-    if (retval)
-        printf("pinconf_set failed\n");
-
-    retval = pinconf_set(PORT_11, PIN_4, PINMUX_ALTERNATE_FUNCTION_3, 0x0);
-    if (retval)
-        printf("pinconf_set failed\n");
-
-    retval = pinconf_set(PORT_11, PIN_5, PINMUX_ALTERNATE_FUNCTION_3, 0x0);
+    retval = pinconf_set(PORT_6, PIN_7, PINMUX_ALTERNATE_FUNCTION_3, 0x0);
     if (retval)
         printf("pinconf_set failed\n");
 
@@ -216,7 +187,7 @@ void pdm_demo()
     }
 
     /* Select Wide band width audio PDM mode */
-    ret = PDMdrv->Control(ARM_PDM_MODE, ARM_PDM_MODE_WIDE_BANDWIDTH_AUDIO_1536_CLK_FRQ);
+    ret = PDMdrv->Control(ARM_PDM_MODE, ARM_PDM_MODE_STANDARD_VOICE_512_CLK_FRQ);
     if(ret != ARM_DRIVER_OK){
         printf("\r\n Error: PDM Wide band width audio control failed\n");
         goto error_poweroff;
@@ -229,24 +200,9 @@ void pdm_demo()
         goto error_poweroff;
     }
 
-    /* Channel 0 configuration values */
-    pdm_coef_reg.ch_num             = CHANNEL_0;     /* Channel 0 */
-    memcpy(pdm_coef_reg.ch_fir_coef,ch0_fir,sizeof(pdm_coef_reg.ch_fir_coef)); /* Channel 0 fir coefficient */
-    pdm_coef_reg.ch_iir_coef        = 0x00000004;    /* Channel IIR Filter Coefficient */
-    pdm_coef_reg.ch_phase           = 0x00000003;    /* Channel Phase Control */
-    pdm_coef_reg.ch_gain            = 0x00000013;    /* Channel gain control */
-    pdm_coef_reg.ch_peak_detect_th  = 0x00060002;    /* Channel Peak Detector Threshold */
-    pdm_coef_reg.ch_peak_detect_itv = 0x00020027;    /* Channel Peak Detector Interval */
-
-    ret = PDMdrv->Config(&pdm_coef_reg);
-    if(ret != ARM_DRIVER_OK){
-        printf("\r\n Error: PDM Channel_Config failed\n");
-        goto error_uninitialize;
-    }
-
-    /* Channel 1 configuration values */
-    pdm_coef_reg.ch_num              = CHANNEL_1;    /* Channel 1 */
-    memcpy(pdm_coef_reg.ch_fir_coef,ch1_fir,sizeof(pdm_coef_reg.ch_fir_coef)); /* Channel 1 fir coefficient*/
+    /* Channel 4 configuration values */
+    pdm_coef_reg.ch_num              = CHANNEL_4;    /* Channel 4 */
+    memcpy(pdm_coef_reg.ch_fir_coef, ch4_fir, sizeof(pdm_coef_reg.ch_fir_coef)); /* Channel 4 fir coefficient */
     pdm_coef_reg.ch_iir_coef         = 0x00000004;   /* Channel IIR Filter Coefficient */
     pdm_coef_reg.ch_phase            = 0x0000001F;   /* Channel Phase Control */
     pdm_coef_reg.ch_gain             = 0x0000000D;   /* Channel gain control */
@@ -259,11 +215,32 @@ void pdm_demo()
         goto error_uninitialize;
     }
 
+    /* Channel 5 configuration values */
+    pdm_coef_reg.ch_num              = CHANNEL_5;    /* Channel 5 */
+    memcpy(pdm_coef_reg.ch_fir_coef, ch5_fir, sizeof(pdm_coef_reg.ch_fir_coef)); /* Channel 5 fir coefficient */
+    pdm_coef_reg.ch_iir_coef         = 0x00000004;   /* Channel IIR Filter Coefficient */
+    pdm_coef_reg.ch_phase            = 0x00000003;   /* Channel Phase Control */
+    pdm_coef_reg.ch_gain             = 0x00000013;   /* Channel gain control */
+    pdm_coef_reg.ch_peak_detect_th   = 0x00060002;   /* Channel Peak Detector Threshold */
+    pdm_coef_reg.ch_peak_detect_itv  = 0x00020027;   /* Channel Peak Detector Interval */
+
+    ret = PDMdrv->Config(&pdm_coef_reg);
+    if(ret != ARM_DRIVER_OK){
+        printf("\r\n Error: PDM Channel_Config failed\n");
+        goto error_uninitialize;
+    }
+
+    ret = PDMdrv->Config(&pdm_coef_reg);
+    if(ret != ARM_DRIVER_OK){
+        printf("\r\n Error: PDM Channel_Config failed\n");
+        goto error_uninitialize;
+    }
+
     /* PDM Capture Configurations */
     PDM_Capture_CONFIG pdm_cap_cnfg;
     pdm_cap_cnfg.en_multiple_ch = AUDIO_EN_CHANNEL;
-    pdm_cap_cnfg.ch0_1_addr = ch_0_1;
-    printf("size of ch 0 and 1: %d  and Address of ch 0 and 1: 0x%p\n",sizeof(ch_0_1),ch_0_1);
+    pdm_cap_cnfg.ch4_5_addr = ch_4_5;
+    printf("size of ch 4 and 5: %d  and Address of ch 4 and 5: 0x%p\n", sizeof(ch_4_5), ch_4_5);
 
     /* Store the number of Samples */
     pdm_cap_cnfg.total_no_samples = NUM_SAMPLE;
@@ -283,12 +260,6 @@ void pdm_demo()
     /* wait for the call back event */
     while(call_back_event == 0);
 
-    /* PDM fifo overflow error event */
-    if(call_back_event == PDM_CALLBACK_ERROR_EVENT)
-    {
-        printf("\n PDM error event: Fifo overflow \n");
-    }
-
     /* PDM fifo alomost full warning event */
     if(call_back_event == PDM_CALLBACK_WARNING_EVENT)
     {
@@ -299,6 +270,13 @@ void pdm_demo()
     if(call_back_event == PDM_CALLBACK_AUDIO_DETECTION_EVENT)
     {
         printf("\n PDM audio detect event: data in the audio channel");
+    }
+
+
+    /* PDM fifo overflow error event */
+    if(call_back_event == PDM_CALLBACK_ERROR_EVENT)
+    {
+        printf("\n PDM error event: Fifo overflow \n");
     }
 
     call_back_event = 0;

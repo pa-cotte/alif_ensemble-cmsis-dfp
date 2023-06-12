@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -10,10 +10,10 @@
 
 /**************************************************************************//**
  * @file     Driver_UTIMER.h
- * @author   Girish BN
- * @email    girish.bn@alifsemi.com
+ * @author   Girish BN, Manoj A Murudi
+ * @email    girish.bn@alifsemi.com, manoj.murudi@alifsemi.com
  * @version  V1.0.0
- * @date     21-Aug-2020
+ * @date     02-April-2023
  * @brief    CMSIS-Driver for UTIMER.
  * @bug      None.
  * @Note     None
@@ -23,231 +23,253 @@
 
 #include "Driver_Common.h"
 
-#define UTIMER0_IRQ 377
-#define QEC0_INTR_CMP_A_IRQ 369
-
-typedef void (*ARM_UTIMER_SignalEvent_t) (uint32_t event);   /**< Initialization UPTIMER call back function declaration >*/
+typedef void (*ARM_UTIMER_SignalEvent_t) (uint8_t event);   /**< Initialization UTIMER call back function declaration >*/
 
 /**< UTIMER Events >*/
-#define ARM_UTIMER_CAPTURE_A_EVENT                  0x01    /**< Bit0:CAPTURE_A >*/
-#define ARM_UTIMER_CAPTURE_B_EVENT                  0x02    /**< Bit1:CAPTURE_B >*/
-#define ARM_UTIMER_CAPTURE_C_EVENT                  0x04    /**< Bit2:CAPTURE_C >*/
-#define ARM_UTIMER_CAPTURE_D_EVENT                  0x08    /**< Bit3:CAPTURE_D >*/
-#define ARM_UTIMER_CAPTURE_E_EVENT                  0x10    /**< Bit4:CAPTURE_E >*/
-#define ARM_UTIMER_CAPTURE_F_EVENT                  0x20    /**< Bit5:CAPTURE_F >*/
-#define ARM_UTIMER_UNDER_FLOW_EVENT                 0x40    /**< Bit6:UNDER_FLOW >*/
-#define ARM_UTIMER_OVER_FLOW_EVENT                  0x80    /**< Bit7:OVER_FLOW >*/
-#define ARM_QEC_COMPARE_A_EVENT                     0x100   /**< Bit8:QEC COMPARE A >*/
-#define ARM_QEC_COMPARE_B_EVENT                     0x200   /**< Bit9:QEC COMPARE B >*/
+#define ARM_UTIMER_EVENT_CAPTURE_A                  1U    /**< UTIMER Capture A event >*/
+#define ARM_UTIMER_EVENT_CAPTURE_B                  2U    /**< UTIMER Capture B event >*/
+#define ARM_UTIMER_EVENT_COMPARE_A                  3U    /**< UTIMER Compare A event >*/
+#define ARM_UTIMER_EVENT_COMPARE_B                  4U    /**< UTIMER Compare B event >*/
+#define ARM_UTIMER_EVENT_COMPARE_A_BUF1             5U    /**< UTIMER Compare A Buf1 event >*/
+#define ARM_UTIMER_EVENT_COMPARE_A_BUF2             6U    /**< UTIMER Compare A Buf2 event >*/
+#define ARM_UTIMER_EVENT_COMPARE_B_BUF1             7U    /**< UTIMER Compare B Buf1 event >*/
+#define ARM_UTIMER_EVENT_COMPARE_B_BUF2             8U    /**< UTIMER Compare B Buf2 event >*/
+#define ARM_UTIMER_EVENT_UNDER_FLOW                 9U    /**< UTIMER Underflow event >*/
+#define ARM_UTIMER_EVENT_OVER_FLOW                  10U   /**< UTIMER Overflow event >*/
 
 /**< UTIMER Channel declaration >*/
-#define ARM_UTIMER_CHANNEL0                         (0)    /**< UTIMER Channel 0 >*/
-#define ARM_UTIMER_CHANNEL1                         (1)    /**< UTIMER Channel 1 >*/
-#define ARM_UTIMER_CHANNEL2                         (2)    /**< UTIMER Channel 2 >*/
-#define ARM_UTIMER_CHANNEL3                         (3)    /**< UTIMER Channel 3 >*/
-#define ARM_UTIMER_CHANNEL4                         (4)    /**< UTIMER Channel 4 >*/
-#define ARM_UTIMER_CHANNEL5                         (5)    /**< UTIMER Channel 5 >*/
-#define ARM_UTIMER_CHANNEL6                         (6)    /**< UTIMER Channel 6 >*/
-#define ARM_UTIMER_CHANNEL7                         (7)    /**< UTIMER Channel 7 >*/
-#define ARM_UTIMER_CHANNEL8                         (8)    /**< UTIMER Channel 8 >*/
-#define ARM_UTIMER_CHANNEL9                         (9)    /**< UTIMER Channel 9 >*/
-#define ARM_UTIMER_CHANNEL10                        (10)   /**< UTIMER Channel 10 >*/
-#define ARM_UTIMER_CHANNEL11                        (11)   /**< UTIMER Channel 11 >*/
-#define ARM_UTIMER_CHANNEL12                        (12)   /**< UTIMER Channel 12 >*/
-#define ARM_UTIMER_CHANNEL13                        (13)   /**< UTIMER Channel 13 >*/
-#define ARM_UTIMER_CHANNEL14                        (14)   /**< UTIMER Channel 14 >*/
-#define ARM_UTIMER_CHANNEL15                        (15)   /**< UTIMER Channel 15 >*/
+#define ARM_UTIMER_CHANNEL0                         0U    /**< UTIMER Channel 0 >*/
+#define ARM_UTIMER_CHANNEL1                         1U    /**< UTIMER Channel 1 >*/
+#define ARM_UTIMER_CHANNEL2                         2U    /**< UTIMER Channel 2 >*/
+#define ARM_UTIMER_CHANNEL3                         3U    /**< UTIMER Channel 3 >*/
+#define ARM_UTIMER_CHANNEL4                         4U    /**< UTIMER Channel 4 >*/
+#define ARM_UTIMER_CHANNEL5                         5U    /**< UTIMER Channel 5 >*/
+#define ARM_UTIMER_CHANNEL6                         6U    /**< UTIMER Channel 6 >*/
+#define ARM_UTIMER_CHANNEL7                         7U    /**< UTIMER Channel 7 >*/
+#define ARM_UTIMER_CHANNEL8                         8U    /**< UTIMER Channel 8 >*/
+#define ARM_UTIMER_CHANNEL9                         9U    /**< UTIMER Channel 9 >*/
+#define ARM_UTIMER_CHANNEL10                        10U   /**< UTIMER Channel 10 >*/
+#define ARM_UTIMER_CHANNEL11                        11U   /**< UTIMER Channel 11 >*/
+#define ARM_UTIMER_CHANNEL12                        12U   /**< QEC Channel 0 >*/
+#define ARM_UTIMER_CHANNEL13                        13U   /**< QEC Channel 1 >*/
+#define ARM_UTIMER_CHANNEL14                        14U   /**< QEC Channel 2 >*/
+#define ARM_UTIMER_CHANNEL15                        15U   /**< QEC Channel 3 >*/
 
-#define ARM_UTIMER_MAX_CHANNEL                      (16)
+#define ARM_UTIMER_COUNTER_CLEAR                    1U    /* UTIMER counter clear enable at counter stop */
+#define ARM_UTIMER_COUNTER_NOT_CLEAR                0U    /* UTIMER counter clear disabled at counter stop */
 
-#define ARM_UTIMER_MODE_BASIC_COUNT_NUMBER                 (2)    /**< UTIMER Basic mode counts number >*/
-#define ARM_UTIMER_MODE_SINGLE_BUFFERING_COUNT_NUMBER      (3)    /**< UTIMER single_Buffering mode counts number >*/
-#define ARM_UTIMER_MODE_DOUBLE_BUFFERING_COUNT_NUMBER      (4)    /**< UTIMER single_Buffering mode counts number >*/
-#define ARM_UTIMER_MODE_TRIGGERING_COUNT_NUMBER            (2)    /**< UTIMER Triggering mode counts number >*/
-#define ARM_UTIMER_MODE_CAPTURING_COUNT_NUMBER             (2)    /**< UTIMER Capturing mode counts number >*/
-#define ARM_UTIMER_MODE_COMPARING_COUNT_NUMBER             (5)    /**< UTIMER Comparing mode counts number >*/
-#define ARM_UTIMER_MODE_DEAD_TIME_COUNT_NUMBER             (8)    /**< UTIMER Dead timer mode counts number >*/
-#define ARM_QEC_COUNT_NUMBER                               (2)    /**< QEC counts number >*/
+/**
+ * enum ARM_UTIMER_MODE.
+ * Driver UTIMER modes.
+ */
+typedef enum _ARM_UTIMER_MODE {
+    ARM_UTIMER_MODE_BASIC,                          /**< UTIMER Channel mode configure to Basic mode >*/
+    ARM_UTIMER_MODE_BUFFERING,                      /**< UTIMER Channel mode configure to Buffering mode >*/
+    ARM_UTIMER_MODE_TRIGGERING,                     /**< UTIMER Channel mode configure to Triggering mode >*/
+    ARM_UTIMER_MODE_CAPTURING,                      /**< UTIMER Channel mode configure to Capturing mode >*/
+    ARM_UTIMER_MODE_COMPARING,                      /**< UTIMER Channel mode configure to Comparing mode >*/
+    ARM_UTIMER_MODE_DEAD_TIME                       /**< UTIMER Channel mode configure to Dead Timer mode >*/
+} ARM_UTIMER_MODE;
 
-#define ARM_UTIMER_TRIGGER_FOR_START                (1)    /**< UTIMER trigger for counter start >*/
-#define ARM_UTIMER_TRIGGER_FOR_STOP                 (2)    /**< UTIMER trigger for counter stop >*/
-#define ARM_UTIMER_TRIGGER_FOR_CLEAR                (3)    /**< UTIMER trigger for counter clear >*/
-#define ARM_UTIMER_TRIGGER_FOR_UPCOUNT              (4)    /**< UTIMER trigger for counter upcount >*/
-#define ARM_UTIMER_TRIGGER_FOR_DOWNCOUNT            (5)    /**< UTIMER trigger for counter downcount >*/
-#define ARM_UTIMER_TRIGGER_FOR_CAPTURE_A            (6)    /**< UTIMER trigger for input capture a >*/
-#define ARM_UTIMER_TRIGGER_FOR_CAPTURE_B            (7)    /**< UTIMER trigger for input capture b >*/
+/**
+ * enum ARM_UTIMER_COUNTER_DIR.
+ * Driver UTIMER counter direction.
+ */
+typedef enum _ARM_UTIMER_COUNTER_DIR {
+    ARM_UTIMER_COUNTER_UP,                          /**< UTIMER Channel counter direction up >*/
+    ARM_UTIMER_COUNTER_DOWN,                        /**< UTIMER Channel counter direction down >*/
+    ARM_UTIMER_COUNTER_TRIANGLE                     /**< UTIMER Channel counter direction triangle >*/
+} ARM_UTIMER_COUNTER_DIR;
 
-#define ARM_UTIMER_TRIG0_RISING                     ((uint32_t)0x00000001)    /**< UTIMER trigger0 rising >*/
-#define ARM_UTIMER_TRIG0_FALLING                    ((uint32_t)0x00000002)    /**< UTIMER trigger0 falling >*/
-#define ARM_UTIMER_TRIG1_RISING                     ((uint32_t)0x00000004)    /**< UTIMER trigger1 rising >*/
-#define ARM_UTIMER_TRIG1_FALLING                    ((uint32_t)0x00000008)    /**< UTIMER trigger1 falling >*/
-#define ARM_UTIMER_TRIG2_RISING                     ((uint32_t)0x00000010)    /**< UTIMER trigger2 rising >*/
-#define ARM_UTIMER_TRIG2_FALLING                    ((uint32_t)0x00000020)    /**< UTIMER trigger2 falling >*/
-#define ARM_UTIMER_TRIG3_RISING                     ((uint32_t)0x00000040)    /**< UTIMER trigger3 rising >*/
-#define ARM_UTIMER_TRIG3_FALLING                    ((uint32_t)0x00000080)    /**< UTIMER trigger3 falling >*/
-#define ARM_UTIMER_DRIVE_A_RISING_B_0               ((uint32_t)0x00000100)    /**< UTIMER chan_event_a rising, chan_event_b 0 >*/
-#define ARM_UTIMER_DRIVE_A_RISING_B_1               ((uint32_t)0x00000200)    /**< UTIMER chan_event_a rising, chan_event_b 1 >*/
-#define ARM_UTIMER_DRIVE_A_FALLING_B_0              ((uint32_t)0x00000400)    /**< UTIMER chan_event_a falling, chan_event_b 0 >*/
-#define ARM_UTIMER_DRIVE_A_FALLING_B_1              ((uint32_t)0x00000800)    /**< UTIMER chan_event_a falling, chan_event_b 0 >*/
-#define ARM_UTIMER_DRIVE_B_RISING_A_0               ((uint32_t)0x00001000)    /**< UTIMER chan_event_a 0, chan_event_b rising >*/
-#define ARM_UTIMER_DRIVE_B_RISING_A_1               ((uint32_t)0x00002000)    /**< UTIMER chan_event_a 1, chan_event_b rising >*/
-#define ARM_UTIMER_DRIVE_B_FALLING_A_0              ((uint32_t)0x00004000)    /**< UTIMER chan_event_a 0, chan_event_b falling >*/
-#define ARM_UTIMER_DRIVE_B_FALLING_A_1              ((uint32_t)0x00008000)    /**< UTIMER chan_event_a 1, chan_event_b falling >*/
-#define ARM_UTIMER_GLB0_EVENT                       ((uint32_t)0x00010000)    /**< UTIMER glb_event_0 */
-#define ARM_UTIMER_GLB1_EVENT                       ((uint32_t)0x00020000)    /**< UTIMER glb_event_1 */
-#define ARM_UTIMER_GLB2_EVENT                       ((uint32_t)0x00040000)    /**< UTIMER glb_event_2 */
-#define ARM_UTIMER_GLB3_EVENT                       ((uint32_t)0x00080000)    /**< UTIMER glb_event_3 */
-#define ARM_UTIMER_GLB4_EVENT                       ((uint32_t)0x00100000)    /**< UTIMER glb_event_4 */
-#define ARM_UTIMER_GLB5_EVENT                       ((uint32_t)0x00200000)    /**< UTIMER glb_event_5 */
-#define ARM_UTIMER_GLB6_EVENT                       ((uint32_t)0x00400000)    /**< UTIMER glb_event_6 */
-#define ARM_UTIMER_GLB7_EVENT                       ((uint32_t)0x00800000)    /**< UTIMER glb_event_7 */
+/**
+ * enum ARM_UTIMER_COUNTER.
+ * Driver UTIMER counters.
+ */
+typedef enum _ARM_UTIMER_COUNTER {
+    ARM_UTIMER_CNTR,                                /**< UTIMER counter >*/
+    ARM_UTIMER_CNTR_PTR,                            /**< UTIMER pointer counter >*/
+    ARM_UTIMER_CNTR_PTR_BUF1,                       /**< UTIMER pointer buffer 1 counter >*/
+    ARM_UTIMER_CNTR_PTR_BUF2,                       /**< UTIMER pointer buffer 2 counter >*/
+    ARM_UTIMER_DT_UP,                               /**< UTIMER Dead Time UP >*/
+    ARM_UTIMER_DT_UP_BUF1,                          /**< UTIMER Dead Time UP buffer 1 >*/
+    ARM_UTIMER_DT_DOWN,                             /**< UTIMER Dead Time DOWN >*/
+    ARM_UTIMER_DT_DOWN_BUF1,                        /**< UTIMER Dead Time DOWN buffer 1 >*/
+    ARM_UTIMER_COMPARE_A,                           /**< UTIMER compare A >*/
+    ARM_UTIMER_COMPARE_B,                           /**< UTIMER compare B >*/
+    ARM_UTIMER_COMPARE_A_BUF1,                      /**< UTIMER compare A buffer 1 >*/
+    ARM_UTIMER_COMPARE_B_BUF1,                      /**< UTIMER compare B buffer 1 >*/
+    ARM_UTIMER_COMPARE_A_BUF2,                      /**< UTIMER compare A buffer 2 >*/
+    ARM_UTIMER_COMPARE_B_BUF2,                      /**< UTIMER compare B buffer 1 >*/
+    ARM_UTIMER_CAPTURE_A,                           /**< UTIMER capture A  >*/
+    ARM_UTIMER_CAPTURE_B,                           /**< UTIMER capture B >*/
+    ARM_UTIMER_CAPTURE_A_BUF1,                      /**< UTIMER capture A buffer 1 >*/
+    ARM_UTIMER_CAPTURE_B_BUF1,                      /**< UTIMER capture B buffer 1 >*/
+    ARM_UTIMER_CAPTURE_A_BUF2,                      /**< UTIMER capture A buffer 2 >*/
+    ARM_UTIMER_CAPTURE_B_BUF2                       /**< UTIMER capture B buffer 2 >*/
+} ARM_UTIMER_COUNTER;
 
-#define UTIMER_COUNTER_CLEAR                        (1)    /**<UTIMER clear count >*/
-#define UTIMER_COUNTER_DO_NOT_CLEAR                 (0)    /**<UTIMER Do not clear count >*/
+/**
+ * enum ARM_UTIMER_TRIGGER_SRC.
+ * Driver UTIMER external event sources.
+ */
+typedef enum _ARM_UTIMER_TRIGGER_SRC {
+    ARM_UTIMER_SRC_0,                               /**< global triggers >*/
+    ARM_UTIMER_SRC_1,                               /**< channel events >*/
+    ARM_UTIMER_FAULT_TRIGGER,                       /**< fault triggers >*/
+    ARM_UTIMER_CNTR_PAUSE_TRIGGER                   /**< counter pause triggers >*/
+} ARM_UTIMER_TRIGGER_SRC;
 
-#define ARM_UTIMER_CHANNEL_RUNNING                  (1)    /**< counter running >*/
-#define ARM_UTIMER_CHANNEL_STOPPED                  (!ARM_UTIMER_CHANNEL_RUNNING)    /**< counter stopped >*/
+/**
+ * enum ARM_UTIMER_TRIGGER_TARGET.
+ * Driver UTIMER trigger targets.
+ */
+typedef enum _ARM_UTIMER_TRIGGER_TARGET {
+    ARM_UTIMER_TRIGGER_START,                       /**< Trigger target UTIMER Channel counter start >*/
+    ARM_UTIMER_TRIGGER_STOP,                        /**< Trigger target UTIMER Channel counter stop >*/
+    ARM_UTIMER_TRIGGER_CLEAR,                       /**< Trigger target UTIMER Channel counter clear >*/
+    ARM_UTIMER_TRIGGER_UPCOUNT,                     /**< Trigger target UTIMER Channel Up count >*/
+    ARM_UTIMER_TRIGGER_DOWNCOUNT,                   /**< Trigger target UTIMER Channel Down count >*/
+    ARM_UTIMER_TRIGGER_CAPTURE_A,                   /**< Trigger target UTIMER Channel to capture counter value in Drive A >*/
+    ARM_UTIMER_TRIGGER_CAPTURE_B,                   /**< Trigger target UTIMER Channel to capture counter value in Drive B >*/
+    ARM_UTIMER_TRIGGER_DMA_CLEAR_A,                 /**< Trigger target UTIMER Channel to clear Drive A DMA action >*/
+    ARM_UTIMER_TRIGGER_DMA_CLEAR_B                  /**< Trigger target UTIMER Channel to clear Drive B DMA action >*/
+} ARM_UTIMER_TRIGGER_TARGET;
 
-#define ARM_UTIMER_DIRECTION_DOWN                   (1)    /**< down counter direction >*/
-#define ARM_UTIMER_DIRECTION_UP                     (!ARM_UTIMER_DIRECTION_DOWN)    /**< up counter direction >*/
+/**
+ * enum ARM_UTIMER_TRIGGER.
+ * Driver UTIMER trigger types.
+ */
+typedef enum _ARM_UTIMER_TRIGGER {
+    ARM_UTIMER_SRC0_TRIG0_RISING,                    /**< UTIMER/QEC trigger 0 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG0_FALLING,                   /**< UTIMER/QEC trigger 0 falling edge >*/
+    ARM_UTIMER_SRC0_TRIG1_RISING,                    /**< UTIMER/QEC trigger 1 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG1_FALLING,                   /**< UTIMER/QEC trigger 1 falling edge >*/
+    ARM_UTIMER_SRC0_TRIG2_RISING,                    /**< UTIMER/QEC trigger 2 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG2_FALLING,                   /**< UTIMER/QEC trigger 2 falling edge >*/
+    ARM_UTIMER_SRC0_TRIG3_RISING,                    /**< UTIMER/QEC trigger 3 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG3_FALLING,                   /**< UTIMER/QEC trigger 3 falling edge >*/
+    ARM_UTIMER_SRC0_TRIG4_RISING,                    /**< UTIMER/QEC trigger 4 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG4_FALLING,                   /**< UTIMER/QEC trigger 4 falling edge >*/
+    ARM_UTIMER_SRC0_TRIG5_RISING,                    /**< UTIMER/QEC trigger 5 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG5_FALLING,                   /**< UTIMER/QEC trigger 5 falling edge >*/
+    ARM_UTIMER_SRC0_TRIG6_RISING,                    /**< UTIMER/QEC trigger 6 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG6_FALLING,                   /**< UTIMER/QEC trigger 6 falling edge >*/
+    ARM_UTIMER_SRC0_TRIG7_RISING,                    /**< UTIMER/QEC trigger 7 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG7_FALLING,                   /**< UTIMER/QEC trigger 7 falling edge >*/
+    ARM_UTIMER_SRC0_TRIG8_RISING,                    /**< UTIMER/QEC trigger 8 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG8_FALLING,                   /**< UTIMER/QEC trigger 8 falling edge >*/
+    ARM_UTIMER_SRC0_TRIG9_RISING,                    /**< UTIMER/QEC trigger 9 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG9_FALLING,                   /**< UTIMER/QEC trigger 9 falling edge >*/
+    ARM_UTIMER_SRC0_TRIG10_RISING,                   /**< UTIMER/QEC trigger 10 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG10_FALLING,                  /**< UTIMER/QEC trigger 10 falling edge >*/
+    ARM_UTIMER_SRC0_TRIG11_RISING,                   /**< UTIMER/QEC trigger 11 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG11_FALLING,                  /**< UTIMER/QEC trigger 11 falling edge >*/
+    ARM_UTIMER_SRC0_TRIG12_RISING,                   /**< UTIMER trigger 12 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG12_FALLING,                  /**< UTIMER trigger 12 falling edge >*/
+    ARM_UTIMER_SRC0_TRIG13_RISING,                   /**< UTIMER trigger 13 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG13_FALLING,                  /**< UTIMER trigger 13 falling edge >*/
+    ARM_UTIMER_SRC0_TRIG14_RISING,                   /**< UTIMER trigger 14 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG14_FALLING,                  /**< UTIMER trigger 14 falling edge >*/
+    ARM_UTIMER_SRC0_TRIG15_RISING,                   /**< UTIMER trigger 15 rising edge >*/
+    ARM_UTIMER_SRC0_TRIG15_FALLING,                  /**< UTIMER trigger 15 falling edge >*/
+    ARM_UTIMER_SRC1_DRIVE_A_RISING_B_0,              /**< UTIMER Channel inputs: rising edge on driver A, 0 on driver B >*/
+    ARM_UTIMER_SRC1_DRIVE_A_RISING_B_1,              /**< UTIMER Channel inputs: rising edge on driver A, 1 on driver B >*/
+    ARM_UTIMER_SRC1_DRIVE_A_FALLING_B_0,             /**< UTIMER Channel inputs: falling edge on driver A, 0 on driver B >*/
+    ARM_UTIMER_SRC1_DRIVE_A_FALLING_B_1,             /**< UTIMER Channel inputs: falling edge on driver A, 1 on driver B >*/
+    ARM_UTIMER_SRC1_DRIVE_B_RISING_A_0,              /**< UTIMER Channel inputs: rising edge on driver B, 0 on driver A >*/
+    ARM_UTIMER_SRC1_DRIVE_B_RISING_A_1,              /**< UTIMER Channel inputs: rising edge on driver B, 1 on driver A >*/
+    ARM_UTIMER_SRC1_DRIVE_B_FALLING_A_0,             /**< UTIMER Channel inputs: falling edge on driver B, 0 on driver A >*/
+    ARM_UTIMER_SRC1_DRIVE_B_FALLING_A_1,             /**< UTIMER Channel inputs: falling edge on driver B, 0 on driver A >*/
+    ARM_UTIMER_FAULT_TRIG0_RISING,                   /**< Fault trigger 0 rising edge >*/
+    ARM_UTIMER_FAULT_TRIG0_FALLING,                  /**< Fault trigger 0 falling edge >*/
+    ARM_UTIMER_FAULT_TRIG1_RISING,                   /**< Fault trigger 1 rising edge >*/
+    ARM_UTIMER_FAULT_TRIG1_FALLING,                  /**< Fault trigger 1 falling edge >*/
+    ARM_UTIMER_FAULT_TRIG2_RISING,                   /**< Fault trigger 2 rising edge >*/
+    ARM_UTIMER_FAULT_TRIG2_FALLING,                  /**< Fault trigger 2 falling edge >*/
+    ARM_UTIMER_FAULT_TRIG3_RISING,                   /**< Fault trigger 3 rising edge >*/
+    ARM_UTIMER_FAULT_TRIG3_FALLING,                  /**< Fault trigger 3 falling edge >*/
+    ARM_UTIMER_PAUSE_SRC_0_HIGH,                     /**< Pause source 0 high >*/
+    ARM_UTIMER_PAUSE_SRC_0_LOW,                      /**< Pause source 0 low >*/
+    ARM_UTIMER_PAUSE_SRC_1_HIGH,                     /**< Pause source 1 high >*/
+    ARM_UTIMER_PAUSE_SRC_1_LOW                       /**< Pause source 1 low >*/
+} ARM_UTIMER_TRIGGER;
 
-#define ARM_UTIMER_INTRRUPT_UNMASK                  (uint32_t)0x00000000    /**< interrupt unmask >*/
-#define ARM_UTIMER_INTRRUPT_MASK                    (uint32_t)0x000000FF    /**< interrupt mask >*/
-
-#define ARM_UTIMER_IRQ_TYPE_CAPTURE_A               (1)    /**< A - compare/capture_a match >*/
-#define ARM_UTIMER_IRQ_TYPE_CAPTURE_B               (2)    /**< B - compare/capture_b match >*/
-#define ARM_UTIMER_IRQ_TYPE_CAPTURE_C               (3)    /**< C - compare_a_buf1 match >*/
-#define ARM_UTIMER_IRQ_TYPE_CAPTURE_D               (4)    /**< D - compare_a_buf2 match >*/
-#define ARM_UTIMER_IRQ_TYPE_CAPTURE_E               (5)    /**< E - compare_b_buf1 match >*/
-#define ARM_UTIMER_IRQ_TYPE_CAPTURE_F               (6)    /**< F - compare_b_buf2 match >*/
-#define ARM_UTIMER_IRQ_TYPE_UNDER_FLOW              (7)    /**<   - UNDER FLOW >*/
-#define ARM_UTIMER_IRQ_TYPE_OVER_FLOW               (8)    /**<   - OVER FLOW >*/
-#define ARM_QEC_IRQ_TYPE_COMPARE_A                  (9)    /**< A - compare for QEC >*/
-#define ARM_QEC_IRQ_TYPE_COMPARE_B                  (10)   /**< B - compare for QEC >*/
-
-typedef enum _UTIMER_OPERATION {
-    ARM_UTIMER_MODE_CONFIG,                                 /**< UTIMER channel mode configure >*/
-    ARM_UTIMER_SET_COUNT,                                   /**< UTIMER Channel setting the count for operation >*/
-    ARM_UTIMER_GET_COUNT,                                   /**< UTIMER Channel get the count >*/
-    ARM_UTIMER_GET_DIRECTION                                /**< UTIMER Channel count direction >*/
-} UTIMER_OPERATION;
-
-typedef enum _UTIMER_MODE {
-    ARM_UTIMER_MODE_BASIC,                                  /**< UTIMER Channel mode configure to Basic mode >*/
-    ARM_UTIMER_MODE_BUFFERING,                              /**< UTIMER Channel mode configure to Buffering mode >*/
-    ARM_UTIMER_MODE_TRIGGERING,                             /**< UTIMER Channel mode configure to Triggering mode >*/
-    ARM_UTIMER_MODE_CAPTURING,                              /**< UTIMER Channel mode configure to Capturing mode >*/
-    ARM_UTIMER_MODE_COMPARING,                              /**< UTIMER Channel mode configure to Comparing mode >*/
-    ARM_UTIMER_MODE_DEAD_TIME                               /**< UTIMER Channel mode configure to Dead Timer mode >*/
-} UTIMER_MODE;
-
-typedef enum _UTIMER_DIRECTION {
-    ARM_UTIMER_COUNT_DIRECTION_UP,                          /**< UTIMER Channel counting direction up >*/
-    ARM_UTIMER_COUNT_DIRECTION_DOWN,                        /**< UTIMER Channel counting direction down >*/
-    ARM_UTIMER_COUNT_DIRECTION_TRIANGLE,                    /**< UTIMER Channel counting direction triangle >*/
-} UTIMER_DIRECTION;
-
-typedef enum _UTIMER_SET_OPERATION {
-    ARM_UTIMER_SET_COUNT_FOR_NORMAL_OPERATION,              /**< load the count for Normal timer operation >*/
-    ARM_UTIMER_SET_COUNT_FOR_SINGLE_BUFFER_OPERATION,       /**< load count for Single buffer operation >*/
-    ARM_UTIMER_SET_COUNT_FOR_DOUBLE_BUFFER_OPERATION,       /**< load count for Double buffer operation >*/
-    ARM_UTIMER_SET_COUNT_FOR_DT_UP,                         /**< load count for DT UP timer operation >*/
-    ARM_UTIMER_SET_COUNT_FOR_DT_DOWN,                       /**< load count for DT DOWN timer operation >*/
-} UTIMER_SET_OPERATION;
-
-typedef enum _UTIMER_GET_OPERATION {
-    ARM_UTIMER_GET_COUNT_OF_CURRENT_RUNNING_TIMER,          /**< to get the running timer count value >*/
-    ARM_UTIMER_GET_COUNT_OF_DRIVE_A_CAPTURE_VALUE,          /**< to get the capture buffer value >*/
-    ARM_UTIMER_GET_COUNT_OF_DRIVE_A_CAPTURE1_VALUE,         /**< to get the capture buffer1 value >*/
-    ARM_UTIMER_GET_COUNT_OF_DRIVE_A_CAPTURE2_VALUE,         /**< to get the capture buffer2 value >*/
-    ARM_UTIMER_GET_COUNT_OF_DRIVE_B_CAPTURE_VALUE,          /**< to get the capture buffer value >*/
-    ARM_UTIMER_GET_COUNT_OF_DRIVE_B_CAPTURE1_VALUE,         /**< to get the capture buffer1 value >*/
-    ARM_UTIMER_GET_COUNT_OF_DRIVE_B_CAPTURE2_VALUE,         /**< to get the capture buffer2 value >*/
-} UTIMER_GET_OPERATION;
-
-typedef struct _UTIMER_MODE_CONFIG {
-    UTIMER_MODE                 mode;                       /**< UTIMER Channel mode >*/
-    UTIMER_DIRECTION            direction;                  /**< UTIMER Channel direction >*/
-    uint32_t                   *count_array;                /**< UTIMER Channel Counts >*/
-    uint8_t                     count_number;               /**< UTIMER Channel Counts number >*/
-} UTIMER_MODE_CONFIG;
-
-typedef struct _UTIMER_SET_OPERATION_CONFIG {
-    UTIMER_SET_OPERATION        operation_type;             /**< UTIMER Channel Set operation >*/
-    uint32_t                    *count;                     /**< UTIMER Channel Counts >*/
-} UTIMER_SET_OPERATION_CONFIG;
-
-typedef struct _UTIMER_GET_OPERATION_CONFIG {
-    UTIMER_GET_OPERATION        operation_type;             /**< UTIMER Channel Get operation >*/
-    uint32_t                    *count;                     /**< UTIMER Channel Counts >*/
-} UTIMER_GET_OPERATION_CONFIG;
+/** \brief UTIMER trigger configuration. */
+typedef struct _ARM_UTITMER_TRIGGER_CONFIG {
+    ARM_UTIMER_TRIGGER_TARGET     triggerTarget;      /**< UTIMER trigger target >*/
+    ARM_UTIMER_TRIGGER_SRC        triggerSrc;         /**< UTIMER trigger source >*/
+    ARM_UTIMER_TRIGGER            trigger;            /**< UTIMER triggers >*/
+} ARM_UTIMER_TRIGGER_CONFIG;
 
 /**
 \fn         int32_t ARM_UTIMER_Initialize (uint8_t channel, ARM_UTIMER_CBEvent CB_event)
 \brief      Initialize UTIMER interface and register signal(call back) functions.
-\param[in]  channel : Utimer supports 12 channels(0-11), configure by feeding TIMER_CHANNEL0,1,2,3....
+\param[in]  channel :Utimer have total 12 channel, configure by feeding TIMER_CHANNEL0,1,2,3....
 \param[in]  CB_event: call back function.
 \param[out] int32_t : execution_status.
 
-\fn         int32_t ARM_UTIMER_PowerControl (uint8_t channel, ARM_POWER_STATE state);
+\fn         int32_t ARM_UTIMER_PowerControl (uint8_t channel, ARM_POWER_STATE state)
 \brief      Control UTIMER channel interface power.
-\param[in]  channel : Utimer supports 12 channels(0-11), configure by feeding TIMER_CHANNEL0,1,2,3....
+\param[in]  channel : Utimer have total 16 channel, configure by feeding TIMER_CHANNEL0,1,2,3....
 \param[in]  state   : Power state
                     - \ref ARM_POWER_OFF :  power off: no operation possible
                     - \ref ARM_POWER_LOW :  low power mode: retain state, detect and signal wake-up events
                     - \ref ARM_POWER_FULL : power on: full operation at maximum performance
 \param[out] int32_t : execution_status.
 
-\fn         int32_t ARM_UTIMER_Control (uint8_t channel, uint32_t control, void *arg)
-\brief      Control UTIMER interface.
-\param[in]  channel : Utimer supports 12 channels(0-11), configure by feeding TIMER_CHANNEL0,1,2,3....
-\param[in]  control_code: Operation
-                        - ARM_UTIMER_MODE_CONFIG:   UTIMER channel mode configure
-                        - ARM_UTIMER_SET_COUNT:     UTIMER Channel setting the count for operation
-                        - ARM_UTIMER_GET_COUNT:     UTIMER Channel get the count
-                        - ARM_UTIMER_GET_DIRECTION: UTIMER Channel count direction
- param[in]  arg         : Pointer to an argument of operation.
- param[out] int32_t     : execution_status
+\fn         int32_t ARM_UTIMER_ConfigCounter (uint8_t channel, ARM_UTIMER_MODE mode, ARM_UTIMER_COUNTER_DIR dir)
+\brief      Configure utimer mode and type.
+\param[in]  channel     : Utimer have total 16 channel, configure by feeding TIMER_CHANNEL0,1,2,3....
+\param[in]  mode        : Utimer mode.
+ param[in]  dir         : Utimer counter direction.
+ param[out] int32_t     : execution_status.
 
-\fn         int32_t ARM_UTIMER_Configure_Trigger (uint8_t channel, uint8_t triggerFor, uint32_t triggerType);
-\brief      Configure the UTIMER Channel for trigger operation.
-\param[in]  channel     : Utimer have total 12 channels, configure by feeding TIMER_CHANNEL0,1,2,3....
-\param[in]  triggerFor  : trigger configuration for which operation.
-                        - ARM_UTIMER_TRIGGER_FOR_START:     Trigger for UTIMER Channel start.
-                        - ARM_UTIMER_TRIGGER_FOR_STOP:      Trigger for UTIMER Channel stop.
-                        - ARM_UTIMER_TRIGGER_FOR_CLEAR:     Trigger for UTIMER Channel clear.
-                        - ARM_UTIMER_TRIGGER_FOR_UPCOUNT:   Trigger for UTIMER Channel Up count.
-                        - ARM_UTIMER_TRIGGER_FOR_DOWNCOUNT: Trigger for UTIMER Channel Down count.
-                        - ARM_UTIMER_TRIGGER_FOR_CAPTURE_A: Trigger for UTIMER Channel to capture a value in Drive A.
-                        - ARM_UTIMER_TRIGGER_FOR_CAPTURE_B  Trigger for UTIMER Channel to capture a value in Drive B.
-\param[in]  triggerType : type of trigger.
+\fn         int32_t ARM_UTIMER_SetCount (uint8_t channel, ARM_UTIMER_COUNTER counter, uint32_t arg)
+\brief      Set UTIMER counter value.
+\param[in]  channel     : Utimer have total 16 channel, configure by feeding TIMER_CHANNEL0,1,2,3....
+\param[in]  counter     : counter type.
+ param[in]  value       : counter value.
+ param[out] int32_t     : execution_status.
+
+\fn         uint32_t ARM_UTIMER_GetCount (uint8_t channel, ARM_UTIMER_COUNTER counter)
+\brief      Get UTIMER counter value.
+\param[in]  channel     : Utimer have total 16 channel, configure by feeding TIMER_CHANNEL0,1,2,3....
+\param[in]  counter     : counter type.
+ param[out] uint32_t    : counter value.
+
+\fn         int32_t ARM_UTIMER_ConfigTrigger (uint8_t channel, ARM_UTIMER_TRIGGER_CONFIG *arg)
+\brief      Configure the UTMER Channel for trigger operation.
+\param[in]  channel     : Utimer have total 16 channel, configure by feeding TIMER_CHANNEL0,1,2,3....
+\param[in]  arg         : Pointer to an argument of type UTIMER_TRIGGER_CONFIG.
 \param[out] int32_t     : execution_status.
 
-\fn         int32_t ARM_UTIMER_Start (uint8_t channel);
+\fn         int32_t ARM_UTIMER_Start (uint8_t channel)
 \brief      Start the UTMER Channel counting.
-\param[in]  channel : Utimer supports 12 channels(0-11), configure by feeding TIMER_CHANNEL0,1,2,3....
+\param[in]  channel : Utimer have total 16 channel, configure by feeding TIMER_CHANNEL0,1,2,3....
 \param[out] int32_t : execution_status.
 
-\fn         int32_t ARM_UTIMER_Stop (uint8_t channel, bool count_clear_option);
+\fn         int32_t ARM_UTIMER_Stop (uint8_t channel, bool count_clear_option)
 \brief      Stop the UTMER Channel running count.
-\param[in]  channel : Utimer supports 12 channels(0-11), configure by feeding TIMER_CHANNEL0,1,2,3....
+\param[in]  channel : Utimer have total 16 channel, configure by feeding TIMER_CHANNEL0,1,2,3....
 \param[in]  count_clear_option : Utimer set = count clear, clear = count unclear
 \param[out] int32_t : execution_status.
 
-\fn         int32_t ARM_UTIMER_Uninitialize (uint8_t channel);
+\fn         int32_t ARM_UTIMER_Uninitialize (uint8_t channel)
 \brief      Un-initialize the named channel configuration
-\param[in]  channel : Utimer supports 12 channels(0-11), configure by feeding TIMER_CHANNEL0,1,2,3....
+\param[in]  channel : Utimer have total 16 channel, configure by feeding TIMER_CHANNEL0,1,2,3....
 \param[out] int32_t : execution_status.
 */
 
 typedef struct _ARM_DRIVER_UTIMER {
-    int32_t (*Initialize)              (uint8_t channel, ARM_UTIMER_SignalEvent_t cb_event);        /**< Pointer to \ref ARM_TIMER_Initialize   : Initialize the UTIMER Interface>*/
-    int32_t (*PowerControl)            (uint8_t channel, ARM_POWER_STATE state);                    /**< Pointer to \ref ARM_TIMER_PowerControl : Control UTIMER interface power>*/
-    int32_t (*Control)                 (uint8_t channel, uint32_t control_code, void *arg);         /**< Pointer to \ref ARM_TIMER_Control      : Control UTIMER interface.>*/
-    int32_t (*Configure_Trigger)       (uint8_t channel, uint8_t triggerFor, uint32_t triggerType); /**< Pointer to \ref ARM_TIMER_Configure_Trigger: configure the triggers>*/
-    int32_t (*Start)                   (uint8_t channel);                                           /**< Pointer to \ref ARM_TIMER_Start        : global starts the UTIMER channel>*/
-    int32_t (*Stop)                    (uint8_t channel, bool count_clear_option);                  /**< Pointer to \ref ARM_TIMER_Stop         : global stops  the UTIMER channel>*/
-    int32_t (*Uninitialize)            (uint8_t channel);                                           /**< Pointer to \ref ARM_TIMER_Uninitialize : Uninitialized the UTIMER Interface>*/
+    int32_t               (*Initialize)              (uint8_t channel, ARM_UTIMER_SignalEvent_t cb_event);                    /**< Pointer to \ref ARM_UTIMER_Initialize    : Initialize the UTIMER Interface>*/
+    int32_t               (*PowerControl)            (uint8_t channel, ARM_POWER_STATE state);                                /**< Pointer to \ref ARM_UTIMER_PowerControl  : Control UTIMER interface power>*/
+    int32_t               (*ConfigCounter)           (uint8_t channel, ARM_UTIMER_MODE mode, ARM_UTIMER_COUNTER_DIR dir);     /**< Pointer to \ref ARM_UTIMER_ConfigCounter : Control timer type and mode for UTIMER channel>*/
+    int32_t               (*SetCount)                (uint8_t channel, ARM_UTIMER_COUNTER counter, uint32_t value);           /**< Pointer to \ref ARM_UTIMER_SetCount      : Set count value for UTIMER channel>*/
+    uint32_t              (*GetCount)                (uint8_t channel, ARM_UTIMER_COUNTER counter);                           /**< Pointer to \ref ARM_UTIMER_GetCount      : Get count value for UTIMER channel>*/
+    int32_t               (*ConfigTrigger)           (uint8_t channel, ARM_UTIMER_TRIGGER_CONFIG *arg);                       /**< Pointer to \ref ARM_UTIMER_ConfigTrigger : configure the input triggers>*/
+    int32_t               (*Start)                   (uint8_t channel);                                                       /**< Pointer to \ref ARM_UTIMER_Start         : Global starts the UTIMER channel>*/
+    int32_t               (*Stop)                    (uint8_t channel, bool count_clear_option);                              /**< Pointer to \ref ARM_UTIMER_Stop          : Global stops  the UTIMER channel>*/
+    int32_t               (*Uninitialize)            (uint8_t channel);                                                       /**< Pointer to \ref ARM_UTIMER_Uninitialize  : Uninitialized the UTIMER Interface>*/
 } ARM_DRIVER_UTIMER;
 
 #endif /*< __DRIVER_UTIMER_H__>*/

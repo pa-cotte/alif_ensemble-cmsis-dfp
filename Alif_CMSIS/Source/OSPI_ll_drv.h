@@ -268,7 +268,7 @@ typedef struct _OSPI_RESOURCES
     uint32_t                    rx_total_cnt;          /* Total count to receive */
     uint32_t                    addr_len;              /* Address length for flash */
     uint32_t                    dummy_cycle;           /* Dummy cycles for read / write */
-    uint32_t                    mode;                  /* Transfer mode */
+    SPI_TMODE                   mode;                  /* Transfer mode */
     uint32_t                    ddr;                   /* DDR / SDR */
     uint32_t                    tx_default_buff;       /* Default value to Transfer */
     uint32_t                    tx_default_enable;     /* Default value enable to transfer */
@@ -277,13 +277,12 @@ typedef struct _OSPI_RESOURCES
     uint16_t                    rx_fifo_threshold;     /* Rx fifo threshold */
     uint16_t                    tx_fifo_threshold;     /* Tx fifo threshold */
     uint16_t                    tx_fifo_start_level;   /* Tx fifo level to start communication */
-    uint16_t                    padding;
+    uint8_t                     ddr_drive_edge;        /* Drive edge for transmit data */
+    uint8_t                     rx_sample_delay;       /* Receive data sample delay */
+    uint8_t                     rxds_delay;            /* RXDS delay */
 } OSPI_RESOURCES;
 
 /* Function prototypes */
-
-void            XNVM_OSPI0_IRQHandler        (void);
-void            XNVM_OSPI1_IRQHandler        (void);
 int32_t         OSPI_ll_SetAddrLength        (OSPI_RESOURCES *OSPI, uint32_t arg);
 int32_t         OSPI_ll_SetSpiFrameFormat    (OSPI_RESOURCES *OSPI, uint32_t arg);
 void            OSPI_ll_SetTransmissionMode  (OSPI_RESOURCES *OSPI, uint32_t mode);
@@ -300,6 +299,7 @@ int32_t         OSPI_ll_Irq_Enable           (OSPI_RESOURCES *OSPI);
 int32_t         OSPI_ll_Irq_Disable          (OSPI_RESOURCES *OSPI);
 void            OSPI_ll_IRQHandler           (OSPI_RESOURCES *OSPI);
 int32_t         OSPI_ll_MaskAllInterrupt     (OSPI_RESOURCES *OSPI);
+void            OSPI_ll_Init                 (OSPI_RESOURCES *OSPI);
 int32_t         OSPI_ll_Uninitialize         (OSPI_RESOURCES *OSPI);
 int32_t         OSPI_ll_Send                 (OSPI_RESOURCES *OSPI, const void *data, uint32_t num);
 int32_t         OSPI_ll_Receive              (OSPI_RESOURCES *OSPI, void *data, uint32_t num);

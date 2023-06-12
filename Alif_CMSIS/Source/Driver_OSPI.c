@@ -20,6 +20,7 @@
  ******************************************************************************/
 
 #include "OSPI_ll_drv.h"
+#include "sys_ctrl_aes.h"
 
 #if !( (RTE_OSPI0) || (RTE_OSPI1) )
 #error "OSPI is not enabled in the RTE_Device.h"
@@ -234,6 +235,10 @@ static int32_t ARM_OSPI_PowerControl(OSPI_RESOURCES *OSPI, ARM_POWER_STATE state
             }
 
             OSPI_ll_Irq_Enable(OSPI);
+
+            OSPI_ll_Init(OSPI);
+
+            set_aes_rxds_delay(OSPI->drv_instance, OSPI->rxds_delay);
 
             /* Updating Instance powered Full status */
             OSPI->flag.powered = 1;
@@ -612,7 +617,10 @@ OSPI_RESOURCES OSPI0_RES = {
     .spi_frf                = RTE_OSPI0_SPI_FRAME_FORMAT,
     .tx_fifo_threshold      = RTE_OSPI0_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_OSPI0_TX_FIFO_LEVEL_TO_START_TRANSFER,
-    .rx_fifo_threshold      = RTE_OSPI0_RX_FIFO_THRESHOLD
+    .rx_fifo_threshold      = RTE_OSPI0_RX_FIFO_THRESHOLD,
+    .ddr_drive_edge         = RTE_OSPI0_DDR_DRIVE_EDGE,
+    .rx_sample_delay        = RTE_OSPI0_RX_SAMPLE_DELAY,
+    .rxds_delay             = RTE_OSPI0_RXDS_DELAY
 };
 
 void OSPI0_IRQHandler(void)
@@ -693,7 +701,10 @@ OSPI_RESOURCES OSPI1_RES = {
     .spi_frf                = RTE_OSPI1_SPI_FRAME_FORMAT,
     .tx_fifo_threshold      = RTE_OSPI1_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_OSPI1_TX_FIFO_LEVEL_TO_START_TRANSFER,
-    .rx_fifo_threshold      = RTE_OSPI1_RX_FIFO_THRESHOLD
+    .rx_fifo_threshold      = RTE_OSPI1_RX_FIFO_THRESHOLD,
+    .ddr_drive_edge         = RTE_OSPI1_DDR_DRIVE_EDGE,
+    .rx_sample_delay        = RTE_OSPI1_RX_SAMPLE_DELAY,
+    .rxds_delay             = RTE_OSPI1_RXDS_DELAY
 };
 
 void OSPI1_IRQHandler(void)

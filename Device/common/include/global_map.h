@@ -10,7 +10,6 @@
 
 #ifndef GLOBAL_MAP_H
 #define GLOBAL_MAP_H
-#define HW_REG32(base,offset) *((volatile uint32_t *)(base + offset))
 
 
 /* =========================================================================================================================== */
@@ -53,25 +52,6 @@
 #define FC12_BASE                   0x1A8C0000UL
 #define FC13_BASE                   0x1A8D0000UL
 #define FC14_BASE                   0x1A8E0000UL
-#define MHU_A32_M55HP_0_RX_BASE     0x40000000UL
-#define MHU_M55HP_A32_0_TX_BASE     0x40010000UL
-#define MHU_A32_M55HP_1_RX_BASE     0x40020000UL
-#define MHU_M55HP_A32_1_TX_BASE     0x40030000UL
-#define MHU_SECPU_M55HP_0_RX_BASE   0x40040000UL
-#define MHU_M55HP_SECPU_0_TX_BASE   0x40050000UL
-#define MHU_SECPU_M55HP_1_RX_BASE   0x40060000UL
-#define MHU_M55HP_SECPU_1_TX_BASE   0x40070000UL
-#define MHU_M55HE_M55HP_0_RX_BASE   0x40080000UL
-#define MHU_M55HP_M55HE_0_TX_BASE   0x40090000UL
-#define MHU_M55HE_M55HP_1_RX_BASE   0x400A0000UL
-#define MHU_M55HP_M55HE_1_TX_BASE   0x400B0000UL
-#define DMA1_SEC_BASE               0x400C0000UL
-#define DMA1_NS_BASE                0x400E0000UL
-#define NPU_HP_BASE                 0x400E1000UL
-#define EVTRTR1_BASE                0x400E2000UL
-#define M55HP_CFG_BASE              0x400F0000UL
-#define WDT_HP_CTRL_BASE            0x40100000UL
-#define WDT_HP_REFRESH_BASE         0x40101000UL
 #define LPRTC_BASE                  0x42000000UL
 #define LPTIMER_BASE                0x42001000UL
 #define LPGPIO_BASE                 0x42002000UL
@@ -168,7 +148,7 @@
 /*                         Global memory map                              */
 /******************************************************************************/
 
-/* On Chip RAM Regions */
+/*On chip RAM Regions */
 #define SRAM0_BASE                0x02000000
 #define SRAM0_SIZE                0x00400000		/* 4M */
 #define SRAM1_BASE                0x08000000
@@ -181,25 +161,22 @@
 #define SRAM4_SIZE                0x00040000		/* 256K */
 #define SRAM5_BASE                0x58800000
 #define SRAM5_SIZE                0x00040000		/* 256K */
-#define SRAM6_BASE                0x62000000
-#define SRAM6_SIZE                0x00200000		/* 2M */
+#define SRAM6_A_BASE              0x62000000
+#define SRAM6_A_SIZE              0x00100000		/* 1M */
+#define SRAM6_B_BASE              0x62400000
+#define SRAM6_B_SIZE              0x00100000        /* 1M */
 #define SRAM7_BASE                0x63000000
 #define SRAM7_SIZE                0x00080000		/* 512K */
-#define SRAM8_BASE                0x63100000
+#define SRAM8_BASE                0x63200000
 #define SRAM8_SIZE                0x00200000		/* 2M */
-#define SRAM9_BASE                0x60000000
-#define SRAM9_SIZE                0x000C0000		/* 768K */
+#define SRAM9_A_BASE              0x60000000
+#define SRAM9_A_SIZE              0x00040000		/* 256K */
+#define SRAM9_B_BASE              0x60100000
+#define SRAM9_B_SIZE              0x00080000        /* 512K */
 
 /* On Chip NVM */
 #define MRAM_BASE                 0x80000000
 #define MRAM_SIZE                 0x00580000		/* 5.5M */
 
-/* Off Chip NVM */
-#define OSPI0_CTRL                0x83000000UL
-#define OSPI1_CTRL                0x83002000UL
-#define OSPI0_BASE                0xA0000000
-#define OSPI1_BASE                0xC0000000
-#define OSPI0_SIZE                0x08000000UL      /* 128M */
-#define OSPI1_SIZE                0x08000000UL      /* 128M */
 
 #endif /* GLOBAL_MAP_H */

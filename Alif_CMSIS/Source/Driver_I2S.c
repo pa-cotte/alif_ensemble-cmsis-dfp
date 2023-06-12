@@ -100,18 +100,12 @@ static int32_t I2S_Configure_ClockSource (bool enable, I2S_DRV_INFO *i2s)
 
 		/* Calculate sclk = 2* WSS * Sample Rate*/
 		sclk = 2 * clock_cycles[i2s->cfg->wss_len] * (i2s->sample_rate);
-		if (i2s->cfg->clk_source == I2S_CLK_SOURCE_0)
-			div = round((float)I2S_CLK_38P4MHZ/(float)sclk);
-		else if (i2s->cfg->clk_source == I2S_CLK_SOURCE_1)
-			div = round((float)I2S_CLK_160MHZ/(float)sclk);
-		else
-			return ARM_DRIVER_ERROR_PARAMETER;
 
+		div = lroundf(i2s->cfg->clk_source/sclk);
 		if ((div > I2S_CLK_DIVISOR_MAX)|| (div < I2S_CLK_DIVISOR_MIN))
 			return ARM_DRIVER_ERROR_PARAMETER;
 
-		*(i2s->clkreg_paddr) &= ~I2S_CLKREG_DIVISOR_Msk;
-		*(i2s->clkreg_paddr) |=  _VAL2FLD(I2S_CLKREG_DIVISOR, div);
+		set_i2s_clock_divisor(i2s->instance, div);
 	}
 
 	return ARM_DRIVER_OK;
@@ -138,6 +132,27 @@ __STATIC_INLINE int32_t I2S_DMA_Initialize (DMA_PERIPHERAL_CONFIG *dma_periph)
 }
 
 /**
+  \fn          int32_t I2S_DMA_PowerControl (ARM_POWER_STATE state, DMA_PERIPHERAL_CONFIG *dma_periph)
+  \brief       PowerControl DMA for I2S
+  \param[in]   state  Power state
+  \param[in]   dma_periph     Pointer to DMA resources
+  \return      \ref execution_status
+*/
+__STATIC_INLINE int32_t I2S_DMA_PowerControl (ARM_POWER_STATE state, DMA_PERIPHERAL_CONFIG *dma_periph)
+{
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* Initializes DMA interface */
+    status = dma_drv->PowerControl(state);
+    if(status) {
+        return ARM_DRIVER_ERROR;
+    }
+
+    return ARM_DRIVER_OK;
+}
+
+/**
   \fn          int32_t I2S_DMA_Allocate (DMA_PERIPHERAL_CONFIG *dma_periph)
   \brief       Allocate a channel for I2S
   \param[in]   dma_periph     Pointer to DMA resources
@@ -153,6 +168,21 @@ __STATIC_INLINE int32_t I2S_DMA_Allocate (DMA_PERIPHERAL_CONFIG *dma_periph)
     if(status)
     {
         return ARM_DRIVER_ERROR;
+    }
+
+    /* Enable the channel in the Event Router */
+    if(dma_periph->evtrtr_cfg.instance == 0)
+    {
+        evtrtr0_enable_dma_channel(dma_periph->evtrtr_cfg.channel,
+                                   dma_periph->evtrtr_cfg.group,
+                                   DMA_ACK_COMPLETION_PERIPHERAL);
+        evtrtr0_enable_dma_handshake(dma_periph->evtrtr_cfg.channel,
+                                     dma_periph->evtrtr_cfg.group);
+    }
+    else
+    {
+        evtrtrlocal_enable_dma_channel(dma_periph->evtrtr_cfg.channel,
+                                       DMA_ACK_COMPLETION_PERIPHERAL);
     }
 
     return ARM_DRIVER_OK;
@@ -175,6 +205,19 @@ __STATIC_INLINE int32_t I2S_DMA_DeAllocate (DMA_PERIPHERAL_CONFIG *dma_periph)
     {
         return ARM_DRIVER_ERROR;
     }
+
+    /* Disable the channel in the Event Router */
+    if(dma_periph->evtrtr_cfg.instance == 0)
+    {
+        evtrtr0_disable_dma_channel(dma_periph->evtrtr_cfg.channel);
+        evtrtr0_disable_dma_handshake(dma_periph->evtrtr_cfg.channel,
+                                      dma_periph->evtrtr_cfg.group);
+    }
+    else
+    {
+        evtrtrlocal_disable_dma_channel(dma_periph->evtrtr_cfg.channel);
+    }
+
 
     return ARM_DRIVER_OK;
 }
@@ -681,7 +724,7 @@ static int32_t I2S_PowerControl (ARM_POWER_STATE state, I2S_DRV_INFO *i2s)
 		/* Disable the I2S Global Enable */
 		I2S_RxBlockDisable (i2s);
 		I2S_TxBlockDisable (i2s);
-		I2S_GlobalDisable (i2s);
+
 		/* Clear Any Pending IRQ*/
 		NVIC_ClearPendingIRQ (i2s->irq);
 		/* Reset the interrupt status and driver status */
@@ -690,7 +733,14 @@ static int32_t I2S_PowerControl (ARM_POWER_STATE state, I2S_DRV_INFO *i2s)
 		I2S_DisableTxInterrupt (i2s);
 		I2S_DisableRxInterrupt (i2s);
 		i2s->drv_status.status = 0U;
-		/* Reset the power status of I2S */
+
+		I2S_ClockDisable (i2s);
+		I2S_GlobalDisable (i2s);
+
+		/* Disable the I2S module clock*/
+		disable_i2s_clock (i2s->instance);
+		disable_i2s_sclk_aon (i2s->instance);
+
 		i2s->flags &= ~I2S_FLAG_CLKSRC_ENABLED;
 		break;
 
@@ -703,13 +753,25 @@ static int32_t I2S_PowerControl (ARM_POWER_STATE state, I2S_DRV_INFO *i2s)
 
 		i2s->int_status   = 0U;
 		i2s->drv_status.status = 0U;
+
+		select_i2s_clock_source (i2s->instance, i2s->cfg->ext_clk_src_enable);
+
+		/* Enable the I2S module clock */
+		enable_i2s_sclk_aon (i2s->instance);
+		enable_i2s_clock (i2s->instance);
+
+		/* Enable I2S */
+		I2S_GlobalEnable (i2s);
+
+		/* Enable Master Clock */
+		I2S_ConfigureClock (i2s);
+		I2S_ClockEnable (i2s);
+
 		/* Mask all the interrupts */
 		I2S_DisableTxInterrupt (i2s);
 		I2S_DisableRxInterrupt (i2s);
 
-
 		/* Enable I2S and IRQ*/
-		I2S_GlobalEnable (i2s);
 		NVIC_ClearPendingIRQ (i2s->irq);
 		NVIC_SetPriority(i2s->irq, i2s->cfg->irq_priority);
 		NVIC_EnableIRQ (i2s->irq);
@@ -723,6 +785,18 @@ static int32_t I2S_PowerControl (ARM_POWER_STATE state, I2S_DRV_INFO *i2s)
 			return ARM_DRIVER_ERROR_UNSUPPORTED;
 
 	}
+
+	if(i2s->cfg->dma_enable)
+	{
+		/* Power Control DMA for I2S-Tx */
+		if(I2S_DMA_PowerControl (state, &i2s->dma_cfg->dma_tx) != ARM_DRIVER_OK)
+			return ARM_DRIVER_ERROR;
+
+		/* Power Control DMA for I2S-Rx */
+		if(I2S_DMA_PowerControl (state, &i2s->dma_cfg->dma_rx) != ARM_DRIVER_OK)
+			return ARM_DRIVER_ERROR;
+	}
+
 	return ARM_DRIVER_OK;
 }
 
@@ -736,7 +810,6 @@ static int32_t I2S_PowerControl (ARM_POWER_STATE state, I2S_DRV_INFO *i2s)
 static int32_t I2S_Initialize (ARM_SAI_SignalEvent_t cb_event, I2S_DRV_INFO *i2s)
 {
 	int32_t ret = ARM_DRIVER_OK;
-	__IOM uint32_t *clkreg_expmst0 = (uint32_t *) CFGMST0_BASE;
 
 	if (i2s->flags & I2S_FLAG_DRV_INIT_DONE)
 		return ARM_DRIVER_OK;
@@ -748,9 +821,6 @@ static int32_t I2S_Initialize (ARM_SAI_SignalEvent_t cb_event, I2S_DRV_INFO *i2s
 		return ARM_DRIVER_ERROR_PARAMETER;
 
 	if(i2s->cfg->sclkg >= SCLKG_CLOCK_CYCLES_MAX)
-		return ARM_DRIVER_ERROR_PARAMETER;
-
-	if(i2s->cfg->clk_source >= I2S_CLK_SOURCE_MAX)
 		return ARM_DRIVER_ERROR_PARAMETER;
 
 	if(i2s->cfg->rx_fifo_trg_lvl >= I2S_FIFO_TRIGGER_LEVEL_MAX)
@@ -786,18 +856,7 @@ static int32_t I2S_Initialize (ARM_SAI_SignalEvent_t cb_event, I2S_DRV_INFO *i2s
 			return ARM_DRIVER_ERROR;
 	}
 
-
 	i2s->flags = I2S_FLAG_DRV_INIT_DONE;
-
-	/* Enable the clock Source */
-	*clkreg_expmst0 |= (1 << 0) | (1 << 4);
-
-	*(i2s->clkreg_paddr) &= ~I2S_CLKREG_DIVISOR_Msk;
-	*(i2s->clkreg_paddr) |=  _VAL2FLD(I2S_CLKREG_DIVISOR, 0x3FF);
-	if (i2s->cfg->clk_source == I2S_CLK_SOURCE_0)
-		*(i2s->clkreg_paddr) &= ~I2S_CLKREG_CLKSOURCE_Msk;
-	else
-		*(i2s->clkreg_paddr) |=  _VAL2FLD(I2S_CLKREG_CLKSOURCE, I2S_CLK_SOURCE_1);
 
 	return ret;
 }
@@ -1019,9 +1078,19 @@ static int32_t I2S_Receive (void *data, uint32_t num, I2S_DRV_INFO *i2s)
 		else
 			dma_params.burst_len  = i2s->cfg->rx_fifo_trg_lvl + 1;
 
+#ifdef I2S_USE_CUSTOM_DMA
+		if (i2s->dma_cfg->mcode)
+		{
+			status = i2s->dma_cfg->mcode(&dma_params, i2s->dma_cfg->dma_code);
+			ARM_DRIVER_DMA *dma_drv = i2s->dma_cfg->dma_rx.dma_drv;
+			status = dma_drv->Control(&i2s->dma_cfg->dma_rx.dma_handle, ARM_DMA_USER_PROVIDED_MCODE, (uint32_t)i2s->dma_cfg->dma_code);
+			if(status)
+				return ARM_DRIVER_ERROR;
+		}
+#else
 		/* Enable the Rx Overflow interrupt */
 		I2S_EnableRxFOInterrupt(i2s);
-
+#endif
 		/* Start DMA transfer */
 		status = I2S_DMA_Start(&i2s->dma_cfg->dma_rx, &dma_params);
 		if(status)
@@ -1085,6 +1154,14 @@ static int32_t I2S_Control (uint32_t control, uint32_t arg1, uint32_t arg2, I2S_
 		I2S_SetTxTriggerLevel (i2s);
 
 		break;
+
+	case ARM_SAI_CONTROL_CUSTOM_DMA_CODE:
+#ifdef I2S_USE_CUSTOM_DMA
+		i2s->dma_cfg->mcode = (mcode_fptr)arg1;
+		return ARM_DRIVER_OK;
+#else
+		return ARM_DRIVER_ERROR_UNSUPPORTED;
+#endif
 	case ARM_SAI_CONFIGURE_RX:
 		/* Set FIFO Trigger Level */
 		I2S_SetRxTriggerLevel (i2s);
@@ -1611,19 +1688,25 @@ static void I2S_DMACallback (uint32_t event, int8_t peri_num,
     {
         switch(peri_num)
         {
-        case I2S0_TX_PERIPH_REQ:
-        case I2S1_TX_PERIPH_REQ:
-        case I2S2_TX_PERIPH_REQ:
-        case I2S3_TX_PERIPH_REQ:
+        case I2S0_DMA_TX_PERIPH_REQ:
+        case I2S1_DMA_TX_PERIPH_REQ:
+        case I2S2_DMA_TX_PERIPH_REQ:
+        case I2S3_DMA_TX_PERIPH_REQ:
+#if defined (M55_HE)
+        case LPI2S_DMA_TX_PERIPH_REQ:
+#endif
             /* Set the Tx flags*/
             i2s->drv_status.status_b.tx_busy = 0U;
             i2s->cb_event (ARM_SAI_EVENT_SEND_COMPLETE);
             break;
 
-        case I2S0_RX_PERIPH_REQ:
-        case I2S1_RX_PERIPH_REQ:
-        case I2S2_RX_PERIPH_REQ:
-        case I2S3_RX_PERIPH_REQ:
+        case I2S0_DMA_RX_PERIPH_REQ:
+        case I2S1_DMA_RX_PERIPH_REQ:
+        case I2S2_DMA_RX_PERIPH_REQ:
+        case I2S3_DMA_RX_PERIPH_REQ:
+#if defined (M55_HE)
+        case LPI2S_DMA_RX_PERIPH_REQ:
+#endif
             /* Set the Rx flags*/
             i2s->drv_status.status_b.rx_busy = 0U;
             /* Disable the Overflow interrupt */
@@ -1652,26 +1735,46 @@ static void I2S_DMACallback (uint32_t event, int8_t peri_num,
 static void I2S0_DMACallback (uint32_t event, int8_t peri_num);
 
 static I2S_CONFIG_INFO I2S0_CONFIG = {
-    .wss_len         = RTE_I2S0_WSS_CLOCK_CYCLES,
-    .sclkg           = RTE_I2S0_SCLKG_CLOCK_CYCLES,
-    .clk_source      = RTE_I2S0_CLK_SOURCE,
-    .rx_fifo_trg_lvl = RTE_I2S0_RX_TRIG_LVL,
-    .tx_fifo_trg_lvl = RTE_I2S0_TX_TRIG_LVL,
-    .irq_priority    = RTE_I2S0_IRQ_PRI,
-    .dma_enable      = RTE_I2S0_DMA_ENABLE,
-    .dma_irq_priority = RTE_I2S0_DMA_IRQ_PRI,
+    .wss_len             = RTE_I2S0_WSS_CLOCK_CYCLES,
+    .sclkg               = RTE_I2S0_SCLKG_CLOCK_CYCLES,
+    .rx_fifo_trg_lvl     = RTE_I2S0_RX_TRIG_LVL,
+    .tx_fifo_trg_lvl     = RTE_I2S0_TX_TRIG_LVL,
+    .irq_priority        = RTE_I2S0_IRQ_PRI,
+    .dma_enable          = RTE_I2S0_DMA_ENABLE,
+    .dma_irq_priority    = RTE_I2S0_DMA_IRQ_PRI,
+    .ext_clk_src_enable  = RTE_I2S0_EXT_CLOCK_SOURCE_ENABLE,
+#if RTE_I2S0_EXT_CLOCK_SOURCE_ENABLE
+    .clk_source          = RTE_I2S0_EXT_CLOCK_SOURCE,
+#else
+    .clk_source          = I2S_CLK_SOURCE_76P8M_IN_HZ,
+#endif
 };
 
 static I2S_DMA_HW_CONFIG I2S0_DMA_HW_CONFIG = {
     .dma_rx =
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S0_DMA),
-        .dma_periph_req = I2S0_RX_PERIPH_REQ,
+        .dma_periph_req = I2S0_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S0_DMA,
+             .group    = I2S0_DMA_GROUP,
+             .channel  = I2S0_DMA_RX_PERIPH_REQ,
+             .enable_handshake = I2S0_DMA_HANDSHAKE_ENABLE,
+        },
     },
     .dma_tx =
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S0_DMA),
-        .dma_periph_req = I2S0_TX_PERIPH_REQ,
+        .dma_periph_req = I2S0_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S0_DMA,
+             .group    = I2S0_DMA_GROUP,
+             .channel  = I2S0_DMA_TX_PERIPH_REQ,
+             .enable_handshake = I2S0_DMA_HANDSHAKE_ENABLE,
+        },
+
     },
 };
 
@@ -1681,8 +1784,8 @@ static I2S_DRV_INFO I2S0 = {
     .cfg       = &I2S0_CONFIG,
     .dma_cfg   = &I2S0_DMA_HW_CONFIG,
     .paddr     = (I2S_TypeDef *) I2S0_BASE,
-    .clkreg_paddr = (__IOM uint32_t *) I2S0_CLK_ADDR,
-    .irq       = (IRQn_Type) I2S0_IRQ,
+    .instance  =  I2S_INSTANCE_0,
+    .irq       = (IRQn_Type) I2S0_IRQ_IRQn,
     .flags     = NULL,
 };
 
@@ -1830,26 +1933,45 @@ ARM_DRIVER_SAI Driver_SAI0 = {
 static void I2S1_DMACallback (uint32_t event, int8_t peri_num);
 
 static I2S_CONFIG_INFO I2S1_CONFIG = {
-    .wss_len         = RTE_I2S1_WSS_CLOCK_CYCLES,
-    .sclkg           = RTE_I2S1_SCLKG_CLOCK_CYCLES,
-    .clk_source      = RTE_I2S1_CLK_SOURCE,
-    .rx_fifo_trg_lvl = RTE_I2S1_RX_TRIG_LVL,
-    .tx_fifo_trg_lvl = RTE_I2S1_TX_TRIG_LVL,
-    .irq_priority    = RTE_I2S1_IRQ_PRI,
-    .dma_enable      = RTE_I2S1_DMA_ENABLE,
-    .dma_irq_priority = RTE_I2S1_DMA_IRQ_PRI,
+    .wss_len             = RTE_I2S1_WSS_CLOCK_CYCLES,
+    .sclkg               = RTE_I2S1_SCLKG_CLOCK_CYCLES,
+    .rx_fifo_trg_lvl     = RTE_I2S1_RX_TRIG_LVL,
+    .tx_fifo_trg_lvl     = RTE_I2S1_TX_TRIG_LVL,
+    .irq_priority        = RTE_I2S1_IRQ_PRI,
+    .dma_enable          = RTE_I2S1_DMA_ENABLE,
+    .dma_irq_priority    = RTE_I2S1_DMA_IRQ_PRI,
+    .ext_clk_src_enable  = RTE_I2S1_EXT_CLOCK_SOURCE_ENABLE,
+#if RTE_I2S1_EXT_CLOCK_SOURCE_ENABLE
+    .clk_source          = RTE_I2S1_EXT_CLOCK_SOURCE,
+#else
+    .clk_source          = I2S_CLK_SOURCE_76P8M_IN_HZ,
+#endif
 };
 
 static I2S_DMA_HW_CONFIG I2S1_DMA_HW_CONFIG = {
     .dma_rx =
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S1_DMA),
-        .dma_periph_req = I2S1_RX_PERIPH_REQ,
+        .dma_periph_req = I2S1_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S1_DMA,
+             .group    = I2S1_DMA_GROUP,
+             .channel  = I2S1_DMA_RX_PERIPH_REQ,
+             .enable_handshake = I2S1_DMA_HANDSHAKE_ENABLE,
+        },
     },
     .dma_tx =
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S1_DMA),
-        .dma_periph_req = I2S1_TX_PERIPH_REQ,
+        .dma_periph_req = I2S1_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S1_DMA,
+             .group    = I2S1_DMA_GROUP,
+             .channel  = I2S1_DMA_TX_PERIPH_REQ,
+             .enable_handshake = I2S1_DMA_HANDSHAKE_ENABLE,
+        },
     },
 };
 
@@ -1859,8 +1981,8 @@ static I2S_DRV_INFO I2S1 = {
     .cfg       = &I2S1_CONFIG,
     .dma_cfg   = &I2S1_DMA_HW_CONFIG,
     .paddr     = (I2S_TypeDef *) I2S1_BASE,
-    .clkreg_paddr = (__IOM uint32_t *) I2S1_CLK_ADDR,
-    .irq       = (IRQn_Type) I2S1_IRQ,
+    .instance  =  I2S_INSTANCE_1,
+    .irq       = (IRQn_Type) I2S1_IRQ_IRQn,
     .flags     = NULL,
 };
 
@@ -2008,26 +2130,45 @@ ARM_DRIVER_SAI Driver_SAI1 = {
 static void I2S2_DMACallback (uint32_t event, int8_t peri_num);
 
 static I2S_CONFIG_INFO I2S2_CONFIG = {
-    .wss_len         = RTE_I2S2_WSS_CLOCK_CYCLES,
-    .sclkg           = RTE_I2S2_SCLKG_CLOCK_CYCLES,
-    .clk_source      = RTE_I2S2_CLK_SOURCE,
-    .rx_fifo_trg_lvl = RTE_I2S2_RX_TRIG_LVL,
-    .tx_fifo_trg_lvl = RTE_I2S2_TX_TRIG_LVL,
-    .irq_priority    = RTE_I2S2_IRQ_PRI,
-    .dma_enable      = RTE_I2S2_DMA_ENABLE,
-    .dma_irq_priority = RTE_I2S2_DMA_IRQ_PRI,
+    .wss_len             = RTE_I2S2_WSS_CLOCK_CYCLES,
+    .sclkg               = RTE_I2S2_SCLKG_CLOCK_CYCLES,
+    .rx_fifo_trg_lvl     = RTE_I2S2_RX_TRIG_LVL,
+    .tx_fifo_trg_lvl     = RTE_I2S2_TX_TRIG_LVL,
+    .irq_priority        = RTE_I2S2_IRQ_PRI,
+    .dma_enable          = RTE_I2S2_DMA_ENABLE,
+    .dma_irq_priority    = RTE_I2S2_DMA_IRQ_PRI,
+    .ext_clk_src_enable  = RTE_I2S2_EXT_CLOCK_SOURCE_ENABLE,
+#if RTE_I2S2_EXT_CLOCK_SOURCE_ENABLE
+    .clk_source          = RTE_I2S2_EXT_CLOCK_SOURCE,
+#else
+    .clk_source          = I2S_CLK_SOURCE_76P8M_IN_HZ,
+#endif
 };
 
 static I2S_DMA_HW_CONFIG I2S2_DMA_HW_CONFIG = {
     .dma_rx =
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S2_DMA),
-        .dma_periph_req = I2S2_RX_PERIPH_REQ,
+        .dma_periph_req = I2S2_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S2_DMA,
+             .group    = I2S2_DMA_GROUP,
+             .channel  = I2S2_DMA_RX_PERIPH_REQ,
+             .enable_handshake = I2S2_DMA_HANDSHAKE_ENABLE,
+        },
     },
     .dma_tx =
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S2_DMA),
-        .dma_periph_req = I2S2_TX_PERIPH_REQ,
+        .dma_periph_req = I2S2_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S2_DMA,
+             .group    = I2S2_DMA_GROUP,
+             .channel  = I2S2_DMA_TX_PERIPH_REQ,
+             .enable_handshake = I2S2_DMA_HANDSHAKE_ENABLE,
+        },
     },
 };
 
@@ -2037,8 +2178,8 @@ static I2S_DRV_INFO I2S2 = {
     .cfg       = &I2S2_CONFIG,
     .dma_cfg   = &I2S2_DMA_HW_CONFIG,
     .paddr     = (I2S_TypeDef *) I2S2_BASE,
-    .clkreg_paddr = (__IOM uint32_t *) I2S2_CLK_ADDR,
-    .irq       = (IRQn_Type) I2S2_IRQ,
+    .instance  =  I2S_INSTANCE_2,
+    .irq       = (IRQn_Type) I2S2_IRQ_IRQn,
     .flags     = NULL,
 };
 
@@ -2187,26 +2328,45 @@ ARM_DRIVER_SAI Driver_SAI2 = {
 static void I2S3_DMACallback (uint32_t event, int8_t peri_num);
 
 static I2S_CONFIG_INFO I2S3_CONFIG = {
-    .wss_len         = RTE_I2S3_WSS_CLOCK_CYCLES,
-    .sclkg           = RTE_I2S3_SCLKG_CLOCK_CYCLES,
-    .clk_source      = RTE_I2S3_CLK_SOURCE,
-    .rx_fifo_trg_lvl = RTE_I2S3_RX_TRIG_LVL,
-    .tx_fifo_trg_lvl = RTE_I2S3_TX_TRIG_LVL,
-    .irq_priority    = RTE_I2S3_IRQ_PRI,
-    .dma_enable      = RTE_I2S3_DMA_ENABLE,
-    .dma_irq_priority = RTE_I2S3_DMA_IRQ_PRI,
+    .wss_len             = RTE_I2S3_WSS_CLOCK_CYCLES,
+    .sclkg               = RTE_I2S3_SCLKG_CLOCK_CYCLES,
+    .rx_fifo_trg_lvl     = RTE_I2S3_RX_TRIG_LVL,
+    .tx_fifo_trg_lvl     = RTE_I2S3_TX_TRIG_LVL,
+    .irq_priority        = RTE_I2S3_IRQ_PRI,
+    .dma_enable          = RTE_I2S3_DMA_ENABLE,
+    .dma_irq_priority    = RTE_I2S3_DMA_IRQ_PRI,
+    .ext_clk_src_enable  = RTE_I2S3_EXT_CLOCK_SOURCE_ENABLE,
+#if RTE_I2S3_EXT_CLOCK_SOURCE_ENABLE
+    .clk_source          = RTE_I2S3_EXT_CLOCK_SOURCE,
+#else
+    .clk_source          = I2S_CLK_SOURCE_76P8M_IN_HZ,
+#endif
 };
 
 static I2S_DMA_HW_CONFIG I2S3_DMA_HW_CONFIG = {
     .dma_rx =
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S3_DMA),
-        .dma_periph_req = I2S3_RX_PERIPH_REQ,
+        .dma_periph_req = I2S3_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S3_DMA,
+             .group    = I2S3_DMA_GROUP,
+             .channel  = I2S3_DMA_RX_PERIPH_REQ,
+             .enable_handshake = I2S3_DMA_HANDSHAKE_ENABLE,
+        },
     },
     .dma_tx =
     {
         .dma_drv        = &ARM_Driver_DMA_(I2S3_DMA),
-        .dma_periph_req = I2S3_TX_PERIPH_REQ,
+        .dma_periph_req = I2S3_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I2S3_DMA,
+             .group    = I2S3_DMA_GROUP,
+             .channel  = I2S3_DMA_TX_PERIPH_REQ,
+             .enable_handshake = I2S3_DMA_HANDSHAKE_ENABLE,
+        },
     },
 };
 
@@ -2216,8 +2376,8 @@ static I2S_DRV_INFO I2S3 = {
     .cfg       = &I2S3_CONFIG,
     .dma_cfg   = &I2S3_DMA_HW_CONFIG,
     .paddr     = (I2S_TypeDef *) I2S3_BASE,
-    .clkreg_paddr = (__IOM uint32_t *) I2S3_CLK_ADDR,
-    .irq       = (IRQn_Type) I2S3_IRQ,
+    .instance  =  I2S_INSTANCE_3,
+    .irq       = (IRQn_Type) I2S3_IRQ_IRQn,
     .flags     = NULL,
 };
 
@@ -2360,3 +2520,201 @@ ARM_DRIVER_SAI Driver_SAI3 = {
     I2S3_GetStatus
 };
 #endif //RTE_I2S3
+
+#if (RTE_LPI2S)
+
+static void LPI2S_DMACallback (uint32_t event, int8_t peri_num);
+
+static I2S_CONFIG_INFO LPI2S_CONFIG = {
+    .wss_len          = RTE_LPI2S_WSS_CLOCK_CYCLES,
+    .sclkg            = RTE_LPI2S_SCLKG_CLOCK_CYCLES,
+    .rx_fifo_trg_lvl  = RTE_LPI2S_RX_TRIG_LVL,
+    .tx_fifo_trg_lvl  = RTE_LPI2S_TX_TRIG_LVL,
+    .irq_priority     = RTE_LPI2S_IRQ_PRI,
+    .dma_enable       = RTE_LPI2S_DMA_ENABLE,
+    .dma_irq_priority = RTE_LPI2S_DMA_IRQ_PRI,
+    .ext_clk_src_enable  = RTE_LPI2S_EXT_CLOCK_SOURCE_ENABLE,
+#if RTE_LPI2S_EXT_CLOCK_SOURCE_ENABLE
+    .clk_source          = RTE_LPI2S_EXT_CLOCK_SOURCE,
+#else
+    .clk_source          = I2S_CLK_SOURCE_76P8M_IN_HZ,
+#endif
+};
+
+static I2S_DMA_HW_CONFIG LPI2S_DMA_HW_CONFIG = {
+    .dma_rx =
+    {
+        .dma_drv        = &ARM_Driver_DMA_(LPI2S_DMA),
+        .dma_periph_req = LPI2S_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = LPI2S_DMA,
+             .group    = LPI2S_DMA_GROUP,
+             .channel  = LPI2S_DMA_RX_PERIPH_REQ,
+             .enable_handshake = LPI2S_DMA_HANDSHAKE_ENABLE,
+        },
+    },
+    .dma_tx =
+    {
+        .dma_drv        = &ARM_Driver_DMA_(LPI2S_DMA),
+        .dma_periph_req = LPI2S_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = LPI2S_DMA,
+             .group    = LPI2S_DMA_GROUP,
+             .channel  = LPI2S_DMA_TX_PERIPH_REQ,
+             .enable_handshake = LPI2S_DMA_HANDSHAKE_ENABLE,
+        },
+    },
+};
+
+static I2S_DRV_INFO LPI2S = {
+    .cb_event  = NULL,
+    .dma_cb    = LPI2S_DMACallback,
+    .cfg       = &LPI2S_CONFIG,
+    .dma_cfg   = &LPI2S_DMA_HW_CONFIG,
+    .paddr     = (I2S_TypeDef *) LPI2S_BASE,
+    .instance  = I2S_INSTANCE_LP,
+    .irq       = (IRQn_Type) LPI2S_IRQ_IRQn,
+    .flags     = NULL,
+};
+
+
+/**
+  \fn          int32_t LPI2S_Initialize (ARM_SAI_SignalEvent_t cb_event)
+  \brief       Initialize I2S Interface.
+  \param[in]   cb_event  Pointer to \ref ARM_SAI_SignalEvent
+  \return      \ref execution_status
+*/
+static int32_t LPI2S_Initialize (ARM_SAI_SignalEvent_t cb_event)
+{
+	return I2S_Initialize (cb_event, &LPI2S);
+}
+
+/**
+  \fn          int32_t LPI2S_Uninitialize (void)
+  \brief       De-initialize I2S Interface.
+  \return      \ref execution_status
+*/
+static int32_t LPI2S_Uninitialize (void)
+{
+	return I2S_Uninitialize (&LPI2S);
+}
+
+/**
+  \fn          int32_t LPI2S_PowerControl (ARM_POWER_STATE state)
+  \brief       Control I2S Interface Power.
+  \param[in]   state  Power state
+  \return      \ref execution_status
+*/
+static int32_t LPI2S_PowerControl (ARM_POWER_STATE state)
+{
+	return I2S_PowerControl (state, &LPI2S);
+}
+
+/**
+  \fn          int32_t LPI2S_Send (const void *data, uint32_t num)
+  \brief       Start sending data to I2S transmitter.
+  \param[in]   data  Pointer to buffer with data to send to I2S transmitter
+  \param[in]   num   Number of data items to send
+  \return      \ref execution_status
+*/
+static int32_t LPI2S_Send (const void *data, uint32_t num)
+{
+	return I2S_Send (data, num, &LPI2S);
+}
+
+/**
+  \fn          int32_t LPI2S_Receive (void *data, uint32_t num)
+  \brief       Start receiving data from I2S receiver.
+  \param[out]  data  Pointer to buffer for data to receive from I2S receiver
+  \param[in]   num   Number of data items to receive
+  \return      \ref execution_status
+*/
+static int32_t LPI2S_Receive (void *data, uint32_t num)
+{
+	return I2S_Receive (data, num, &LPI2S);
+}
+
+/**
+  \fn          uint32_t LPI2S_GetTxCount (void)
+  \brief       Get transmitted data count.
+  \return      number of data items transmitted
+*/
+static uint32_t LPI2S_GetTxCount (void)
+{
+	return I2S_GetTxCount (&LPI2S);
+}
+
+/**
+  \fn          uint32_t LPI2S_GetRxCount (void)
+  \brief       Get received data count.
+  \return      number of data items received
+*/
+static uint32_t LPI2S_GetRxCount (void)
+{
+	return I2S_GetRxCount (&LPI2S);
+}
+
+/**
+  \fn          int32_t LPI2S_Control (uint32_t control, uint32_t arg1, uint32_t arg2)
+  \brief       Control I2S Interface.
+  \param[in]   control  Operation
+  \param[in]   arg1     Argument 1 of operation (optional)
+  \param[in]   arg2     Argument 2 of operation (optional)
+  \return      common \ref execution_status and driver specific \ref sai_execution_status
+*/
+static int32_t LPI2S_Control (uint32_t control, uint32_t arg1, uint32_t arg2)
+{
+	return I2S_Control (control, arg1, arg2, &LPI2S);
+}
+
+/**
+  \fn          ARM_SAI_STATUS LPI2S_GetStatus (void)
+  \brief       Get I2S status.
+  \return      SAI status \ref ARM_SAI_STATUS
+*/
+static ARM_SAI_STATUS LPI2S_GetStatus (void)
+{
+	return I2S_GetStatus (&LPI2S);
+}
+
+/**
+  \fn          void  LPI2S_IRQHandler (void)
+  \brief       Run the IRQ Handler for LPI2S
+*/
+void LPI2S_IRQHandler (void)
+{
+	I2S_IRQHandler (&LPI2S);
+}
+
+/**
+  \fn          void  LPI2S_DMACallback (uint32_t event, int8_t peri_num)
+  \param[in]   event     Event from DMA
+  \param[in]   peri_num  Peripheral number
+  \brief       Callback function from DMA for LPI2S
+*/
+void LPI2S_DMACallback (uint32_t event, int8_t peri_num)
+{
+	I2S_DMACallback (event, peri_num, &LPI2S);
+}
+
+/**
+\brief Access structure of the Low Power I2S Driver.
+*/
+extern \
+ARM_DRIVER_SAI Driver_SAILP;
+ARM_DRIVER_SAI Driver_SAILP = {
+    I2S_GetVersion,
+    I2S_GetCapabilities,
+    LPI2S_Initialize,
+    LPI2S_Uninitialize,
+    LPI2S_PowerControl,
+    LPI2S_Send,
+    LPI2S_Receive,
+    LPI2S_GetTxCount,
+    LPI2S_GetRxCount,
+    LPI2S_Control,
+    LPI2S_GetStatus
+};
+#endif //RTE_LPI2S

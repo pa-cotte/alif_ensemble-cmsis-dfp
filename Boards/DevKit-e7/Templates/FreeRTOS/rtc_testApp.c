@@ -37,6 +37,22 @@
 /* include for RTC Driver */
 #include "Driver_RTC.h"
 
+/* For Release build disable printf and semihosting */
+#define DISABLE_PRINTF
+
+#ifdef DISABLE_PRINTF
+  #define printf( fmt, ... ) ( 0 )
+  /* Also Disable Semihosting */
+  #if __ARMCC_VERSION >= 6000000
+    __asm( ".global __use_no_semihosting" );
+  #elif __ARMCC_VERSION >= 5000000
+    #pragma import( __use_no_semihosting )
+  #else
+    #error Unsupported compiler
+  #endif
+  void _sys_exit( int return_code ) { while ( 1 ); }
+#endif
+
 /*Define for FreeRTOS*/
 #define STACK_SIZE     1024
 #define TIMER_SERVICE_TASK_STACK_SIZE configTIMER_TASK_STACK_DEPTH // 512
@@ -100,10 +116,14 @@ uint32_t    event_flags_rtc;
 */
 static void alarm_callback(uint32_t event)
 {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE, xResult = pdFALSE;
+
     if (event & ARM_RTC_EVENT_ALARM_TRIGGER)
     {
         /* Received RTC Alarm: Wake-up Thread. */
-	xTaskNotifyFromISR(rtc_xHandle, RTC_ALARM_EVENT,eSetBits, NULL);
+        xTaskNotifyFromISR(rtc_xHandle, RTC_ALARM_EVENT,eSetBits, &xHigherPriorityTaskWoken);
+
+        if (xResult == pdTRUE)        {    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );    }
     }
 }
 
@@ -200,8 +220,10 @@ error_uninitialize:
     }
 
     printf("\r\n XXX RTC demo thread exiting XXX...\r\n");
-}
 
+    /* thread delete */
+    vTaskDelete( NULL );
+}
 
 /*----------------------------------------------------------------------------
  *      Main: Initialize and start the FreeRTOS Kernel
@@ -211,7 +233,7 @@ int main( void )
    /* System Initialization */
    SystemCoreClockUpdate();
    /* Create application main thread */
-   BaseType_t xReturned = xTaskCreate(rtc_demo_Thread, "rtc_demo_Thread", 1024, NULL,configMAX_PRIORITIES-1, &rtc_xHandle);
+   BaseType_t xReturned = xTaskCreate(rtc_demo_Thread, "rtc_demo_Thread", 256, NULL,configMAX_PRIORITIES-1, &rtc_xHandle);
    if (xReturned != pdPASS)
    {
       vTaskDelete(rtc_xHandle);

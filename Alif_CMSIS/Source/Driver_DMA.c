@@ -21,6 +21,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "DMA_dev.h"
 #include "string.h"
+#include "sys_ctrl_dma.h"
+#include "evtrtr.h"
 
 #define ARM_DMA_DRV_VERSION    ARM_DRIVER_VERSION_MAJOR_MINOR(2, 1) /*!< DMA Driver Version */
 
@@ -29,13 +31,114 @@ static const ARM_DRIVER_VERSION DriverVersion = {
         ARM_DMA_DRV_VERSION
 };
 
+#if ((RTE_DMA1) || (RTE_DMA2))
+#define RTE_DMALOCAL 1
+#endif
 
-#if !((RTE_DMA0) || (RTE_DMA1) || (RTE_DMA2))
+#if !((RTE_DMA0) || (RTE_DMALOCAL))
 #error "DMA is not enabled in the RTE_Device.h"
 #endif
 
 #if !defined(RTE_Drivers_DMA)
 #error "DMA not defined in RTE_Components.h!"
+#endif
+
+#if RTE_GPIO3
+#define GPIO3_DMA_GLITCH_FILTER ((RTE_GPIO3_PIN0_DMA_GLITCH_FILTER_ENABLE << 0)|\
+                                 (RTE_GPIO3_PIN1_DMA_GLITCH_FILTER_ENABLE << 1)|\
+                                 (RTE_GPIO3_PIN2_DMA_GLITCH_FILTER_ENABLE << 2)|\
+                                 (RTE_GPIO3_PIN3_DMA_GLITCH_FILTER_ENABLE << 3)|\
+                                 (RTE_GPIO3_PIN4_DMA_GLITCH_FILTER_ENABLE << 4)|\
+                                 (RTE_GPIO3_PIN5_DMA_GLITCH_FILTER_ENABLE << 5)|\
+                                 (RTE_GPIO3_PIN6_DMA_GLITCH_FILTER_ENABLE << 6)|\
+                                 (RTE_GPIO3_PIN7_DMA_GLITCH_FILTER_ENABLE << 7))
+#else
+#define GPIO3_DMA_GLITCH_FILTER 0
+#endif
+#if RTE_GPIO4
+#define GPIO4_DMA_GLITCH_FILTER ((RTE_GPIO4_PIN0_DMA_GLITCH_FILTER_ENABLE << 8)|\
+                                 (RTE_GPIO4_PIN1_DMA_GLITCH_FILTER_ENABLE << 9)|\
+                                 (RTE_GPIO4_PIN2_DMA_GLITCH_FILTER_ENABLE << 10)|\
+                                 (RTE_GPIO4_PIN3_DMA_GLITCH_FILTER_ENABLE << 11)|\
+                                 (RTE_GPIO4_PIN4_DMA_GLITCH_FILTER_ENABLE << 12)|\
+                                 (RTE_GPIO4_PIN5_DMA_GLITCH_FILTER_ENABLE << 13)|\
+                                 (RTE_GPIO4_PIN6_DMA_GLITCH_FILTER_ENABLE << 14)|\
+                                 (RTE_GPIO4_PIN7_DMA_GLITCH_FILTER_ENABLE << 15))
+#else
+#define GPIO4_DMA_GLITCH_FILTER 0
+#endif
+#if RTE_GPIO7
+#define GPIO7_DMA_GLITCH_FILTER ((RTE_GPIO7_PIN0_DMA_GLITCH_FILTER_ENABLE << 16)|\
+                                 (RTE_GPIO7_PIN1_DMA_GLITCH_FILTER_ENABLE << 17)|\
+                                 (RTE_GPIO7_PIN2_DMA_GLITCH_FILTER_ENABLE << 18)|\
+                                 (RTE_GPIO7_PIN3_DMA_GLITCH_FILTER_ENABLE << 19)|\
+                                 (RTE_GPIO7_PIN4_DMA_GLITCH_FILTER_ENABLE << 20)|\
+                                 (RTE_GPIO7_PIN5_DMA_GLITCH_FILTER_ENABLE << 21)|\
+                                 (RTE_GPIO7_PIN6_DMA_GLITCH_FILTER_ENABLE << 22)|\
+                                 (RTE_GPIO7_PIN7_DMA_GLITCH_FILTER_ENABLE << 23))
+#else
+#define GPIO7_DMA_GLITCH_FILTER 0
+#endif
+#if RTE_GPIO8
+#define GPIO8_DMA_GLITCH_FILTER ((RTE_GPIO8_PIN0_DMA_GLITCH_FILTER_ENABLE << 24)|\
+                                 (RTE_GPIO8_PIN1_DMA_GLITCH_FILTER_ENABLE << 25)|\
+                                 (RTE_GPIO8_PIN2_DMA_GLITCH_FILTER_ENABLE << 26)|\
+                                 (RTE_GPIO8_PIN3_DMA_GLITCH_FILTER_ENABLE << 27)|\
+                                 (RTE_GPIO8_PIN4_DMA_GLITCH_FILTER_ENABLE << 28)|\
+                                 (RTE_GPIO8_PIN5_DMA_GLITCH_FILTER_ENABLE << 29)|\
+                                 (RTE_GPIO8_PIN6_DMA_GLITCH_FILTER_ENABLE << 30)|\
+                                 (RTE_GPIO8_PIN7_DMA_GLITCH_FILTER_ENABLE << 31))
+#else
+#define GPIO8_DMA_GLITCH_FILTER 0
+#endif
+
+#define DMA0_GLITCH_FILTER     (GPIO3_DMA_GLITCH_FILTER | \
+                                GPIO4_DMA_GLITCH_FILTER | \
+                                GPIO7_DMA_GLITCH_FILTER | \
+                                GPIO8_DMA_GLITCH_FILTER)
+
+/* ----------  Local DMA Driver Access Struct Alias & RTE alias  ---------- */
+#if defined(M55_HP)
+#define Driver_DMALOCAL                    Driver_DMA1
+
+#define RTE_DMALOCAL_APB_INTERFACE         RTE_DMA1_APB_INTERFACE
+#define RTE_DMALOCAL_ABORT_IRQ_PRI         RTE_DMA1_ABORT_IRQ_PRI
+#define RTE_DMALOCAL_BOOT_IRQ_NS_STATE     RTE_DMA1_BOOT_IRQ_NS_STATE
+#define RTE_DMALOCAL_BOOT_PERIPH_NS_STATE  RTE_DMA1_BOOT_PERIPH_NS_STATE
+
+#if RTE_GPIO9
+#define DMALOCAL_GLITCH_FILTER ((RTE_GPIO9_PIN0_DMA_GLITCH_FILTER_ENABLE << 0)|\
+                                (RTE_GPIO9_PIN1_DMA_GLITCH_FILTER_ENABLE << 1)|\
+                                (RTE_GPIO9_PIN2_DMA_GLITCH_FILTER_ENABLE << 2)|\
+                                (RTE_GPIO9_PIN3_DMA_GLITCH_FILTER_ENABLE << 3)|\
+                                (RTE_GPIO9_PIN4_DMA_GLITCH_FILTER_ENABLE << 4)|\
+                                (RTE_GPIO9_PIN5_DMA_GLITCH_FILTER_ENABLE << 5)|\
+                                (RTE_GPIO9_PIN6_DMA_GLITCH_FILTER_ENABLE << 6)|\
+                                (RTE_GPIO9_PIN7_DMA_GLITCH_FILTER_ENABLE << 7))
+#else
+#define DMALOCAL_GLITCH_FILTER 0
+#endif
+
+#elif defined(M55_HE)
+#define Driver_DMALOCAL                    Driver_DMA2
+
+#define RTE_DMALOCAL_APB_INTERFACE         RTE_DMA2_APB_INTERFACE
+#define RTE_DMALOCAL_ABORT_IRQ_PRI         RTE_DMA2_ABORT_IRQ_PRI
+#define RTE_DMALOCAL_BOOT_IRQ_NS_STATE     RTE_DMA2_BOOT_IRQ_NS_STATE
+#define RTE_DMALOCAL_BOOT_PERIPH_NS_STATE  RTE_DMA2_BOOT_PERIPH_NS_STATE
+
+#if RTE_LPGPIO
+#define DMALOCAL_GLITCH_FILTER ((RTE_LPGPIO_PIN0_DMA_GLITCH_FILTER_ENABLE << 0)|\
+                                (RTE_LPGPIO_PIN1_DMA_GLITCH_FILTER_ENABLE << 1)|\
+                                (RTE_LPGPIO_PIN2_DMA_GLITCH_FILTER_ENABLE << 2)|\
+                                (RTE_LPGPIO_PIN3_DMA_GLITCH_FILTER_ENABLE << 3)|\
+                                (RTE_LPGPIO_PIN4_DMA_GLITCH_FILTER_ENABLE << 4)|\
+                                (RTE_LPGPIO_PIN5_DMA_GLITCH_FILTER_ENABLE << 5)|\
+                                (RTE_LPGPIO_PIN6_DMA_GLITCH_FILTER_ENABLE << 6)|\
+                                (RTE_LPGPIO_PIN7_DMA_GLITCH_FILTER_ENABLE << 7))
+#else
+#define DMALOCAL_GLITCH_FILTER 0
+#endif
 #endif
 
 /* Driver Capabilities */
@@ -60,36 +163,23 @@ static DMA_DRV_INFO DMA0 = {
     .flags      = NULL,
     .irq_start  = DMA0_IRQ0_IRQn,
     .abort_irq_priority = RTE_DMA0_ABORT_IRQ_PRI,
+    .instance   = DMA_INSTANCE_0,
 };
 #endif
 
-#if (RTE_DMA1)
-static DMA_CONFIG_INFO DMA1_CONFIG = {
+#if (RTE_DMALOCAL)
+static DMA_CONFIG_INFO DMALOCAL_CONFIG = {
 
 };
 
-static DMA_DRV_INFO DMA1 = {
-    .cfg        = &DMA1_CONFIG,
-    .apb_intf   = RTE_DMA1_APB_INTERFACE,
+static DMA_DRV_INFO DMALOCAL = {
+    .cfg        = &DMALOCAL_CONFIG,
+    .apb_intf   = RTE_DMALOCAL_APB_INTERFACE,
     .intf_paddr = NULL,
     .flags      = NULL,
-    .irq_start  = DMA1_IRQ0_IRQn,
-    .abort_irq_priority = RTE_DMA1_ABORT_IRQ_PRI,
-};
-#endif
-
-#if (RTE_DMA2)
-static DMA_CONFIG_INFO DMA2_CONFIG = {
-
-};
-
-static DMA_DRV_INFO DMA2 = {
-    .cfg        = &DMA2_CONFIG,
-    .apb_intf   = RTE_DMA2_APB_INTERFACE,
-    .intf_paddr = NULL,
-    .flags      = NULL,
-    .irq_start  = DMA2_IRQ0_IRQn,
-    .abort_irq_priority = RTE_DMA2_ABORT_IRQ_PRI,
+    .irq_start  = DMALOCAL_IRQ0_IRQn,
+    .abort_irq_priority = RTE_DMALOCAL_ABORT_IRQ_PRI,
+    .instance   = DMA_INSTANCE_LOCAL,
 };
 #endif
 
@@ -591,22 +681,33 @@ int32_t DMA_PrepareMcode(uint8_t *mcode, DMA_CCR_Type ccr,
 
         if (desc->direction != ARM_DMA_MEM_TO_MEM)
         {
-            ret = DMA_ConstructFlushPeri (desc->peri_num, mcode, &idx);
-            if (!ret)
-                return ARM_DMA_ERROR_BUFFER;
-
-            ret = DMA_ConstructWaitforPeri (xfer_type, desc->peri_num, mcode, &idx);
-            if (!ret)
-                return ARM_DMA_ERROR_BUFFER;
+            if (!(chnl_info->flags & DMA_CHANNEL_NO_DEV_HANDSHAKE))
+            {
+                ret = DMA_ConstructFlushPeri (desc->peri_num, mcode, &idx);
+                if (!ret)
+                    return ARM_DMA_ERROR_BUFFER;
+                ret = DMA_ConstructWaitforPeri (xfer_type, desc->peri_num, mcode, &idx);
+                if (!ret)
+                    return ARM_DMA_ERROR_BUFFER;
+            }
 
             if (desc->direction ==  ARM_DMA_MEM_TO_DEV)
             {
                 ret = DMA_ConstructLoad (xfer_type, mcode, &idx);
                 if (!ret)
                     return ARM_DMA_ERROR_BUFFER;
-                ret = DMA_ConstructStorePeri (xfer_type, desc->peri_num, mcode, &idx);
-                if (!ret)
-                    return ARM_DMA_ERROR_BUFFER;
+
+                if (chnl_info->flags & DMA_CHANNEL_NO_DEV_HANDSHAKE)
+                {
+                    ret = DMA_ConstructStore (xfer_type, mcode, &idx);
+                    if (!ret)
+                        return ARM_DMA_ERROR_BUFFER;
+                } else
+                {
+                    ret = DMA_ConstructStorePeri (xfer_type, desc->peri_num, mcode, &idx);
+                    if (!ret)
+                        return ARM_DMA_ERROR_BUFFER;
+                }
 
                 /* If I2S mono mode is enabled for this channel, write zeros */
                 if(chnl_info->flags & DMA_CHANNEL_I2S_MONO_MODE)
@@ -679,22 +780,33 @@ int32_t DMA_PrepareMcode(uint8_t *mcode, DMA_CCR_Type ccr,
 
         if (desc->direction != ARM_DMA_MEM_TO_MEM)
         {
-            ret = DMA_ConstructFlushPeri (desc->peri_num, mcode, &idx);
-            if (!ret)
-                return ARM_DMA_ERROR_BUFFER;
+            if (!(chnl_info->flags & DMA_CHANNEL_NO_DEV_HANDSHAKE))
+            {
+                ret = DMA_ConstructFlushPeri (desc->peri_num, mcode, &idx);
+                if (!ret)
+                    return ARM_DMA_ERROR_BUFFER;
 
-            ret = DMA_ConstructWaitforPeri (BURST, desc->peri_num, mcode, &idx);
-            if (!ret)
-                return ARM_DMA_ERROR_BUFFER;
+                ret = DMA_ConstructWaitforPeri (BURST, desc->peri_num, mcode, &idx);
+                if (!ret)
+                    return ARM_DMA_ERROR_BUFFER;
+            }
 
             if (desc->direction ==  ARM_DMA_MEM_TO_DEV)
             {
                 ret = DMA_ConstructLoad (BURST, mcode, &idx);
                     if (!ret)
                         return ARM_DMA_ERROR_BUFFER;
-                ret = DMA_ConstructStorePeri (BURST, desc->peri_num, mcode, &idx);
-                if (!ret)
-                    return ARM_DMA_ERROR_BUFFER;
+
+                if (chnl_info->flags & DMA_CHANNEL_NO_DEV_HANDSHAKE) {
+                    ret = DMA_ConstructStore (BURST, mcode, &idx);
+                    if (!ret)
+                        return ARM_DMA_ERROR_BUFFER;
+                } else
+                {
+                    ret = DMA_ConstructStorePeri (BURST, desc->peri_num, mcode, &idx);
+                    if (!ret)
+                        return ARM_DMA_ERROR_BUFFER;
+                }
 
                 /* If I2S mono mode is enabled for this channel, write zeros */
                 if(chnl_info->flags & DMA_CHANNEL_I2S_MONO_MODE)
@@ -1098,6 +1210,9 @@ static int32_t DMA_Control (DMA_Handle_Type *handle, uint32_t control,
     case ARM_DMA_I2S_MONO_MODE:
         dma->cfg->channel_thread[*handle].channel_info.flags |= DMA_CHANNEL_I2S_MONO_MODE;
         break;
+    case ARM_DMA_NO_DEV_HANDSHAKE:
+        dma->cfg->channel_thread[*handle].channel_info.flags |= DMA_CHANNEL_NO_DEV_HANDSHAKE;
+        break;
     default:
         return ARM_DRIVER_ERROR_UNSUPPORTED;
     }
@@ -1164,7 +1279,7 @@ static int32_t DMA_Initialize (DMA_DRV_INFO *dma)
 {
     uint8_t cnt;
 
-    if (dma->flags == DMA_DRV_INIT_DONE)
+    if (dma->flags & DMA_DRV_INIT_DONE)
         return ARM_DRIVER_OK;
 
     __disable_irq();
@@ -1176,14 +1291,7 @@ static int32_t DMA_Initialize (DMA_DRV_INFO *dma)
     for (cnt = 0; cnt < DMA_MAX_CHANNELS; cnt++)
         dma->cfg->channel_thread[cnt].channel_info.chnl_num = -1;
 
-    /* Clear Any Pending IRQ */
-    NVIC_ClearPendingIRQ (dma->irq_start + DMA_IRQ_ABORT_OFFSET);
-    /* Set the priority of this particular IRQ */
-    NVIC_SetPriority (dma->irq_start + DMA_IRQ_ABORT_OFFSET, dma->abort_irq_priority);
-    /* Enable the Abort IRQ */
-    NVIC_EnableIRQ (dma->irq_start + DMA_IRQ_ABORT_OFFSET);
-
-    dma->flags = DMA_DRV_INIT_DONE;
+    dma->flags |= DMA_DRV_INIT_DONE;
 
     __enable_irq();
 
@@ -1207,6 +1315,139 @@ static int32_t DMA_Uninitialize (DMA_DRV_INFO *dma)
 
     (void)dma;
 
+    return ARM_DRIVER_OK;
+}
+
+/**
+  \fn          int32_t DMA_PowerControl (ARM_POWER_STATE state, DMA_DRV_INFO *dma)
+  \brief       Control DMA Interface Power.
+  \param[in]   state  Power state
+  \param[in]   dma       Pointer to DMA resources
+  \return      \ref execution_status
+*/
+static int32_t DMA_PowerControl (ARM_POWER_STATE state, DMA_DRV_INFO *dma)
+{
+    switch (state) {
+    case ARM_POWER_OFF:
+        __disable_irq();
+
+        if (!(dma->flags & DMA_DRV_POWERED))
+        {
+            __enable_irq();
+            return ARM_DRIVER_OK;
+        }
+
+        /* Decrement the consumer count */
+        dma->consumer_cnt--;
+        if(dma->consumer_cnt)
+        {
+            __enable_irq();
+            return ARM_DRIVER_OK;
+        }
+
+        NVIC_DisableIRQ (dma->irq_start + DMA_IRQ_ABORT_OFFSET);
+
+        switch(dma->instance)
+        {
+        case DMA_INSTANCE_0:
+            evtrtr0_disable_dma_req();
+            disable_dma0_periph_clk();
+
+            dma->flags &= ~DMA_DRV_POWERED;
+
+            break;
+        case DMA_INSTANCE_LOCAL:
+            evtrtrlocal_disable_dma_req();
+            disable_dmalocal_periph_clk();
+
+            dma->flags &= ~DMA_DRV_POWERED;
+
+            break;
+        default:
+            break;
+        }
+
+        __enable_irq();
+
+        break;
+    case ARM_POWER_FULL:
+        __disable_irq();
+
+        /* Increment the consumer count */
+        dma->consumer_cnt++;
+
+        if (dma->flags & DMA_DRV_POWERED)
+        {
+            __enable_irq();
+            return ARM_DRIVER_OK;
+        }
+
+        switch(dma->instance)
+        {
+        case DMA_INSTANCE_0:
+            set_dma0_glitch_filter(DMA0_GLITCH_FILTER);
+#if RTE_LPPDM_SELECT_DMA0
+            lppdm_select_dma0();
+#endif
+
+#if RTE_LPI2S_SELECT_DMA0
+            lpi2s_select_dma0();
+#endif
+#if RTE_LPSPI_SELECT_DMA0
+            lpspi_select_dma0(RTE_LPSPI_SELECT_DMA0_GROUP);
+#endif
+#if RTE_LPUART_SELECT_DMA0
+            lpuart_select_dma0();
+#endif
+
+            enable_dma0_periph_clk();
+            evtrtr0_enable_dma_req();
+            if(dma->apb_intf)
+                set_dma0_boot_manager_nsec();
+            else
+                set_dma0_boot_manager_sec();
+            set_dma0_boot_irq_ns_mask(RTE_DMA0_BOOT_IRQ_NS_STATE);
+            set_dma0_boot_periph_ns_mask(RTE_DMA0_BOOT_PERIPH_NS_STATE);
+            reset_dma0();
+
+            dma->flags |= DMA_DRV_POWERED;
+
+            break;
+        case DMA_INSTANCE_LOCAL:
+            set_dmalocal_glitch_filter(DMALOCAL_GLITCH_FILTER);
+            enable_dmalocal_periph_clk();
+            evtrtrlocal_enable_dma_req();
+            if(dma->apb_intf)
+                set_dmalocal_boot_manager_nsec();
+            else
+                set_dmalocal_boot_manager_sec();
+            set_dmalocal_boot_irq_ns_mask(RTE_DMALOCAL_BOOT_IRQ_NS_STATE);
+            set_dmalocal_boot_periph_ns_mask(RTE_DMALOCAL_BOOT_PERIPH_NS_STATE);
+            reset_dmalocal();
+
+            dma->flags |= DMA_DRV_POWERED;
+
+            break;
+        default:
+            break;
+        }
+
+        /* Clear Any Pending IRQ */
+        NVIC_ClearPendingIRQ (dma->irq_start + DMA_IRQ_ABORT_OFFSET);
+        /* Set the priority of this particular IRQ */
+        NVIC_SetPriority (dma->irq_start + DMA_IRQ_ABORT_OFFSET, dma->abort_irq_priority);
+        /* Enable the Abort IRQ */
+        NVIC_EnableIRQ (dma->irq_start + DMA_IRQ_ABORT_OFFSET);
+
+        __enable_irq();
+
+        break;
+
+    case ARM_POWER_LOW:
+    default:
+        return ARM_DRIVER_ERROR_UNSUPPORTED;
+
+    }
     return ARM_DRIVER_OK;
 }
 
@@ -1310,6 +1551,17 @@ static int32_t DMA0_Initialize (void)
 static int32_t DMA0_Uninitialize (void)
 {
     return DMA_Uninitialize (&DMA0);
+}
+
+/**
+  \fn          int32_t DMA0_PowerControl (ARM_POWER_STATE state)
+  \brief       Control DMA0 Interface Power.
+  \param[in]   state  Power state
+  \return      \ref execution_status
+*/
+static int32_t DMA0_PowerControl (ARM_POWER_STATE state)
+{
+    return DMA_PowerControl (state, &DMA0);
 }
 
 /**
@@ -1688,6 +1940,7 @@ ARM_DRIVER_DMA Driver_DMA0 = {
     DMA_GetCapabilities,
     DMA0_Initialize,
     DMA0_Uninitialize,
+    DMA0_PowerControl,
     DMA0_Allocate,
     DMA0_Control,
     DMA0_Start,
@@ -1697,70 +1950,82 @@ ARM_DRIVER_DMA Driver_DMA0 = {
 };
 #endif
 
-#if (RTE_DMA1)
+#if (RTE_DMALOCAL)
 
 /**
-  \fn          int32_t DMA1_Initialize (void)
-  \brief       Initialize DMA Interface.
+  \fn          int32_t DMALOCAL_Initialize (void)
+  \brief       Initialize Local DMA Interface.
   \return      \ref execution_status
 */
-static int32_t DMA1_Initialize (void)
+static int32_t DMALOCAL_Initialize (void)
 {
-    DMA_DRV_INFO *dma = &DMA1;
+    DMA_DRV_INFO *dma = &DMALOCAL;
 
     /* set the apb interface for accessing registers */
     if(dma->apb_intf)
-        dma->intf_paddr = (DMA_TypeDef*)DMA1_NS_BASE;
+        dma->intf_paddr = (DMA_TypeDef*)DMALOCAL_NS_BASE;
     else
-        dma->intf_paddr = (DMA_TypeDef*)DMA1_SEC_BASE;
+        dma->intf_paddr = (DMA_TypeDef*)DMALOCAL_SEC_BASE;
 
     return DMA_Initialize (dma);
 }
 
 /**
-  \fn          int32_t DMA1_Uninitialize (void)
-  \brief       Un-Initialize DMA Interface.
+  \fn          int32_t DMALOCAL_Uninitialize (void)
+  \brief       Un-Initialize Local DMA Interface.
   \return      \ref execution_status
 */
-static int32_t DMA1_Uninitialize (void)
+static int32_t DMALOCAL_Uninitialize (void)
 {
-    return DMA_Uninitialize (&DMA1);
+    return DMA_Uninitialize (&DMALOCAL);
+}
+
+
+/**
+  \fn          int32_t DMALOCAL_PowerControl (ARM_POWER_STATE state)
+  \brief       Control Local DMA Interface Power.
+  \param[in]   state  Power state
+  \return      \ref execution_status
+*/
+static int32_t DMALOCAL_PowerControl (ARM_POWER_STATE state)
+{
+    return DMA_PowerControl (state, &DMALOCAL);
 }
 
 /**
-  \fn          int32_t DMA1_Allocate (DMA_Handle_Type *handle)
+  \fn          int32_t DMALOCAL_Allocate (DMA_Handle_Type *handle)
   \brief       Allocate Channel for transfer operation
   \param[in]   handle  Pointer to DMA channel number
   \return      \ref execution_status
 */
-static int32_t DMA1_Allocate (DMA_Handle_Type *handle)
+static int32_t DMALOCAL_Allocate (DMA_Handle_Type *handle)
 {
-       return DMA_Allocate (handle, &DMA1);
+       return DMA_Allocate (handle, &DMALOCAL);
 }
 
 /**
-  \fn          int32_t DMA1_Control (DMA_Handle_Type *handle, uint32_t control, uint32_t arg)
-  \brief       Control DMA Interface.
+  \fn          int32_t DMALOCAL_Control (DMA_Handle_Type *handle, uint32_t control, uint32_t arg)
+  \brief       Control Local DMA Interface.
   \param[in]   handle  Pointer to DMA channel number
   \param[in]   control Operation
   \param[in]   arg     Argument 1 of operation
   \return      common \ref execution_status and driver specific \ref dma_execution_status
 */
-static int32_t DMA1_Control (DMA_Handle_Type *handle, uint32_t control, uint32_t arg)
+static int32_t DMALOCAL_Control (DMA_Handle_Type *handle, uint32_t control, uint32_t arg)
 {
-    return DMA_Control (handle, control, arg, &DMA1);
+    return DMA_Control (handle, control, arg, &DMALOCAL);
 }
 
 /**
-  \fn          int32_t DMA1_Start (int32_t *handle, ARM_DMA_PARAMS *params)
+  \fn          int32_t DMALOCAL_Start (int32_t *handle, ARM_DMA_PARAMS *params)
   \brief       Start a DMA channel
   \param[in]   handle  Pointer to DMA channel number
   \param[in]   params  Pointer to DMA desc parameters
   \return      \ref execution_status
 */
-static int32_t DMA1_Start (DMA_Handle_Type *handle, ARM_DMA_PARAMS *params)
+static int32_t DMALOCAL_Start (DMA_Handle_Type *handle, ARM_DMA_PARAMS *params)
 {
-    return DMA_Start (handle, params, &DMA1);
+    return DMA_Start (handle, params, &DMALOCAL);
 }
 
 /**
@@ -1769,760 +2034,346 @@ static int32_t DMA1_Start (DMA_Handle_Type *handle, ARM_DMA_PARAMS *params)
   \param[in]   handle  Pointer to DMA channel number
   \return      \ref execution_status
 */
-static int32_t DMA1_Stop (DMA_Handle_Type *handle)
+static int32_t DMALOCAL_Stop (DMA_Handle_Type *handle)
 {
-    return DMA_Stop (handle, &DMA1);
+    return DMA_Stop (handle, &DMALOCAL);
 }
 
 /**
-  \fn          DMA1_GetStatus (int32_t *handle, uint32_t *count)
+  \fn          DMALOCAL_GetStatus (int32_t *handle, uint32_t *count)
   \brief       Status of a DMA channel
   \param[in]   handle  Pointer to DMA channel number
   \param[in]   count  Pointer to pass transferred count
   \return      \ref execution_status
 */
-static int32_t DMA1_GetStatus (DMA_Handle_Type *handle, uint32_t *count)
+static int32_t DMALOCAL_GetStatus (DMA_Handle_Type *handle, uint32_t *count)
 {
-    return DMA_GetStatus (handle, count, &DMA1);
+    return DMA_GetStatus (handle, count, &DMALOCAL);
 }
 
 /**
-  \fn          DMA1_DeAllocate (int32_t *handle)
+  \fn          DMALOCAL_DeAllocate (int32_t *handle)
   \brief       De-Allocate a DMA channel
   \param[in]   handle  Pointer to DMA channel number
   \return      \ref execution_status
 */
-static int32_t DMA1_DeAllocate (DMA_Handle_Type *handle)
+static int32_t DMALOCAL_DeAllocate (DMA_Handle_Type *handle)
 {
-    return DMA_DeAllocate (handle, &DMA1);
+    return DMA_DeAllocate (handle, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ0Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ0
+  \fn          void  DMALOCAL_IRQ0Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ0
 */
-void DMA1_IRQ0Handler (void)
+void DMALOCAL_IRQ0Handler (void)
 {
-    DMA_IRQHandler (0, &DMA1);
+    DMA_IRQHandler (0, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ1Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ1
+  \fn          void  DMALOCAL_IRQ1Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ1
 */
-void DMA1_IRQ1Handler (void)
+void DMALOCAL_IRQ1Handler (void)
 {
-    DMA_IRQHandler (1, &DMA1);
+    DMA_IRQHandler (1, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ2Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ2
+  \fn          void  DMALOCAL_IRQ2Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ2
 */
-void DMA1_IRQ2Handler (void)
+void DMALOCAL_IRQ2Handler (void)
 {
-    DMA_IRQHandler (2, &DMA1);
+    DMA_IRQHandler (2, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ3Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ3
+  \fn          void  DMALOCAL_IRQ3Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ3
 */
-void DMA1_IRQ3Handler (void)
+void DMALOCAL_IRQ3Handler (void)
 {
-    DMA_IRQHandler (3, &DMA1);
+    DMA_IRQHandler (3, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ4Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ4
+  \fn          void  DMALOCAL_IRQ4Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ4
 */
-void DMA1_IRQ4Handler (void)
+void DMALOCAL_IRQ4Handler (void)
 {
-    DMA_IRQHandler (4, &DMA1);
+    DMA_IRQHandler (4, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ5Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ5
+  \fn          void  DMALOCAL_IRQ5Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ5
 */
-void DMA1_IRQ5Handler (void)
+void DMALOCAL_IRQ5Handler (void)
 {
-    DMA_IRQHandler (5, &DMA1);
+    DMA_IRQHandler (5, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ6Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ6
+  \fn          void  DMALOCAL_IRQ6Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ6
 */
-void DMA1_IRQ6Handler (void)
+void DMALOCAL_IRQ6Handler (void)
 {
-    DMA_IRQHandler (6, &DMA1);
+    DMA_IRQHandler (6, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ7Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ7
+  \fn          void  DMALOCAL_IRQ7Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ7
 */
-void DMA1_IRQ7Handler (void)
+void DMALOCAL_IRQ7Handler (void)
 {
-    DMA_IRQHandler (7, &DMA1);
+    DMA_IRQHandler (7, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ8Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ8
+  \fn          void  DMALOCAL_IRQ8Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ8
 */
-void DMA1_IRQ8Handler (void)
+void DMALOCAL_IRQ8Handler (void)
 {
-    DMA_IRQHandler (8, &DMA1);
+    DMA_IRQHandler (8, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ9Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ9
+  \fn          void  DMALOCAL_IRQ9Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ9
 */
-void DMA1_IRQ9Handler (void)
+void DMALOCAL_IRQ9Handler (void)
 {
-    DMA_IRQHandler (9, &DMA1);
+    DMA_IRQHandler (9, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ10Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ10
+  \fn          void  DMALOCAL_IRQ10Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ10
 */
-void DMA1_IRQ10Handler (void)
+void DMALOCAL_IRQ10Handler (void)
 {
-    DMA_IRQHandler (10, &DMA1);
+    DMA_IRQHandler (10, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ11Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ11
+  \fn          void  DMALOCAL_IRQ11Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ11
 */
-void DMA1_IRQ11Handler (void)
+void DMALOCAL_IRQ11Handler (void)
 {
-    DMA_IRQHandler (11, &DMA1);
+    DMA_IRQHandler (11, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ12Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ12
+  \fn          void  DMALOCAL_IRQ12Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ12
 */
-void DMA1_IRQ12Handler (void)
+void DMALOCAL_IRQ12Handler (void)
 {
-    DMA_IRQHandler (12, &DMA1);
+    DMA_IRQHandler (12, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ13Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ13
+  \fn          void  DMALOCAL_IRQ13Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ13
 */
-void DMA1_IRQ13Handler (void)
+void DMALOCAL_IRQ13Handler (void)
 {
-    DMA_IRQHandler (13, &DMA1);
+    DMA_IRQHandler (13, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ14Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ14
+  \fn          void  DMALOCAL_IRQ14Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ14
 */
-void DMA1_IRQ14Handler (void)
+void DMALOCAL_IRQ14Handler (void)
 {
-    DMA_IRQHandler (14, &DMA1);
+    DMA_IRQHandler (14, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ15Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ15
+  \fn          void  DMALOCAL_IRQ15Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ15
 */
-void DMA1_IRQ15Handler (void)
+void DMALOCAL_IRQ15Handler (void)
 {
-    DMA_IRQHandler (15, &DMA1);
+    DMA_IRQHandler (15, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ16Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ16
+  \fn          void  DMALOCAL_IRQ16Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ16
 */
-void DMA1_IRQ16Handler (void)
+void DMALOCAL_IRQ16Handler (void)
 {
-    DMA_IRQHandler (16, &DMA1);
+    DMA_IRQHandler (16, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ17Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ17
+  \fn          void  DMALOCAL_IRQ17Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ17
 */
-void DMA1_IRQ17Handler (void)
+void DMALOCAL_IRQ17Handler (void)
 {
-    DMA_IRQHandler (17, &DMA1);
+    DMA_IRQHandler (17, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ18Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ18
+  \fn          void  DMALOCAL_IRQ18Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ18
 */
-void DMA1_IRQ18Handler (void)
+void DMALOCAL_IRQ18Handler (void)
 {
-    DMA_IRQHandler (18, &DMA1);
+    DMA_IRQHandler (18, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ19Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ19
+  \fn          void  DMALOCAL_IRQ19Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ19
 */
-void DMA1_IRQ19Handler (void)
+void DMALOCAL_IRQ19Handler (void)
 {
-    DMA_IRQHandler (19, &DMA1);
+    DMA_IRQHandler (19, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ20Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ20
+  \fn          void  DMALOCAL_IRQ20Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ20
 */
-void DMA1_IRQ20Handler (void)
+void DMALOCAL_IRQ20Handler (void)
 {
-    DMA_IRQHandler (20, &DMA1);
+    DMA_IRQHandler (20, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ21Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ21
+  \fn          void  DMALOCAL_IRQ21Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ21
 */
-void DMA1_IRQ21Handler (void)
+void DMALOCAL_IRQ21Handler (void)
 {
-    DMA_IRQHandler (21, &DMA1);
+    DMA_IRQHandler (21, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ22Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ22
+  \fn          void  DMALOCAL_IRQ22Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ22
 */
-void DMA1_IRQ22Handler (void)
+void DMALOCAL_IRQ22Handler (void)
 {
-    DMA_IRQHandler (22, &DMA1);
+    DMA_IRQHandler (22, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ23Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ23
+  \fn          void  DMALOCAL_IRQ23Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ23
 */
-void DMA1_IRQ23Handler (void)
+void DMALOCAL_IRQ23Handler (void)
 {
-    DMA_IRQHandler (23, &DMA1);
+    DMA_IRQHandler (23, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ24Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ24
+  \fn          void  DMALOCAL_IRQ24Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ24
 */
-void DMA1_IRQ24Handler (void)
+void DMALOCAL_IRQ24Handler (void)
 {
-    DMA_IRQHandler (24, &DMA1);
+    DMA_IRQHandler (24, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ25Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ25
+  \fn          void  DMALOCAL_IRQ25Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ25
 */
-void DMA1_IRQ25Handler (void)
+void DMALOCAL_IRQ25Handler (void)
 {
-    DMA_IRQHandler (25, &DMA1);
+    DMA_IRQHandler (25, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ26Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ26
+  \fn          void  DMALOCAL_IRQ26Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ26
 */
-void DMA1_IRQ26Handler (void)
+void DMALOCAL_IRQ26Handler (void)
 {
-    DMA_IRQHandler (26, &DMA1);
+    DMA_IRQHandler (26, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ27Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ27
+  \fn          void  DMALOCAL_IRQ27Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ27
 */
-void DMA1_IRQ27Handler (void)
+void DMALOCAL_IRQ27Handler (void)
 {
-    DMA_IRQHandler (27, &DMA1);
+    DMA_IRQHandler (27, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ28Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ28
+  \fn          void  DMALOCAL_IRQ28Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ28
 */
-void DMA1_IRQ28Handler (void)
+void DMALOCAL_IRQ28Handler (void)
 {
-    DMA_IRQHandler (28, &DMA1);
+    DMA_IRQHandler (28, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ29Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ29
+  \fn          void  DMALOCAL_IRQ29Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ29
 */
-void DMA1_IRQ29Handler (void)
+void DMALOCAL_IRQ29Handler (void)
 {
-    DMA_IRQHandler (29, &DMA1);
+    DMA_IRQHandler (29, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ30Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ30
+  \fn          void  DMALOCAL_IRQ30Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ30
 */
-void DMA1_IRQ30Handler (void)
+void DMALOCAL_IRQ30Handler (void)
 {
-    DMA_IRQHandler (30, &DMA1);
+    DMA_IRQHandler (30, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ31Handler (void)
-  \brief       Run the IRQ Handler for DMA1-IRQ31
+  \fn          void  DMALOCAL_IRQ31Handler (void)
+  \brief       Run the IRQ Handler for Local DMA-IRQ31
 */
-void DMA1_IRQ31Handler (void)
+void DMALOCAL_IRQ31Handler (void)
 {
-    DMA_IRQHandler (31, &DMA1);
+    DMA_IRQHandler (31, &DMALOCAL);
 }
 
 /**
-  \fn          void  DMA1_IRQ_ABORT_Handler (void)
-  \brief       Run the IRQ Handler for DMA1 Abort
+  \fn          void  DMALOCAL_IRQ_ABORT_Handler (void)
+  \brief       Run the IRQ Handler for Local DMA Abort
 */
-void DMA1_IRQ_ABORT_Handler (void)
+void DMALOCAL_IRQ_ABORT_Handler (void)
 {
-    DMA_AbortIRQHandler (&DMA1);
+    DMA_AbortIRQHandler (&DMALOCAL);
 }
 /**
-\brief Access structure of the DMA1 Driver.
+\brief Access structure of the LOCAL DMA Driver.
 */
 extern \
-ARM_DRIVER_DMA Driver_DMA1;
-ARM_DRIVER_DMA Driver_DMA1 = {
+ARM_DRIVER_DMA Driver_DMALOCAL;
+ARM_DRIVER_DMA Driver_DMALOCAL = {
     DMA_GetVersion,
     DMA_GetCapabilities,
-    DMA1_Initialize,
-    DMA1_Uninitialize,
-    DMA1_Allocate,
-    DMA1_Control,
-    DMA1_Start,
-    DMA1_Stop,
-    DMA1_GetStatus,
-    DMA1_DeAllocate
-};
-#endif
-
-#if (RTE_DMA2)
-
-/**
-  \fn          int32_t DMA2_Initialize (void)
-  \brief       Initialize DMA Interface.
-  \return      \ref execution_status
-*/
-static int32_t DMA2_Initialize (void)
-{
-    DMA_DRV_INFO *dma = &DMA2;
-
-    /* set the apb interface for accessing registers */
-    if(dma->apb_intf)
-        dma->intf_paddr = (DMA_TypeDef*)DMA2_NS_BASE;
-    else
-        dma->intf_paddr = (DMA_TypeDef*)DMA2_SEC_BASE;
-
-    return DMA_Initialize (dma);
-}
-
-/**
-  \fn          int32_t DMA2_Uninitialize (void)
-  \brief       Un-Initialize DMA Interface.
-  \return      \ref execution_status
-*/
-static int32_t DMA2_Uninitialize (void)
-{
-    return DMA_Uninitialize (&DMA2);
-}
-
-/**
-  \fn          int32_t DMA2_Allocate (DMA_Handle_Type *handle)
-  \brief       Allocate Channel for transfer operation
-  \param[in]   handle  Pointer to DMA channel number
-  \return      \ref execution_status
-*/
-static int32_t DMA2_Allocate (DMA_Handle_Type *handle)
-{
-    return DMA_Allocate (handle, &DMA2);
-}
-
-/**
-  \fn          int32_t DMA2_Control (DMA_Handle_Type *handle, uint32_t control, uint32_t arg)
-  \brief       Control DMA Interface.
-  \param[in]   handle  Pointer to DMA channel number
-  \param[in]   control Operation
-  \param[in]   arg     Argument 1 of operation
-  \return      common \ref execution_status and driver specific \ref dma_execution_status
-*/
-static int32_t DMA2_Control (DMA_Handle_Type *handle, uint32_t control, uint32_t arg)
-{
-    return DMA_Control (handle, control, arg, &DMA2);
-}
-
-/**
-  \fn          int32_t DMA2_Start (int32_t *handle, ARM_DMA_PARAMS *params)
-  \brief       Start a DMA channel
-  \param[in]   handle  Pointer to DMA channel number
-  \param[in]   params  Pointer to DMA desc parameters
-  \return      \ref execution_status
-*/
-static int32_t DMA2_Start (DMA_Handle_Type *handle, ARM_DMA_PARAMS *params)
-{
-    return DMA_Start (handle, params, &DMA2);
-}
-
-/**
-  \fn          int32_t DMA_Stop (int32_t *handle)
-  \brief       Stop a DMA channel
-  \param[in]   handle  Pointer to DMA channel number
-  \return      \ref execution_status
-*/
-static int32_t DMA2_Stop (DMA_Handle_Type *handle)
-{
-    return DMA_Stop (handle, &DMA2);
-}
-
-/**
-  \fn          DMA2_GetStatus (int32_t *handle, uint32_t *count)
-  \brief       Status of a DMA channel
-  \param[in]   handle  Pointer to DMA channel number
-  \param[in]   count  Pointer to pass transferred count
-  \return      \ref execution_status
-*/
-static int32_t DMA2_GetStatus (DMA_Handle_Type *handle, uint32_t *count)
-{
-    return DMA_GetStatus (handle, count, &DMA2);
-}
-
-/**
-  \fn          DMA2_DeAllocate (int32_t *handle)
-  \brief       De-Allocate a DMA channel
-  \param[in]   handle  Pointer to DMA channel number
-  \return      \ref execution_status
-*/
-static int32_t DMA2_DeAllocate (DMA_Handle_Type *handle)
-{
-    return DMA_DeAllocate (handle, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ0Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ0
-*/
-void DMA2_IRQ0Handler (void)
-{
-    DMA_IRQHandler (0, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ1Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ1
-*/
-void DMA2_IRQ1Handler (void)
-{
-    DMA_IRQHandler (1, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ2Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ2
-*/
-void DMA2_IRQ2Handler (void)
-{
-    DMA_IRQHandler (2, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ3Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ3
-*/
-void DMA2_IRQ3Handler (void)
-{
-    DMA_IRQHandler (3, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ4Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ4
-*/
-void DMA2_IRQ4Handler (void)
-{
-    DMA_IRQHandler (4, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ5Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ5
-*/
-void DMA2_IRQ5Handler (void)
-{
-    DMA_IRQHandler (5, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ6Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ6
-*/
-void DMA2_IRQ6Handler (void)
-{
-    DMA_IRQHandler (6, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ7Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ7
-*/
-void DMA2_IRQ7Handler (void)
-{
-    DMA_IRQHandler (7, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ8Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ8
-*/
-void DMA2_IRQ8Handler (void)
-{
-    DMA_IRQHandler (8, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ9Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ9
-*/
-void DMA2_IRQ9Handler (void)
-{
-    DMA_IRQHandler (9, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ10Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ10
-*/
-void DMA2_IRQ10Handler (void)
-{
-    DMA_IRQHandler (10, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ11Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ11
-*/
-void DMA2_IRQ11Handler (void)
-{
-    DMA_IRQHandler (11, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ12Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ12
-*/
-void DMA2_IRQ12Handler (void)
-{
-    DMA_IRQHandler (12, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ13Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ13
-*/
-void DMA2_IRQ13Handler (void)
-{
-    DMA_IRQHandler (13, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ14Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ14
-*/
-void DMA2_IRQ14Handler (void)
-{
-    DMA_IRQHandler (14, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ15Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ15
-*/
-void DMA2_IRQ15Handler (void)
-{
-    DMA_IRQHandler (15, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ16Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ16
-*/
-void DMA2_IRQ16Handler (void)
-{
-    DMA_IRQHandler (16, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ17Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ17
-*/
-void DMA2_IRQ17Handler (void)
-{
-    DMA_IRQHandler (17, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ18Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ18
-*/
-void DMA2_IRQ18Handler (void)
-{
-    DMA_IRQHandler (18, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ19Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ19
-*/
-void DMA2_IRQ19Handler (void)
-{
-    DMA_IRQHandler (19, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ20Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ20
-*/
-void DMA2_IRQ20Handler (void)
-{
-    DMA_IRQHandler (20, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ21Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ21
-*/
-void DMA2_IRQ21Handler (void)
-{
-    DMA_IRQHandler (21, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ22Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ22
-*/
-void DMA2_IRQ22Handler (void)
-{
-    DMA_IRQHandler (22, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ23Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ23
-*/
-void DMA2_IRQ23Handler (void)
-{
-    DMA_IRQHandler (23, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ24Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ24
-*/
-void DMA2_IRQ24Handler (void)
-{
-    DMA_IRQHandler (24, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ25Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ25
-*/
-void DMA2_IRQ25Handler (void)
-{
-    DMA_IRQHandler (25, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ26Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ26
-*/
-void DMA2_IRQ26Handler (void)
-{
-    DMA_IRQHandler (26, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ27Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ27
-*/
-void DMA2_IRQ27Handler (void)
-{
-    DMA_IRQHandler (27, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ28Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ28
-*/
-void DMA2_IRQ28Handler (void)
-{
-    DMA_IRQHandler (28, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ29Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ29
-*/
-void DMA2_IRQ29Handler (void)
-{
-    DMA_IRQHandler (29, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ30Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ30
-*/
-void DMA2_IRQ30Handler (void)
-{
-    DMA_IRQHandler (30, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ31Handler (void)
-  \brief       Run the IRQ Handler for DMA2-IRQ31
-*/
-void DMA2_IRQ31Handler (void)
-{
-    DMA_IRQHandler (31, &DMA2);
-}
-
-/**
-  \fn          void  DMA2_IRQ_ABORT_Handler (void)
-  \brief       Run the IRQ Handler for DMA2 Abort
-*/
-void DMA2_IRQ_ABORT_Handler (void)
-{
-    DMA_AbortIRQHandler (&DMA2);
-}
-/**
-\brief Access structure of the DMA2 Driver.
-*/
-extern \
-ARM_DRIVER_DMA Driver_DMA2;
-ARM_DRIVER_DMA Driver_DMA2 = {
-    DMA_GetVersion,
-    DMA_GetCapabilities,
-    DMA2_Initialize,
-    DMA2_Uninitialize,
-    DMA2_Allocate,
-    DMA2_Control,
-    DMA2_Start,
-    DMA2_Stop,
-    DMA2_GetStatus,
-    DMA2_DeAllocate
+    DMALOCAL_Initialize,
+    DMALOCAL_Uninitialize,
+    DMALOCAL_PowerControl,
+    DMALOCAL_Allocate,
+    DMALOCAL_Control,
+    DMALOCAL_Start,
+    DMALOCAL_Stop,
+    DMALOCAL_GetStatus,
+    DMALOCAL_DeAllocate
 };
 #endif

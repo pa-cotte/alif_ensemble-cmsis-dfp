@@ -142,9 +142,12 @@ uint32_t GetSystemCoreClock (void)
  *----------------------------------------------------------------------------*/
 void SystemInit (void)
 {
+  // Avoid DSB as long as possible, as it will block until cache
+  // auto-invalidation has completed. First DSB is currently at the
+  // end of MPU_Setup.
 
 #if defined (__VTOR_PRESENT) && (__VTOR_PRESENT == 1U)
-  SCB->VTOR = (uint32_t)(&__VECTOR_TABLE[0]);
+  SCB->VTOR = (uint32_t) __VECTOR_TABLE;
 #endif
 
   /* Enable UsageFault, BusFault, MemFault and SecurityFault exceptions */
@@ -162,10 +165,22 @@ void SystemInit (void)
   SCB->CCR |= SCB_CCR_UNALIGN_TRP_Msk;
 #endif
 
- // Enable Loop and branch info cache
- SCB->CCR |= SCB_CCR_LOB_Msk;
- __DSB();
- __ISB();
+ /*
+  * Prefetch Control
+  *
+  * By Reset, the Prefetch is enabled with the below values,
+  * MAX_LA = 6
+  * MIN_LA = 2
+  * MAX_OS = 2
+  *
+  * Here we modify only the MAX_OS based on the performance achieved in our
+  * trials.
+  *
+  */
+ MEMSYSCTL->PFCR = (MEMSYSCTL_PFCR_MAX_OS_DEFAULT_VALUE << MEMSYSCTL_PFCR_MAX_OS_Pos) |
+                   (MEMSYSCTL_PFCR_MAX_LA_DEFAULT_VALUE << MEMSYSCTL_PFCR_MAX_LA_Pos) |
+                   (MEMSYSCTL_PFCR_MIN_LA_DEFAULT_VALUE << MEMSYSCTL_PFCR_MIN_LA_Pos) |
+                    MEMSYSCTL_PFCR_ENABLE_Msk;
 
 #if defined (__MPU_PRESENT) && (__MPU_PRESENT == 1U)
   MPU_Setup();
@@ -173,21 +188,48 @@ void SystemInit (void)
 
   // Enable caches now, for speed, but we will have to clean
   // after scatter-loading, in _platform_pre_stackheap_init
-  SCB_EnableICache();
-  SCB_EnableDCache();
+
+  // We do not use the CMSIS functions, as these manually invalidate the
+  // cache - this is not required on the M55, as it is auto-invalidated
+  // (and we implicitly rely on this already before activating, if booting
+  // from MRAM).
+  // Enable Loop and branch info cache
+  SCB->CCR |= SCB_CCR_IC_Msk | SCB_CCR_DC_Msk | SCB_CCR_LOB_Msk;
+
+  // Enable limited static branch prediction using low overhead loops
+  ICB->ACTLR &= ~ICB_ACTLR_DISLOBR_Msk;
+
+  __DSB();
+  __ISB();
 
 #if defined (__ARM_FEATURE_CMSE) && (__ARM_FEATURE_CMSE == 3U)
   TZ_SAU_Setup();
   TGU_Setup();
 #endif
 
-  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-
   SystemCoreClock = SYSTEM_CLOCK;
+
+  // Enable Trace so PMU can be enabled
+  DCB->DEMCR |= DCB_DEMCR_TRCENA_Msk;
 
   //Enable the PMU
   ARM_PMU_Enable();
 
   //Enable PMU Cycle Counter
   ARM_PMU_CNTR_Enable(PMU_CNTENSET_CCNTR_ENABLE_Msk);
+
+  /* Add a feature to enable all the cgu clocks and bypass
+   * the clock gating in the EXPMST0.
+   *
+   * Note: This will be removed in the future release
+   */
+#define FORCE_ENABLE_SYSTEM_CLOCKS 1
+#if FORCE_ENABLE_SYSTEM_CLOCKS
+
+  /* Enable all the clocks required for the peripherals */
+  enable_cgu_clk38p4m();
+  enable_cgu_clk160m();
+  enable_cgu_clk100m();
+  enable_cgu_clk20m();
+#endif
 }

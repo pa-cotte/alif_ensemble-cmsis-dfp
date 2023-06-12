@@ -22,7 +22,7 @@
 /* Includes --------------------------------------------------------------------------- */
 /* Project Includes */
 #include "Driver_WDT.h"
-#include "WDT_dev.h"
+#include "Driver_WDT_Private.h"
 
 #if !(RTE_WDT0)
 #error "Watchdog Timer WDT is not enabled in the RTE_Device.h"
@@ -78,62 +78,36 @@ static ARM_WDT_CAPABILITIES WDT_GetCapabilities(void)
 }
 
 /**
-  \fn           void watchdog_lock(WDT_DRV_INFO *wdt)
-  \brief        Locks the registers to not be written again.
-  \param[in]    wdt  : Pointer to watchdog device resources
-  \return       none
-*/
-__STATIC_INLINE void watchdog_lock(WDT_DRV_INFO *wdt)
-{
-    /* Prevents writing to all of the registers */
-    wdt->paddr->lock = WATCHDOG_LOCK_VALUE;
-}
-
-/**
-  \fn           void arm_watchdog_unlock(WDT_DRV_INFO *wdt)
-  \brief        Unlocks the registers to configure the watchdog again.
-  \param[in]    wdt  : Pointer to watchdog device resources
-  \return       none
-*/
-__STATIC_INLINE void watchdog_unlock(WDT_DRV_INFO *wdt)
-{
-    wdt->paddr->lock = WATCHDOG_UNLOCK_VALUE;
-}
-
-/**
-  \fn           int32_t WDT_Start(WDT_DRV_INFO *wdt)
+  \fn           int32_t WDT_Start(WDT_RESOURCES *wdt)
   \brief        Start the watchdog timer.
   \param[in]    wdt  : Pointer to watchdog device resources
   \return       \ref execution_status
 */
-static int32_t WDT_Start(WDT_DRV_INFO *wdt)
+static int32_t WDT_Start(WDT_RESOURCES *wdt)
 {
     if (!wdt)
         return ARM_DRIVER_ERROR_PARAMETER;
 
-    if ( !(wdt->flags & WATCHDOG_POWERED) )
+    if (!(wdt->flags & WATCHDOG_POWERED) )
         return ARM_DRIVER_ERROR;
 
-    if ( wdt->paddr->lock )
+    if (wdt_locked(wdt->regs))
         return ARM_DRIVER_ERROR_BUSY;
 
-    /* load value into the watchdog counter. */
-    wdt->paddr->load = wdt->timeout;
+    wdt_start(wdt->regs, wdt->timeout);
 
-    /* Starts the watchdog counter */
-    wdt->paddr->ctrl = (WATCHDOG_CTRL_RESEN | WATCHDOG_CTRL_INTEN);
     wdt->flags |= WATCHDOG_STARTED;
 
     return ARM_DRIVER_OK;
 }
 
 /**
-  \fn           int32_t WDT_Feed(WDT_DRV_INFO *wdt)
+  \fn           int32_t WDT_Feed(WDT_RESOURCES *wdt)
   \brief        Feeds the watchdog to not cause a reset.
   \param[in]    wdt  : Pointer to watchdog device resources
   \return       \ref execution_status
 */
-static int32_t WDT_Feed(WDT_DRV_INFO *wdt)
+static int32_t WDT_Feed(WDT_RESOURCES *wdt)
 {
     if (!wdt)
         return ARM_DRIVER_ERROR_PARAMETER;
@@ -141,24 +115,22 @@ static int32_t WDT_Feed(WDT_DRV_INFO *wdt)
     if ( !(wdt->flags & WATCHDOG_STARTED) )
         return ARM_DRIVER_ERROR;
 
-    if ( wdt->paddr->lock )
+    if (wdt_locked(wdt->regs))
         return ARM_DRIVER_ERROR_BUSY;
 
-    wdt->paddr->load = wdt->timeout;/*load vale into the watchdog timer*/
-
-    wdt->paddr->intclr = WATCHDOG_INTCLR;/* clear the Interrupt before the timeout */
+    wdt_feed(wdt->regs, wdt->timeout);
 
     return ARM_DRIVER_OK;
 }
 
 /**
-  \fn           int32_t WDT_GetRemainingTime(uint32_t *val, WDT_DRV_INFO *wdt)
+  \fn           int32_t WDT_GetRemainingTime(uint32_t *val, WDT_RESOURCES *wdt)
   \brief        Get watchdog remaining time before reset.
   \param[out]   val   : Pointer to the address where watchdog remaining time in milliseconds.
   \param[in]    wdt   : Pointer to watchdog device resources
   \return       \ref execution_status
 */
-static int32_t WDT_GetRemainingTime(uint32_t *val, WDT_DRV_INFO *wdt)
+static int32_t WDT_GetRemainingTime(uint32_t *val, WDT_RESOURCES *wdt)
 {
     if (!wdt)
         return ARM_DRIVER_ERROR_PARAMETER;
@@ -166,21 +138,21 @@ static int32_t WDT_GetRemainingTime(uint32_t *val, WDT_DRV_INFO *wdt)
     if ( !(wdt->flags & WATCHDOG_STARTED) )
         return ARM_DRIVER_ERROR;
 
-    if ( wdt->paddr->lock )
+    if (wdt_locked(wdt->regs))
         return ARM_DRIVER_ERROR_BUSY;
 
-    *val = WDT_MILLI_SECS_FOR_TICKS(wdt->paddr->value);
+    *val = WDT_MILLI_SECS_FOR_TICKS(wdt_get_remaining_ticks(wdt->regs));
 
     return ARM_DRIVER_OK;
 }
 
 /**
-  \fn           int32_t WDT_Stop(WDT_DRV_INFO *wdt)
+  \fn           int32_t WDT_Stop(WDT_RESOURCES *wdt)
   \brief        Stop the watchdog timer.
   \param[in]    wdt  : Pointer to watchdog device resources
   \return       \ref execution_status
 */
-static int32_t WDT_Stop(WDT_DRV_INFO *wdt)
+static int32_t WDT_Stop(WDT_RESOURCES *wdt)
 {
     if (!wdt)
         return ARM_DRIVER_ERROR_PARAMETER;
@@ -188,11 +160,11 @@ static int32_t WDT_Stop(WDT_DRV_INFO *wdt)
     if ( !(wdt->flags & WATCHDOG_STARTED) )
         return ARM_DRIVER_ERROR;
 
-    if ( wdt->paddr->lock )
+    if (wdt_locked(wdt->regs))
         return ARM_DRIVER_ERROR_BUSY;
 
-    /* Stop the watchdog */
-    wdt->paddr->ctrl &= ~(WATCHDOG_CTRL_RESEN | WATCHDOG_CTRL_INTEN);
+    wdt_stop(wdt->regs);
+
     wdt->flags &= ~WATCHDOG_STARTED;
 
     return ARM_DRIVER_OK;
@@ -200,14 +172,14 @@ static int32_t WDT_Stop(WDT_DRV_INFO *wdt)
 
 /**
   \fn           int32_t WDT_PowerControl(ARM_POWER_STATE   state,
-                                         WDT_DRV_INFO      *wdt)
+                                         WDT_RESOURCES     *wdt)
   \brief        watchdog power control
   \param[in]    state : Power state
   \param[in]    wdt   : Pointer to watchdog device resources
   \return       \ref execution_status
 */
 static int32_t WDT_PowerControl(ARM_POWER_STATE   state,
-                                WDT_DRV_INFO      *wdt)
+                                WDT_RESOURCES     *wdt)
 {
     int ret = ARM_DRIVER_OK;
 
@@ -246,7 +218,7 @@ static int32_t WDT_PowerControl(ARM_POWER_STATE   state,
 
 /**
   \fn           int32_t WDT_Initialize(uint32_t      timeout,
-                                       WDT_DRV_INFO  *wdt)
+                                       WDT_RESOURCES *wdt)
   \brief        Initialize the watchdog device.
                 The init function leaves the watchdog in a clean state:
                   - initialized;
@@ -257,17 +229,17 @@ static int32_t WDT_PowerControl(ARM_POWER_STATE   state,
   \return       \ref execution_status
 */
 static int32_t WDT_Initialize(uint32_t      timeout_msec,
-                              WDT_DRV_INFO  *wdt)
+                              WDT_RESOURCES *wdt)
 {
     if (!wdt)
         return ARM_DRIVER_ERROR_PARAMETER;
 
     if ( (wdt->flags & WATCHDOG_STARTED) )
     {
-        watchdog_unlock(wdt);
+        wdt_unlock(wdt->regs);
 
         /* Stop the watchdog */
-        wdt->paddr->ctrl &= ~(WATCHDOG_CTRL_RESEN | WATCHDOG_CTRL_INTEN);
+        wdt_stop(wdt->regs);
         wdt->flags &= ~WATCHDOG_STARTED;
     }
 
@@ -277,7 +249,7 @@ static int32_t WDT_Initialize(uint32_t      timeout_msec,
     if( timeout_msec > WDT_MAX_TIMEOUT_MILLI_SEC )
         return ARM_DRIVER_ERROR_PARAMETER;
 
-    watchdog_lock(wdt);
+    wdt_lock(wdt->regs);
 
     /* Update watchdog timeout. */
     wdt->timeout = WDT_TICKS_FOR_MILLI_SECS(timeout_msec);
@@ -289,12 +261,12 @@ static int32_t WDT_Initialize(uint32_t      timeout_msec,
 }
 
 /**
-  \fn           int32_t WDT_Uninitialize(WDT_DRV_INFO *wdt)
+  \fn           int32_t WDT_Uninitialize(WDT_RESOURCES *wdt)
   \brief        Uninitialize the watchdog device.
   \param[in]    wdt  : Pointer to watchdog device resources
   \return       \ref execution_status
 */
-static int32_t WDT_Uninitialize(WDT_DRV_INFO *wdt)
+static int32_t WDT_Uninitialize(WDT_RESOURCES *wdt)
 {
     if ( (wdt->flags & WATCHDOG_STARTED) )
     {
@@ -314,7 +286,7 @@ static int32_t WDT_Uninitialize(WDT_DRV_INFO *wdt)
 /**
   \fn           int32_t WDT_Control(uint32_t      control,
                                     uint32_t      arg,
-                                    WDT_DRV_INFO  *wdt)
+                                    WDT_RESOURCES *wdt)
   \brief        CMSIS-Driver watchdog control.
                 Control watchdog Interface.
   \param[in]    control : Operation
@@ -324,7 +296,7 @@ static int32_t WDT_Uninitialize(WDT_DRV_INFO *wdt)
 */
 static int32_t WDT_Control(uint32_t      control,
                            uint32_t      arg,
-                           WDT_DRV_INFO  *wdt)
+                           WDT_RESOURCES *wdt)
 {
     int ret = ARM_DRIVER_OK;
 
@@ -336,13 +308,13 @@ static int32_t WDT_Control(uint32_t      control,
         case ARM_WATCHDOG_LOCK:
 
             /* Lock watchdog. */
-            watchdog_lock(wdt);
+            wdt_lock(wdt->regs);
             break;
 
         case ARM_WATCHDOG_UNLOCK:
 
             /* Unlock watchdog. */
-            watchdog_unlock(wdt);
+            wdt_unlock(wdt->regs);
             break;
 
         default:
@@ -359,8 +331,8 @@ static int32_t WDT_Control(uint32_t      control,
 #if (RTE_WDT0)
 
 /* Watchdog-0 device configuration */
-static WDT_DRV_INFO WDT0 = {
-    .paddr                     = (WDT_TypeDef *) LOCAL_WDT_CTRL_BASE,
+static WDT_RESOURCES WDT0 = {
+    .regs                     = (WDT_CTRL_Type *) LOCAL_WDT_CTRL_BASE,
     .flags                     = 0,
     .timeout                   = 0
 };

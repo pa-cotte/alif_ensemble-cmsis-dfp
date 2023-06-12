@@ -47,6 +47,26 @@ void PMU_delay_loop_us(unsigned int delay_us)
 }
 
 /**
+  \fn          void RTSS_IsGlobalCacheClean_Required (void)
+  \brief       Return True if Global Cache Clean operation is required
+  return       True : If CacheOperation Required, else False
+*/
+__attribute__ ((weak))
+bool RTSS_IsGlobalCacheClean_Required (void)
+{
+    /*
+     * This is a hook, where user can decide on Global Cache clean operation.
+     *
+     * If the system is not using any Cache writeback region in their
+     * application, they can return false to skip the Global Cache Cleaning
+     * completely.
+     *
+     */
+
+    return true;
+}
+
+/**
   \fn          void RTSS_IsCacheClean_Required_by_Addr (volatile void *addr, int32_t size)
   \brief       Return True if Cache Clean operation is required for the provided
                address region else return False.

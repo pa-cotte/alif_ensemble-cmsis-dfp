@@ -51,7 +51,11 @@ extern "C" {
 #endif
 
 #ifndef MASK
-#define MASK(h,l)                           (((~(0U)) << (l)) & (~(0U) >> (32 - 1 - (h))))
+/**
+ * @Note : 1st arg should be higher bit & 2nd arg should be lower i.e. (h > l)
+ */
+#define MASK(h,l)           (((~(0U)) << (l)) &  (~(0U) >> (32 - 1 - (h))))
+#define MASK64(h,l)         (((~(0UL)) << (l)) &  (~(0UL) >> (32 - 1 - (h))))
 #endif
 
 #define BIT(nr)                             (1UL << (nr))
@@ -62,9 +66,49 @@ extern "C" {
 #define WRITE_REG(REG, VAL)                 ((REG) = (VAL))
 #define READ_REG(REG)                       ((REG))
 
+/*Below Macros are helpful for bitwise operator (input argument 1 means bit 0)*/
+#define BIT64(n)                            ((1ULL) << n)
+#define REG64_SET_ONE_BIT(src, n)           (src |=  (BIT64(n)))
+#define REG64_CLR_ONE_BIT(src, n)           (src &= ~(BIT64(n)))
+#define REG32_SET_ONE_BIT(src, n)           (src |=  (  BIT(n)))
+#define REG32_CLR_ONE_BIT(src, n)           (src &= ~(  BIT(n)))
+
+#define REG64_SET_M_AND_N_BIT(src, m, n)    (src |=  ( (BIT64(m) |  BIT64(n)) ))
+#define REG64_CLR_M_AND_N_BIT(src, m, n)    (src &=  (~(BIT64(m) |  BIT64(n)) ))
+#define REG32_SET_M_AND_N_BIT(src, m, n)    (src |=  ( (  BIT(m) |    BIT(n)) ))
+#define REG32_CLR_M_AND_N_BIT(src, m, n)    (src &=  (~(  BIT(m) |    BIT(n)) ))
+
+#define REG64_SET_M_TO_N_BIT(src, h, l)     (src |=  MASK64(h, l))
+#define REG64_CLR_M_TO_N_BIT(src, h, l)     (src &= ~MASK64(h, l))
+#define REG32_SET_M_TO_N_BIT(src, h, l)     (src |=    MASK(h, l))
+#define REG32_CLR_M_TO_N_BIT(src, h, l)     (src &=   ~MASK(h, l))
+
+#define REG32_TOGGLE_BIT(src, m)            (src ^=   BIT(m))
+#define REG64_TOGGLE_BIT(src, m)            (src ^= BIT64(m))
+
 #define RTSS_FORCE_GLOBAL_CLEAN_INVALIDATE_THRESHOLD_SIZE (128*1024)
 
 // Function documentation
+
+/**
+  \fn          bool RTSS_Is_DCache_Dirty(void)
+  \brief       Check whether the Data Cache line is dirty
+  \return      bool True: if cache is dirty, false otherwise
+*/
+__STATIC_FORCEINLINE
+bool RTSS_Is_DCache_Dirty(void)
+{
+    uint32_t mscr = MEMSYSCTL->MSCR;
+
+    /* Return True, if Cache is active and not known to be clean */
+    if((mscr & MEMSYSCTL_MSCR_DCACTIVE_Msk)
+       && !(mscr & MEMSYSCTL_MSCR_DCCLEAN_Msk))
+    {
+        return true;
+    }
+
+    return false;
+}
 
 /**
   \fn          bool RTSS_Is_TCM_Addr(const volatile void *local_addr)
@@ -96,10 +140,10 @@ uint32_t LocalToGlobal(const volatile void *local_addr)
      */
     uint32_t addr = (uint32_t)local_addr;
 
-    if((addr >= DTCM_BASE) && (addr < (DTCM_BASE + DTCM_SIZE)))
-        return (addr - DTCM_BASE + DTCM_GLOBAL_BASE);
-    else if((addr < (ITCM_BASE + ITCM_SIZE)))
-        return (addr - ITCM_BASE + ITCM_GLOBAL_BASE);
+    if((addr >= DTCM_BASE) && (addr < (DTCM_BASE + DTCM_REGION_SIZE)))
+        return (addr & (DTCM_ALIAS_BIT-1)) + DTCM_GLOBAL_BASE;
+    else if((addr < (ITCM_BASE + DTCM_REGION_SIZE)))
+        return (addr & (ITCM_ALIAS_BIT-1)) + ITCM_GLOBAL_BASE;
     else
         return (addr);
 }
@@ -137,6 +181,13 @@ void* GlobalToLocal(uint32_t global_addr)
   \param[in]   delay_us delay in micro seconds.
 */
 void PMU_delay_loop_us(unsigned int delay_us);
+
+/**
+  \fn          void RTSS_IsGlobalCacheClean_Required (void)
+  \brief       Return True if Global Cache Clean operation is required
+  return       True : If CacheOperation Required, else False
+*/
+bool RTSS_IsGlobalCacheClean_Required (void);
 
 /**
   \fn          void RTSS_IsCacheInvalidate_Required_by_Addr (volatile void *addr, int32_t size)
@@ -242,6 +293,17 @@ void RTSS_CleanDCache_by_Addr (volatile void *addr, int32_t dsize)
 }
 
 /**
+  \fn          void RTSS_CleanDCache (void)
+  \brief       Clean the Cache only if the line is dirty.
+*/
+__STATIC_FORCEINLINE
+void RTSS_CleanDCache (void)
+{
+    if(RTSS_IsGlobalCacheClean_Required() && RTSS_Is_DCache_Dirty())
+        SCB_CleanDCache();
+}
+
+/**
   \fn          void RTSS_CleanInvalidateDCache_by_Addr (volatile void *addr, int32_t dsize)
   \brief       Add a wrapper on the CleanInvalidateDcache APIs so that
                TCM regions are ignored.
@@ -257,7 +319,7 @@ void RTSS_CleanInvalidateDCache_by_Addr (volatile void *addr, int32_t dsize)
     clean_req = RTSS_IsCacheClean_Required_by_Addr (addr, dsize);
     invalidate_req = RTSS_IsCacheInvalidate_Required_by_Addr (addr, dsize);
 
-    if(clean_req & invalidate_req)
+    if(clean_req && invalidate_req)
     {
         /*
          * Considering the time required to CleanInvalidate by address

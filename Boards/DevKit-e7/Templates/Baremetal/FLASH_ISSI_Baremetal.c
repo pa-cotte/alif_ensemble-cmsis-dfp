@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include "pinconf.h"
 #include "Driver_Flash.h"
+#include "Driver_GPIO.h"
 #include "RTE_Components.h"
 #include CMSIS_device_header
 
@@ -46,6 +47,12 @@
 extern ARM_DRIVER_FLASH ARM_Driver_Flash_(FLASH_NUM);
 #define ptrFLASH (&ARM_Driver_Flash_(FLASH_NUM))
 
+#define OSPI_RESET_PORT     15
+#define OSPI_RESET_PIN      7
+
+extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(OSPI_RESET_PORT);
+ARM_DRIVER_GPIO *GPIODrv = &ARM_Driver_GPIO_(OSPI_RESET_PORT);
+
 #define FLASH_ADDR  0x00
 #define BUFFER_SIZE 1024
 
@@ -54,60 +61,96 @@ extern ARM_DRIVER_FLASH ARM_Driver_Flash_(FLASH_NUM);
  * @brief   Set up PinMUX and PinPAD
  * @note    none
  * @param   none
- * @retval  ARM_DRIVER_ERROR : If any param error
- *          0 : for Success
+ * @retval  -1 : On Error
+ *           0 : On Success
  */
 static int32_t setup_PinMUX(void)
 {
     int32_t ret;
 
-    /* OSPI0_D0-D7 -> P6_0-P6_7 */
-    ret = pinconf_set(PORT_6, PIN_0, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
+    ret = pinconf_set(PORT_9, PIN_5, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
-        return ARM_DRIVER_ERROR;
+        return -1;
 
-    ret = pinconf_set(PORT_6, PIN_1, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
+    ret = pinconf_set(PORT_9, PIN_6, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
-        return ARM_DRIVER_ERROR;
+        return -1;
 
-    ret = pinconf_set(PORT_6, PIN_2, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
+    ret = pinconf_set(PORT_9, PIN_7, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST |  PADCTRL_READ_ENABLE);
     if (ret)
-        return ARM_DRIVER_ERROR;
+        return -1;
 
-    ret = pinconf_set(PORT_6, PIN_3, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
+    ret = pinconf_set(PORT_10, PIN_0, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
-        return ARM_DRIVER_ERROR;
+        return -1;
 
-    ret = pinconf_set(PORT_6, PIN_4, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
+    ret = pinconf_set(PORT_10, PIN_1, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
-        return ARM_DRIVER_ERROR;
+        return -1;
 
-    ret = pinconf_set(PORT_6, PIN_5, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
+    ret = pinconf_set(PORT_10, PIN_2, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
-        return ARM_DRIVER_ERROR;
+        return -1;
 
-    ret = pinconf_set(PORT_6, PIN_6, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
+    ret = pinconf_set(PORT_10, PIN_3, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
-        return ARM_DRIVER_ERROR;
+        return -1;
 
-    ret = pinconf_set(PORT_6, PIN_7, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
+    ret = pinconf_set(PORT_10, PIN_4, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST |  PADCTRL_READ_ENABLE);
     if (ret)
-        return ARM_DRIVER_ERROR;
+        return -1;
 
-    /* OSPI0_RXDS -> P3_4 On the schematics, shown with the remark "was P1 6" */
-    ret = pinconf_set(PORT_3, PIN_4, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
+    ret = pinconf_set(PORT_10, PIN_7, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_READ_ENABLE);
     if (ret)
-        return ARM_DRIVER_ERROR;
+        return -1;
 
-    /* OSPI0_SCLK -> P3_0 */
-    ret = pinconf_set(PORT_3, PIN_0, PINMUX_ALTERNATE_FUNCTION_1, 0);
+    ret = pinconf_set(PORT_5, PIN_5, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST);
     if (ret)
-        return ARM_DRIVER_ERROR;
+        return -1;
 
-    /* OSPI0_SS -> P3_2 */
-    ret = pinconf_set(PORT_3, PIN_2, PINMUX_ALTERNATE_FUNCTION_1, 0);
+    ret = pinconf_set(PORT_8, PIN_0, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS);
     if (ret)
-        return ARM_DRIVER_ERROR;
+        return -1;
+
+    ret = pinconf_set(PORT_5, PIN_6, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS);
+    if (ret)
+        return -1;
+
+    ret = pinconf_set(PORT_5, PIN_7, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST);
+    if (ret)
+        return -1;
+
+    ret = GPIODrv->Initialize(OSPI_RESET_PIN, NULL);
+    if (ret != ARM_DRIVER_OK)
+        return -1;
+
+    ret = GPIODrv->PowerControl(OSPI_RESET_PIN, ARM_POWER_FULL);
+    if (ret != ARM_DRIVER_OK)
+        return -1;
+
+    ret = GPIODrv->SetDirection(OSPI_RESET_PIN, GPIO_PIN_DIRECTION_OUTPUT);
+    if (ret != ARM_DRIVER_OK)
+        return -1;
+
+    ret = GPIODrv->SetValue(OSPI_RESET_PIN, GPIO_PIN_OUTPUT_STATE_LOW);
+    if (ret != ARM_DRIVER_OK)
+        return -1;
+
+    ret = GPIODrv->SetValue(OSPI_RESET_PIN, GPIO_PIN_OUTPUT_STATE_HIGH);
+    if (ret != ARM_DRIVER_OK)
+        return -1;
 
     return 0;
 }

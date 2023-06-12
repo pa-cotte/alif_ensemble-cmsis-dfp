@@ -41,6 +41,10 @@ extern "C"
 /* CRC algorithm select */
 #define ARM_CRC_ALGORITHM_SEL          (0x01UL << 5)   /* To select the below particular algorithm */
 
+#define ARM_CRC_ENABLE_DMA             (0x01UL << 6)   /* Enable/Disable DMA, Enable = 1 and Disable = 0 */
+
+
+
 #define ARM_CRC_ALGORITHM_SEL_8_BIT_CCITT                (0x01UL)   /* To select CRC_8_CCITT algorithm give value as 0 */
 #define ARM_CRC_ALGORITHM_SEL_16_BIT                     (0x02UL)   /* To select CRC_16 algorithm give value as 2 */
 #define ARM_CRC_ALGORITHM_SEL_16_BIT_CCITT               (0x03UL)   /* To select CRC_16_CCITT algorithm give value as 3 */
@@ -126,7 +130,7 @@ typedef struct ARM_Driver_CRC
     int32_t               (*Control)         (uint32_t control, uint32_t arg);                        /* Pointer to CRC_Control : Control CRC Interface */
     int32_t               (*Seed)            (uint32_t seed_value);                                   /* Pointer to CRC_Seed : used to give the seed value*/
     int32_t               (*PolyCustom)      (uint32_t polynomial);                                   /* Pointer to CRC_PolyCustom : used to give the poly custom value*/
-    int32_t               (*Compute)         (void *data_in, uint32_t len, uint32_t *data_out);       /* Pointer to CRC_Compute : used to give the input data and output data */
+    int32_t               (*Compute)         (const void *data_in, uint32_t len, uint32_t *data_out); /* Pointer to CRC_Compute : used to give the input data and output data */
 }const ARM_DRIVER_CRC;
 
 #ifdef __cplusplus

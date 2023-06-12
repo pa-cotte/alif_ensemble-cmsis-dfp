@@ -13,61 +13,105 @@
 
 #include <peripheral_types.h>
 
+#if 0
 #ifndef AXI_CLOCK
-#define AXI_CLOCK 76800000
+#define AXI_CLOCK 400000000
 #endif
 
 #ifndef AHB_CLOCK
-#define AHB_CLOCK 38400000
+#define AHB_CLOCK 200000000
 #endif
 
 #ifndef APB_CLOCK
-#define APB_CLOCK 19200000
+#define APB_CLOCK 100000000
+#endif
+#else
+#ifndef AXI_CLOCK
+#define AXI_CLOCK 400000000
 #endif
 
+#ifndef AHB_CLOCK
+#define AHB_CLOCK 200000000
+#endif
+
+#ifndef APB_CLOCK
+#define APB_CLOCK 100000000
+#endif
+#endif
+
+#define HFRC_CLOCK  76800000
+#define HFOSC_CLOCK 38400000
+
+#ifndef RTSS_HE_CLK
+#define RTSS_HE_CLK 160000000
+#endif
+
+#ifndef HFOSC_CLK
+#define HFOSC_CLK 38400000
+#endif
+
+#define SYST_PCLK               APB_CLOCK
 #define I2C_PERIPHERAL_CLOCK    APB_CLOCK
 
 #define CDC200_PIXCLK           AXI_CLOCK
 
-/* CLKCTL_PER_MST PERIPH_CLK_ENA field definitions */
-#define PERIPH_CLK_ENA_CPI_CKEN             (1U << 0)  /* Enable clock supply for CPI */
-#define PERIPH_CLK_ENA_DPI_CKEN             (1U << 1)  /* Enable clock supply for DPI controller (CDC) */
-#define PERIPH_CLK_ENA_DMA_CKEN             (1U << 4)  /* Enable clock supply for DMA0 */
-#define PERIPH_CLK_ENA_GPU_CKEN             (1U << 8)  /* Enable clock supply for GPU2D */
-#define PERIPH_CLK_ENA_ETH_CKEN             (1U << 12) /* Enable clock supply for ETH */
-#define PERIPH_CLK_ENA_SDC_CKEN             (1U << 16) /* Enable clock supply for SDMMC */
-#define PERIPH_CLK_ENA_USB_CKEN             (1U << 20) /* Enable clock supply for USB */
-#define PERIPH_CLK_ENA_CSI_CKEN             (1U << 24) /* Enable clock supply for CSI */
-#define PERIPH_CLK_ENA_DSI_CKEN             (1U << 28) /* Enable clock supply for DSI */
-
-static inline void enable_cpi_periph_clk(void)
+static inline void enable_force_peripheral_functional_clk(void)
 {
-    CLKCTL_PER_MST->PERIPH_CLK_ENA |= PERIPH_CLK_ENA_CPI_CKEN;
+    CLKCTL_PER_SLV->EXPMST0_CTRL |= EXPMST0_CTRL_IPCLK_FORCE;
 }
 
-static inline void disable_cpi_periph_clk(void)
+static inline void disable_force_peripheral_functional_clk(void)
 {
-    CLKCTL_PER_MST->PERIPH_CLK_ENA &= ~PERIPH_CLK_ENA_CPI_CKEN;
+    CLKCTL_PER_SLV->EXPMST0_CTRL &= ~EXPMST0_CTRL_IPCLK_FORCE;
 }
 
-static inline void enable_dpi_periph_clk(void)
+static inline void enable_force_apb_interface_clk(void)
 {
-    CLKCTL_PER_MST->PERIPH_CLK_ENA |= PERIPH_CLK_ENA_DPI_CKEN;
+    CLKCTL_PER_SLV->EXPMST0_CTRL |= EXPMST0_CTRL_PCLK_FORCE;
 }
 
-static inline void disable_dpi_periph_clk(void)
+static inline void disable_force_apb_interface_clk(void)
 {
-    CLKCTL_PER_MST->PERIPH_CLK_ENA &= ~PERIPH_CLK_ENA_DPI_CKEN;
+    CLKCTL_PER_SLV->EXPMST0_CTRL &= ~EXPMST0_CTRL_PCLK_FORCE;
 }
 
-static inline void enable_dma_periph_clk(void)
+static inline void enable_cgu_clk160m(void)
 {
-    CLKCTL_PER_MST->PERIPH_CLK_ENA |= PERIPH_CLK_ENA_DMA_CKEN;
+    CGU->CLK_ENA |= CLK_ENA_CLK160M;
 }
 
-static inline void disable_dma_periph_clk(void)
+static inline void disable_cgu_clk160m(void)
 {
-    CLKCTL_PER_MST->PERIPH_CLK_ENA &= ~PERIPH_CLK_ENA_DMA_CKEN;
+    CGU->CLK_ENA &= ~CLK_ENA_CLK160M;
+}
+static inline void enable_cgu_clk100m(void)
+{
+    CGU->CLK_ENA |= CLK_ENA_CLK100M;
+}
+
+static inline void disable_cgu_clk100m(void)
+{
+    CGU->CLK_ENA &= ~CLK_ENA_CLK100M;
+}
+
+static inline void enable_cgu_clk20m(void)
+{
+    CGU->CLK_ENA |= CLK_ENA_CLK20M;
+}
+
+static inline void disable_cgu_clk20m(void)
+{
+    CGU->CLK_ENA &= ~CLK_ENA_CLK20M;
+}
+
+static inline void enable_cgu_clk38p4m(void)
+{
+    CGU->CLK_ENA |= CLK_ENA_CLK38P4M;
+}
+
+static inline void disable_cgu_clk38p4m(void)
+{
+    CGU->CLK_ENA &= ~CLK_ENA_CLK38P4M;
 }
 
 static inline void enable_gpu_periph_clk(void)
@@ -78,16 +122,6 @@ static inline void enable_gpu_periph_clk(void)
 static inline void disable_gpu_periph_clk(void)
 {
     CLKCTL_PER_MST->PERIPH_CLK_ENA &= ~PERIPH_CLK_ENA_GPU_CKEN;
-}
-
-static inline void enable_eth_periph_clk(void)
-{
-    CLKCTL_PER_MST->PERIPH_CLK_ENA |= PERIPH_CLK_ENA_ETH_CKEN;
-}
-
-static inline void disable_eth_periph_clk(void)
-{
-    CLKCTL_PER_MST->PERIPH_CLK_ENA &= ~PERIPH_CLK_ENA_ETH_CKEN;
 }
 
 static inline void enable_sdc_periph_clk(void)
@@ -108,26 +142,6 @@ static inline void enable_usb_periph_clk(void)
 static inline void disable_usb_periph_clk(void)
 {
     CLKCTL_PER_MST->PERIPH_CLK_ENA &= ~PERIPH_CLK_ENA_USB_CKEN;
-}
-
-static inline void enable_csi_periph_clk(void)
-{
-    CLKCTL_PER_MST->PERIPH_CLK_ENA |= PERIPH_CLK_ENA_CSI_CKEN;
-}
-
-static inline void disable_csi_periph_clk(void)
-{
-    CLKCTL_PER_MST->PERIPH_CLK_ENA &= ~PERIPH_CLK_ENA_CSI_CKEN;
-}
-
-static inline void enable_dsi_periph_clk(void)
-{
-    CLKCTL_PER_MST->PERIPH_CLK_ENA |= PERIPH_CLK_ENA_DSI_CKEN;
-}
-
-static inline void disable_dsi_periph_clk(void)
-{
-    CLKCTL_PER_MST->PERIPH_CLK_ENA &= ~PERIPH_CLK_ENA_DSI_CKEN;
 }
 
 #endif /* CLK_H_ */

@@ -24,7 +24,7 @@
 #include "RTE_Device.h"
 
 /* Proceed only if ARX3A0 Camera Sensor is enabled. */
-#if RTE_ARX3A0_CAMERA_SENSOR_ENABLE
+#if RTE_ARX3A0_CAMERA_SENSOR_CPI_ENABLE
 
 #include "Camera_Sensor.h"
 #include "Camera_Sensor_i2c.h"
@@ -60,8 +60,8 @@
   used for Camera Resolution Configuration.
   */
 typedef struct _ARX3A0_REG {
-	uint32_t reg_addr;             /* ARX3A0 Camera Sensor Register Address*/
-	uint32_t reg_value;            /* ARX3A0 Camera Sensor Register Value*/
+	uint16_t reg_addr;             /* ARX3A0 Camera Sensor Register Address*/
+	uint16_t reg_value;            /* ARX3A0 Camera Sensor Register Value*/
 } ARX3A0_REG;
 
 /**
@@ -69,7 +69,7 @@ typedef struct _ARX3A0_REG {
   */
 static const ARX3A0_REG arx3a0_560_regs[] = {
 
-#if (RTE_ARX3A0_CAMERA_SENSOR_CFG_FPS == 90)
+#if (RTE_ARX3A0_CAMERA_SENSOR_CPI_CFG_FPS == 90)
 	{0x304C, 0x3000 }, // OTPM_RECORD
 	{0x304A, 0x0070 }, // OTPM_CONTROL
 	{0x0103, 0x01 }, // SOFTWARE_RESET
@@ -358,13 +358,13 @@ static const ARX3A0_REG arx3a0_560_regs[] = {
 	{0x0404, 0x0010}, //SCALE_M
 	{0x317A, 0x416E}, //SF_BIN_ENABLE0(FIELD_WR= ANALOG_CONTROL6, PARALLEL_SHUTTER)
 	{0x3F3C, 0x0003}, //SF_BIN_ENABLE1(FIELD_WR= ANALOG_CONTROL9, ANA_BLOCKS_ENABLE)
-	{0x3012, 0x022D}, //COARSE_INTEGRATION_TIME
+	{0x3012, 0x0441}, //COARSE_INTEGRATION_TIME
 	{0x3730, 0x0000}, //FB_CTRL
 	{0x305E, 0x2035}, // GLOBAL_GAIN
 
 	/*Group_Parameter Hold*/
 	{0x0104, 0x0000},
-#elif (RTE_ARX3A0_CAMERA_SENSOR_CFG_FPS == 60)
+#elif (RTE_ARX3A0_CAMERA_SENSOR_CPI_CFG_FPS == 60)
 	{0x304C, 0x3000 }, // OTPM_RECORD
 	{0x304A, 0x0070 }, // OTPM_CONTROL
 	{0x0103, 0x01 }, // SOFTWARE_RESET
@@ -653,13 +653,13 @@ static const ARX3A0_REG arx3a0_560_regs[] = {
 	{0x0404, 0x0010}, //SCALE_M
 	{0x317A, 0x416E}, //SF_BIN_ENABLE0(FIELD_WR= ANALOG_CONTROL6, PARALLEL_SHUTTER)
 	{0x3F3C, 0x0003}, //SF_BIN_ENABLE1(FIELD_WR= ANALOG_CONTROL9, ANA_BLOCKS_ENABLE)
-	{0x3012, 0x022D}, //COARSE_INTEGRATION_TIME
+	{0x3012, 0x0441}, //COARSE_INTEGRATION_TIME
 	{0x3730, 0x0000}, //FB_CTRL
 	{0x305E, 0x2035}, // GLOBAL_GAIN
 
 	/*Group_Parameter Hold*/
 	{0x0104, 0x0000},
-#elif  (RTE_ARX3A0_CAMERA_SENSOR_CFG_FPS == 40)
+#elif  (RTE_ARX3A0_CAMERA_SENSOR_CPI_CFG_FPS == 40)
 	{0x304C, 0x3000 }, // OTPM_RECORD
 	{0x304A, 0x0070 }, // OTPM_CONTROL
 	{0x0103, 0x01 }, // SOFTWARE_RESET
@@ -947,7 +947,7 @@ static const ARX3A0_REG arx3a0_560_regs[] = {
 
 	{0x3022, 0x00 }, // GROUPED_PARAMETER_HOLD_
 	{0x305E, 0x2010 }, // GLOBAL_GAIN
-#elif (RTE_ARX3A0_CAMERA_SENSOR_CFG_FPS == 5)
+#elif (RTE_ARX3A0_CAMERA_SENSOR_CPI_CFG_FPS == 5)
 	/*LOAD= PLL_360Fps_80MHz_80MHz_20MHz*/
 	{0x300, 0xA    },
 	{0x302, 0x1    },
@@ -1326,6 +1326,7 @@ static const ARX3A0_REG arx3a0_560_regs[] = {
 #error "Selected FPS configuration not found"
 #endif
 };
+
 #endif /* RTE_ARX3A0_CAMERA_SENSOR_ENABLE */
 
 #endif /* ARX3A0_CAMERA_SENSOR_H_ */

@@ -87,8 +87,8 @@
 #endif
 
 /* ADC Driver instance */
-extern ARM_DRIVER_ADC Driver_ADC2;
-static ARM_DRIVER_ADC *ADCdrv = &Driver_ADC2;
+extern ARM_DRIVER_ADC Driver_ADC122;
+static ARM_DRIVER_ADC *ADCdrv = &Driver_ADC122;
 
 #define COMP_A_THLD_VALUE                   (0X00)                                                /* Comparator A threshold value */
 #define COMP_B_THLD_VALUE                   (0x00)                                                /* Comparator B threshold value */
