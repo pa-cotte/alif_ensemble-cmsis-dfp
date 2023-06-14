@@ -43,7 +43,8 @@ static const ARM_OSPI_CAPABILITIES DriverCapabilities = {
     0, /* Simplex Mode (Master and Slave) Deprecated: Reserved (must be zero)*/
     0, /* TI Synchronous Serial Interface */
     0, /* Microwire Interface */
-    0  /* Signal Mode Fault event: \ref ARM_OSPI_EVENT_MODE_FAULT */
+    0, /* Signal Mode Fault event: \ref ARM_OSPI_EVENT_MODE_FAULT */
+    0  /* Reserved, must be zero */
 };
 
 /**

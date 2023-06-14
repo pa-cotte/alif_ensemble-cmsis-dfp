@@ -276,7 +276,7 @@ static int32_t CDC200_PowerCtrl (ARM_POWER_STATE state, CDC_RESOURCES *cdc)
 
             pixclk = (htotal * vtotal * RTE_CDC200_DPI_FPS);
 
-            pixclk_div = (int) ((float)CDC200_PIXCLK / (htotal * vtotal * RTE_CDC200_DPI_FPS) + 0.5f);
+            pixclk_div = (int) ((float)CDC200_PIXCLK / pixclk + 0.5f);
 
             /*Checking clk divider is less than 2 because 0 and 1 are illegal value*/
             if (pixclk_div < 2 || pixclk_div > 511)
@@ -387,7 +387,6 @@ static int32_t Display_Controller_Setup (uint32_t image_buff_address, CDC_RESOUR
     uint32_t layer_window_h = ((active_width & 0xFFFF0000U) | ((back_porch >> 16)+1));
     uint32_t layer_window_v = (((active_width & 0xFFFFU) << 16) | ((back_porch & 0xFFFFU) + 1));
     uint32_t ret = ARM_DRIVER_OK;
-    uint32_t rd_data = 0;
 
     if (cdc->state.powered == 0)
     {
@@ -638,7 +637,7 @@ CDC_RESOURCES CDC_INFO =
     .frame_info     = &FRAME_INFO,
     .pixel_format   = RTE_CDC200_PIXEL_FORMAT,
     .irq_priority   = RTE_CDC200_IRQ_PRI,
-    .state          = 0,
+    .state          = {0},
 };
 
 #if (RTE_MIPI_DSI)
@@ -650,7 +649,8 @@ CDC_RESOURCES CDC_INFO =
 */
 void MIPI_DSI_Event_Callback (uint32_t int_event)
 {
-	CDC_INFO.cb_event(ARM_CDC_DSI_ERROR_EVENT);
+    ARG_UNUSED(int_event);
+    CDC_INFO.cb_event(ARM_CDC_DSI_ERROR_EVENT);
 }
 #endif
 

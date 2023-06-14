@@ -234,7 +234,7 @@ __STATIC_INLINE int32_t I2S_DMA_EnableMono (DMA_PERIPHERAL_CONFIG *dma_periph)
     ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
 
     /* Stop transfer */
-    status = dma_drv->Control(&dma_periph->dma_handle, ARM_DMA_I2S_MONO_MODE, NULL);
+    status = dma_drv->Control(&dma_periph->dma_handle, ARM_DMA_I2S_MONO_MODE, 0);
     if(status)
     {
         return ARM_DRIVER_ERROR;
@@ -1786,7 +1786,7 @@ static I2S_DRV_INFO I2S0 = {
     .paddr     = (I2S_TypeDef *) I2S0_BASE,
     .instance  =  I2S_INSTANCE_0,
     .irq       = (IRQn_Type) I2S0_IRQ_IRQn,
-    .flags     = NULL,
+    .flags     = 0,
 };
 
 /**
@@ -1983,7 +1983,7 @@ static I2S_DRV_INFO I2S1 = {
     .paddr     = (I2S_TypeDef *) I2S1_BASE,
     .instance  =  I2S_INSTANCE_1,
     .irq       = (IRQn_Type) I2S1_IRQ_IRQn,
-    .flags     = NULL,
+    .flags     = 0,
 };
 
 /**
@@ -2180,7 +2180,7 @@ static I2S_DRV_INFO I2S2 = {
     .paddr     = (I2S_TypeDef *) I2S2_BASE,
     .instance  =  I2S_INSTANCE_2,
     .irq       = (IRQn_Type) I2S2_IRQ_IRQn,
-    .flags     = NULL,
+    .flags     = 0,
 };
 
 
@@ -2378,7 +2378,7 @@ static I2S_DRV_INFO I2S3 = {
     .paddr     = (I2S_TypeDef *) I2S3_BASE,
     .instance  =  I2S_INSTANCE_3,
     .irq       = (IRQn_Type) I2S3_IRQ_IRQn,
-    .flags     = NULL,
+    .flags     = 0,
 };
 
 
@@ -2576,7 +2576,7 @@ static I2S_DRV_INFO LPI2S = {
     .paddr     = (I2S_TypeDef *) LPI2S_BASE,
     .instance  = I2S_INSTANCE_LP,
     .irq       = (IRQn_Type) LPI2S_IRQ_IRQn,
-    .flags     = NULL,
+    .flags     = 0,
 };
 
 

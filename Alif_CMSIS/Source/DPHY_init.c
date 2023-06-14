@@ -304,7 +304,6 @@ static void MIPI_CSI2_DPHY_Rst (uint8_t state)
 */
 static DPHY_STOPSTATE MIPI_CSI2_DPHY_Stopstate (void)
 {
-    uint32_t reg_status = 0;
     uint8_t ret = 0;
 
     if(csi_get_lane_stopstate_status((CSI_Type *)CSI_BASE, CSI_LANE_CLOCK) == CSI_LANE_STOPSTATE_ON)
@@ -878,7 +877,6 @@ static int32_t DPHY_SlaveSetup (uint32_t clock_frequency)
     uint8_t cfgclkfreqrange = 0;
     uint32_t osc_freq_target = 0;
     uint8_t range = 0;
-    uint32_t reg_data = 0;
     uint8_t stopstate_check =0;
     uint32_t lp_count = 0;
 
@@ -1132,8 +1130,6 @@ static int32_t DPHY_ADC_Probing_Procedure (void)
   */
 static int32_t PHY_2_PHY_BIST_Test(void)
 {
-    uint32_t lp_count = 0;
-
     set_rx_dphy_testport_select(DPHY_TESTPORT_SELECT_TX);
 
     DPHY_CSI2_Write_Mask(dphy4txtester_DIG_RDWR_TX_SYS_3, 0x1, 3, 1);
@@ -1211,7 +1207,7 @@ static int32_t PHY_2_PHY_BIST_Test(void)
 int32_t DPHY_External_Loopback_Test (uint32_t frequency, uint32_t loopback_test_run_time_us)
 {
     int32_t ret = ARM_DRIVER_OK;
-    int32_t lp_count = 0;
+    uint32_t lp_count = 0;
 
     /* Enable DPHY Power */
     DPHY_PowerEnable();
