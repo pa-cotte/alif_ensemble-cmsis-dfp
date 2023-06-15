@@ -31,7 +31,9 @@
 typedef volatile struct _CRC_DRIVER_STATE {
     uint32_t initialized : 1;                    /* Driver Initialized    */
     uint32_t powered     : 1;                    /* Driver powered        */
+#if RTE_Drivers_DMA
     uint32_t dma_enabled : 1;                    /* Is DMA enabled        */
+#endif
 } CRC_DRIVER_STATE;
 
 /**
@@ -43,9 +45,11 @@ typedef struct _CRC_RESOURCES
 {
     CRC_Type                *regs;      /* CRC register address */
     CRC_DRIVER_STATE        state;      /* CRC Driver state */
+#if RTE_Drivers_DMA
     DMA_PERIPHERAL_CONFIG   *dma_cfg;   /* DMA Config */
     ARM_DMA_SignalEvent_t   dma_cb;     /* DMA Callback */
     atomic_uint             dma_cb_val; /* Callback value of DMA operation. Used to wait DMA operation and validate operation success */
+#endif
 }CRC_RESOURCES;
 
 #endif /* DRIVER_CRC_PRIVATE_H_ */
