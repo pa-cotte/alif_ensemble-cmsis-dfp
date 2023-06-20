@@ -45,25 +45,23 @@ typedef struct fp_state {
     uint32_t    vpr;
 } fp_state_t;
 
-__attribute__((naked))
 void save_fp_state(fp_state_t *state)
 {
   __asm (
-    "VSTM    R0, {D8-D15}\n\t"
-    "VSTR    FPSCR, [R0, #32]\n\t"
-    "VSTR    VPR, [R0, #36]\n\t"
-    "BX      LR"
+    "VSTM    %0, {D8-D15}\n\t"
+    "VSTR    FPSCR, [%0, #32]\n\t"
+    "VSTR    VPR, [%0, #36]\n\t"
+   :: "r"(state) : "memory"
   );
 }
 
-__attribute__((naked))
 void restore_fp_state(const fp_state_t *state)
 {
   __asm (
-    "VLDM    R0, {D8-D15}\n\t"
-    "VLDR    FPSCR, [R0, #32]\n\t"
-    "VLDR    VPR, [R0, #36]\n\t"
-    "BX      LR"
+    "VLDM    %0, {D8-D15}\n\t"
+    "VLDR    FPSCR, [%0, #32]\n\t"
+    "VLDR    VPR, [%0, #36]\n\t"
+   :: "r"(state) : "memory"
   );
 }
 

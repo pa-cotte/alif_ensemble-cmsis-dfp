@@ -428,6 +428,7 @@ static int32_t DSI_Control (ARM_MIPI_DSI_CONTROL control,
                             uint32_t arg,
                             DSI_RESOURCES *dsi)
 {
+    ARG_UNUSED(arg);
     int32_t ret = ARM_DRIVER_OK;
 
     switch(control)

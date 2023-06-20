@@ -33,7 +33,7 @@ extern "C"
   \param       instance     instance number
   \return      none
 */
-static void inline enable_gpio_debounce_clk (GPIO_INSTANCE instance)
+static inline void enable_gpio_debounce_clk (GPIO_INSTANCE instance)
 {
     volatile uint32_t *gpio_ctrl = (volatile uint32_t*) ((&CLKCTL_PER_SLV->GPIO_CTRL0) + instance);
 
@@ -47,7 +47,7 @@ static void inline enable_gpio_debounce_clk (GPIO_INSTANCE instance)
   \param       instance     instance number
   \return      none
 */
-static void inline disable_gpio_debounce_clk (GPIO_INSTANCE instance)
+static inline void disable_gpio_debounce_clk (GPIO_INSTANCE instance)
 {
     volatile uint32_t *gpio_ctrl = (volatile uint32_t*) ((&CLKCTL_PER_SLV->GPIO_CTRL0) + instance);
 
@@ -62,7 +62,7 @@ static void inline disable_gpio_debounce_clk (GPIO_INSTANCE instance)
   \param       instance    instance number
   \return      none
 */
-static void inline set_gpio_debounce_clkdiv (uint16_t clk_div, GPIO_INSTANCE instance)
+static inline void set_gpio_debounce_clkdiv (uint16_t clk_div, GPIO_INSTANCE instance)
 {
     volatile uint32_t *gpio_ctrl = (volatile uint32_t*) ((&CLKCTL_PER_SLV->GPIO_CTRL0) + instance);
 
