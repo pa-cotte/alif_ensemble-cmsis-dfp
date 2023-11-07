@@ -9,21 +9,18 @@
  */
 
 /**************************************************************************//**
- * @file     Driver_DAC.h
+ * @file     Driver_DAC.c
  * @author   Nisarga A M
  * @email    nisarga.am@alifsemi.com
  * @version  V1.0.0
  * @date     22-Feb-2022
  * @brief    DAC(Digital to Analog Converter) driver definitions.DAC0 connected
- *           to PO_18 and DAC1 connected to PO_19.
+ *           to P2_2 and DAC1 connected to P2_3.
  ******************************************************************************/
 
 /* Project Includes */
-#include "Driver_DAC.h"
-#include "Driver_DAC_Private.h"
-#include "dac.h"
+#include <Driver_DAC_Private.h>
 #include "analog_config.h"
-#include "sys_ctrl_dac.h"
 
 #if !(RTE_DAC0 || RTE_DAC1)
 #error "DAC is not enabled in the RTE_device.h"
@@ -63,7 +60,7 @@ static void Analog_Config(void)
     analog_config_vbat_reg2();
 
     /* Analog configuration comparator register2 */
-    analog_config_comp_reg2();
+    analog_config_cmp_reg2();
 }
 
 /**
@@ -89,11 +86,11 @@ static ARM_DAC_CAPABILITIES DAC_GetCapabilities(void)
 }
 
 /**
- @fn           int32_t DAC_Initialize (DAC_RESOURCES *DAC)
+ @fn           int32_t DAC_Initialize(DAC_RESOURCES *DAC)
  @brief        Initialize the DAC
  @param[in]    DAC : Pointer to DAC resources
- @return       ARM_DRIVER_ERROR_PARAMETER : if dac device is invalid
-               ARM_DRIVER_OK              : if dac successfully initialized or already initialized
+ @return       ARM_DRIVER_ERROR_PARAMETER : if dac parameter is invalid
+               ARM_DRIVER_OK              : if dac successfully initialized
  */
 static int32_t DAC_Initialize(DAC_RESOURCES *DAC)
 {
@@ -106,10 +103,10 @@ static int32_t DAC_Initialize(DAC_RESOURCES *DAC)
 }
 
 /**
- @fn           int32_t DAC_Uninitialize (DAC_RESOURCES *DAC)
+ @fn           int32_t DAC_Uninitialize(DAC_RESOURCES *DAC)
  @brief        Un-Initialize the DAC
  @param[in]    DAC  : Pointer to DAC resources
- @return       ARM_DRIVER_OK : if dac successfully uninitialized or already not initialized
+ @return       ARM_DRIVER_OK : if dac successfully initialized
  */
 static int32_t DAC_Uninitialize(DAC_RESOURCES *DAC)
 {
@@ -122,13 +119,13 @@ static int32_t DAC_Uninitialize(DAC_RESOURCES *DAC)
 }
 
 /**
- @fn           int32_t DAC_PowerControl (ARM_POWER_STATE state,
-                                         DAC_RESOURCES *DAC)
+ @fn           int32_t DAC_PowerControl(ARM_POWER_STATE state,
+                                        DAC_RESOURCES *DAC)
  @brief        CMSIS-DRIVER DAC power control
  @param[in]    state : Power state
  @param[in]    DAC   : Pointer to DAC resources
- @return       ARM_DRIVER_ERROR_PARAMETER  : if dac device is invalid
-               ARM_DRIVER_OK               : if dac successfully uninitialized or already not initialized
+ @return       ARM_DRIVER_ERROR_PARAMETER  : if initialize is not done
+               ARM_DRIVER_OK               : if power done successful
  */
 static int32_t DAC_PowerControl(ARM_POWER_STATE state,
                                 DAC_RESOURCES *DAC)
@@ -143,7 +140,9 @@ static int32_t DAC_PowerControl(ARM_POWER_STATE state,
                /* Clear the DAC configuration */
                dac_clear_config(DAC->regs);
 
-               DacCoreClkControl(DAC, false);
+               disable_dac_periph_clk(DAC->instance);
+
+               disable_cmp_periph_clk();
 
                break;
 
@@ -162,7 +161,9 @@ static int32_t DAC_PowerControl(ARM_POWER_STATE state,
                /* Set the power flag enabled */
                DAC->flags |= DAC_FLAG_DRV_POWER_DONE;
 
-               DacCoreClkControl(DAC, true);
+               enable_cmp_periph_clk();
+
+               enable_dac_periph_clk(DAC->instance);
 
                /* Initialization for Analog configuration register */
                Analog_Config();
@@ -170,8 +171,11 @@ static int32_t DAC_PowerControl(ARM_POWER_STATE state,
                /* DAC Disable */
                dac_disable(DAC->regs);
 
+               /* DAC reset released */
+               dac_reset_deassert(DAC->regs);
+
                /* Initialize DAC configuration */
-               dac_set_config(DAC->regs, DAC->config);
+               dac_set_config(DAC->regs, DAC->input_mux_val, DAC->bypass_val);
 
               break;
 
@@ -189,18 +193,20 @@ static int32_t DAC_PowerControl(ARM_POWER_STATE state,
  @param[in]    DAC     : Pointer to DAC resources
  @param[in]    control : Operation \ref Driver_DAC.h : DAC control codes
  @param[in]    arg     : Argument of operation (optional)
- @return       ARM_DRIVER_ERROR_PARAMETER  : if dac device is invalid
-               ARM_DRIVER_OK               : if dac successfully uninitialized or already not initialized
+ @return       ARM_DRIVER_ERROR_PARAMETER  : if dac parameter is invalid
+               ARM_DRIVER_OK               : if dac successfully initialized
  */
 static int32_t DAC_Control(DAC_RESOURCES *DAC, uint32_t control, uint32_t arg)
 {
+    ARG_UNUSED(arg);
     int32_t ret = ARM_DRIVER_OK;
 
     switch (control)
     {
         case ARM_DAC_RESET:
-            /* To reset the DAC */
-            dac_reset(DAC->regs);
+
+            /* DAC reset asserted */
+            dac_reset_assert(DAC->regs);
             break;
 
         default:
@@ -245,7 +251,7 @@ static int32_t DAC_Start (DAC_RESOURCES *DAC)
  *@brief       CMSIS-Driver DAC Stop
                Disable the DAC
  *@param[in]   DAC     : Pointer to DAC resources
- *@return      ARM_DRIVER_OK : if dac successfully uninitialized or already not initialized
+ *@return      ARM_DRIVER_OK : if function return successfully
  */
 static int32_t DAC_Stop (DAC_RESOURCES *DAC)
 {
@@ -265,8 +271,8 @@ static int32_t DAC_Stop (DAC_RESOURCES *DAC)
  @param[in]    Input : Operation
  @param[in]    value  : DAC input
  @param[in]    DAC  : Pointer to dac resources
- @return       ARM_DRIVER_ERROR_PARAMETER  : if dac device is invalid
-                ARM_DRIVER_OK              : if dac successfully uninitialized or already not initialized
+ @return       ARM_DRIVER_ERROR_PARAMETER : if parameter are invalid
+               ARM_DRIVER_OK              : if the function return successful
  */
 static int32_t DAC_SetInput(DAC_RESOURCES *DAC, uint32_t value)
 {
@@ -283,7 +289,8 @@ static int32_t DAC_SetInput(DAC_RESOURCES *DAC, uint32_t value)
         ret = ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    dac_input(DAC->regs,value);
+    /* Set dac input */
+    dac_input(DAC->regs, value);
 
     return ret;
 }
@@ -295,12 +302,9 @@ static int32_t DAC_SetInput(DAC_RESOURCES *DAC, uint32_t value)
 static DAC_RESOURCES DAC0 = {
         .regs           = (DAC_Type *)DAC120_BASE,
         .flags          = 0,
-        .config         = (RTE_DAC0_INPUT_BYP_MUX_EN << 1) |
-                          (RTE_DAC0_BYP_VAL << 2)          |
-                          (RTE_DAC0_CAP_CONT <<14)         |
-                          (RTE_DAC0_TWOSCOMP_EN << 22 )    |
-                          (RTE_DAC0_IBIAS << 23),
-        .drv_instance   = DAC_INSTANCE_0
+        .input_mux_val  = (RTE_DAC1_INPUT_BYP_MUX_EN),
+        .bypass_val     = (RTE_DAC1_BYP_VAL),
+        .instance       = DAC_INSTANCE_0
 };
 
 /* Function Name: DAC0_Initialize */
@@ -368,12 +372,9 @@ ARM_DRIVER_DAC Driver_DAC0 =
 static DAC_RESOURCES DAC1 = {
         .regs           = (DAC_Type *)DAC121_BASE,
         .flags          = 0,
-        .config         = (RTE_DAC1_INPUT_BYP_MUX_EN << 1) |
-                          (RTE_DAC1_BYP_VAL << 2)          |
-                          (RTE_DAC1_CAP_CONT <<14)         |
-                          (RTE_DAC1_TWOSCOMP_EN << 22 )    |
-                          (RTE_DAC1_IBIAS << 23),
-        .drv_instance   = DAC_INSTANCE_1
+        .input_mux_val  = (RTE_DAC1_INPUT_BYP_MUX_EN),
+        .bypass_val     = (RTE_DAC1_BYP_VAL),
+        .instance       = DAC_INSTANCE_1
 };
 
 /* Function Name: DAC1_Initialize */
@@ -433,4 +434,3 @@ ARM_DRIVER_DAC Driver_DAC1 =
 };
 
 #endif /* RTE_DAC1 */
-

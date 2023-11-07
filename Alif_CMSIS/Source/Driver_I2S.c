@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -12,23 +12,22 @@
  * @file     Driver_I2S.c
  * @author   Sudhir Sreedharan
  * @email    sudhir@alifsemi.com
- * @version  V1.0.0
- * @date     21-Aug-2020
+ * @version  V3.0.0
+ * @date     06-Jun-2023
  * @brief    CMSIS-Driver for I2S
  * @bug      None
  * @Note     None
  ******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
-#include "Driver_I2S.h"
+#include "Driver_I2S_Private.h"
+#include "Driver_SAI_EX.h"
 
-#include "math.h"
-
-#define ARM_SAI_DRV_VERSION    ARM_DRIVER_VERSION_MAJOR_MINOR(2, 0) /*!< I2S Driver Version */
+#define ARM_SAI_DRV_VERSION    ARM_DRIVER_VERSION_MAJOR_MINOR(3, 0) /*!< I2S Driver Version */
 
 static const ARM_DRIVER_VERSION DriverVersion = {
-		ARM_SAI_API_VERSION,
-		ARM_SAI_DRV_VERSION
+        ARM_SAI_API_VERSION,
+        ARM_SAI_DRV_VERSION
 };
 
 
@@ -51,7 +50,7 @@ static const ARM_SAI_CAPABILITIES DriverCapabilities = {
     0, /* supports AC'97 Protocol */
     1, /* supports Mono mode */
     0, /* supports Companding */
-    0, /* supports MCLK (Master Clock) pin */
+    1, /* supports MCLK (Master Clock) pin */
     0, /* supports Frame error event: \ref ARM_SAI_EVENT_FRAME_ERROR */
     0  /* reserved (must be zero) */
 };
@@ -61,70 +60,64 @@ static const ARM_SAI_CAPABILITIES DriverCapabilities = {
 //
 
 /**
-  \fn          ARM_DRIVER_VERSION ARM_SAI_GetVersion (void)
+  \fn          ARM_DRIVER_VERSION I2S_GetVersion(void)
   \brief       Get I2S driver version.
   \return      \ref ARM_DRIVER_VERSION
 */
-static ARM_DRIVER_VERSION I2S_GetVersion (void)
+static ARM_DRIVER_VERSION I2S_GetVersion(void)
 {
-  return DriverVersion;
+    return DriverVersion;
 }
 
 /**
-  \fn          ARM_SAI_CAPABILITIES ARM_SAI_GetCapabilities (void)
+  \fn          ARM_SAI_CAPABILITIES I2S_GetCapabilities(void)
   \brief       Get I2S driver capabilities
   \return      \ref ARM_SAI_CAPABILITIES
 */
-static ARM_SAI_CAPABILITIES I2S_GetCapabilities (void)
+static ARM_SAI_CAPABILITIES I2S_GetCapabilities(void)
 {
-  return DriverCapabilities;
+    return DriverCapabilities;
 }
 
 /**
-  \fn          int32_t I2S_Configure_ClockSource (bool enable, I2S_DRV_INFO *i2s)
-  \brief       Control I2S Interface Power.
-  \param[in]   enable  Clock state
-  \param[in]   i2s     Pointer to I2S resources
-  \return      \ref execution_status
+  \fn          int32_t I2S_SetSamplingRate(I2S_RESOURCES *I2S)
+  \brief       Set the audio sample rate
+  \param[in]   I2S   Pointer to I2S resources
+  \return      \ref  execution_status
 */
-static int32_t I2S_Configure_ClockSource (bool enable, I2S_DRV_INFO *i2s)
+static int32_t I2S_SetSamplingRate(I2S_RESOURCES *I2S)
 {
-	uint32_t div = 0;
-	uint32_t sclk = 0;
-	const uint32_t clock_cycles[WSS_CLOCK_CYCLES_MAX] = {16, 24, 32};
+    uint32_t sclk_freq = 0;
+    int32_t ret = 0;
 
+    if(!I2S->sample_rate)
+        return ARM_DRIVER_ERROR;
 
-	if (enable) {
-		if (!i2s->sample_rate)
-			return ARM_DRIVER_ERROR_PARAMETER;
+    sclk_freq = i2s_get_sclk_frequency(I2S->sample_rate, I2S->cfg->wss_len);
 
-		/* Calculate sclk = 2* WSS * Sample Rate*/
-		sclk = 2 * clock_cycles[i2s->cfg->wss_len] * (i2s->sample_rate);
+    ret = set_i2s_sampling_rate(I2S->instance, sclk_freq, I2S->cfg->clk_source);
+    if(ret)
+        return ARM_DRIVER_ERROR;
 
-		div = lroundf(i2s->cfg->clk_source/sclk);
-		if ((div > I2S_CLK_DIVISOR_MAX)|| (div < I2S_CLK_DIVISOR_MIN))
-			return ARM_DRIVER_ERROR_PARAMETER;
-
-		set_i2s_clock_divisor(i2s->instance, div);
-	}
-
-	return ARM_DRIVER_OK;
+    return ARM_DRIVER_OK;
 }
 
+#if I2S_DMA_ENABLE
 /**
-  \fn          int32_t I2S_DMA_Initialize (DMA_PERIPHERAL_CONFIG *dma_periph)
+  \fn          int32_t I2S_DMA_Initialize(DMA_PERIPHERAL_CONFIG *dma_periph)
   \brief       Initialize DMA for I2S
-  \param[in]   dma_periph     Pointer to DMA resources
-  \return      \ref execution_status
+  \param[in]   dma_periph   Pointer to DMA resources
+  \return      \ref         execution_status
 */
-__STATIC_INLINE int32_t I2S_DMA_Initialize (DMA_PERIPHERAL_CONFIG *dma_periph)
+__STATIC_INLINE int32_t I2S_DMA_Initialize(DMA_PERIPHERAL_CONFIG *dma_periph)
 {
     int32_t        status;
     ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
 
     /* Initializes DMA interface */
     status = dma_drv->Initialize();
-    if(status) {
+    if(status)
+    {
         return ARM_DRIVER_ERROR;
     }
 
@@ -132,20 +125,23 @@ __STATIC_INLINE int32_t I2S_DMA_Initialize (DMA_PERIPHERAL_CONFIG *dma_periph)
 }
 
 /**
-  \fn          int32_t I2S_DMA_PowerControl (ARM_POWER_STATE state, DMA_PERIPHERAL_CONFIG *dma_periph)
+  \fn          int32_t I2S_DMA_PowerControl(ARM_POWER_STATE state,
+                                            DMA_PERIPHERAL_CONFIG *dma_periph)
   \brief       PowerControl DMA for I2S
   \param[in]   state  Power state
   \param[in]   dma_periph     Pointer to DMA resources
   \return      \ref execution_status
 */
-__STATIC_INLINE int32_t I2S_DMA_PowerControl (ARM_POWER_STATE state, DMA_PERIPHERAL_CONFIG *dma_periph)
+__STATIC_INLINE int32_t I2S_DMA_PowerControl(ARM_POWER_STATE state,
+                                             DMA_PERIPHERAL_CONFIG *dma_periph)
 {
     int32_t        status;
     ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
 
     /* Initializes DMA interface */
     status = dma_drv->PowerControl(state);
-    if(status) {
+    if(status)
+    {
         return ARM_DRIVER_ERROR;
     }
 
@@ -153,12 +149,12 @@ __STATIC_INLINE int32_t I2S_DMA_PowerControl (ARM_POWER_STATE state, DMA_PERIPHE
 }
 
 /**
-  \fn          int32_t I2S_DMA_Allocate (DMA_PERIPHERAL_CONFIG *dma_periph)
+  \fn          int32_t I2S_DMA_Allocate(DMA_PERIPHERAL_CONFIG *dma_periph)
   \brief       Allocate a channel for I2S
-  \param[in]   dma_periph     Pointer to DMA resources
-  \return      \ref execution_status
+  \param[in]   dma_periph  Pointer to DMA resources
+  \return      \ref        execution_status
 */
-__STATIC_INLINE int32_t I2S_DMA_Allocate (DMA_PERIPHERAL_CONFIG *dma_periph)
+__STATIC_INLINE int32_t I2S_DMA_Allocate(DMA_PERIPHERAL_CONFIG *dma_periph)
 {
     int32_t        status;
     ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
@@ -189,12 +185,12 @@ __STATIC_INLINE int32_t I2S_DMA_Allocate (DMA_PERIPHERAL_CONFIG *dma_periph)
 }
 
 /**
-  \fn          int32_t I2S_DMA_DeAllocate (DMA_PERIPHERAL_CONFIG *dma_periph)
+  \fn          int32_t I2S_DMA_DeAllocate(DMA_PERIPHERAL_CONFIG *dma_periph)
   \brief       De-allocate channel of I2S
-  \param[in]   dma_periph     Pointer to DMA resources
-  \return      \ref execution_status
+  \param[in]   dma_periph  Pointer to DMA resources
+  \return      \ref        execution_status
 */
-__STATIC_INLINE int32_t I2S_DMA_DeAllocate (DMA_PERIPHERAL_CONFIG *dma_periph)
+__STATIC_INLINE int32_t I2S_DMA_DeAllocate(DMA_PERIPHERAL_CONFIG *dma_periph)
 {
     int32_t        status;
     ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
@@ -223,17 +219,17 @@ __STATIC_INLINE int32_t I2S_DMA_DeAllocate (DMA_PERIPHERAL_CONFIG *dma_periph)
 }
 
 /**
-  \fn          int32_t I2S_DMA_EnableMono (DMA_PERIPHERAL_CONFIG *dma_periph)
+  \fn          int32_t I2S_DMA_EnableMono(DMA_PERIPHERAL_CONFIG *dma_periph)
   \brief       Enable I2S DMA Mono transfer
-  \param[in]   dma_periph     Pointer to DMA resources
-  \return      \ref execution_status
+  \param[in]   dma_periph  Pointer to DMA resources
+  \return      \ref        execution_status
 */
-__STATIC_INLINE int32_t I2S_DMA_EnableMono (DMA_PERIPHERAL_CONFIG *dma_periph)
+__STATIC_INLINE int32_t I2S_DMA_EnableMono(DMA_PERIPHERAL_CONFIG *dma_periph)
 {
     int32_t        status;
     ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
 
-    /* Stop transfer */
+    /* Enable I2S mono feature */
     status = dma_drv->Control(&dma_periph->dma_handle, ARM_DMA_I2S_MONO_MODE, 0);
     if(status)
     {
@@ -244,15 +240,41 @@ __STATIC_INLINE int32_t I2S_DMA_EnableMono (DMA_PERIPHERAL_CONFIG *dma_periph)
 }
 
 /**
-  \fn          int32_t I2S_DMA_Start (DMA_PERIPHERAL_CONFIG *dma_periph,
-                                      ARM_DMA_PARAMS *dma_params)
+  \fn          int32_t I2S_DMA_Usermcode(DMA_PERIPHERAL_CONFIG *dma_periph,
+                                         uint32_t dma_mcode)
+  \brief       Use Custom Microcode for I2S
+  \param[in]   dma_periph  Pointer to DMA resources
+  \param[in]   dma_mcode  Pointer to DMA microcode
+  \return      \ref        execution_status
+*/
+__STATIC_INLINE int32_t I2S_DMA_Usermcode(DMA_PERIPHERAL_CONFIG *dma_periph,
+                                          uint32_t dma_mcode)
+{
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* Use User provided custom microcode */
+    status = dma_drv->Control(&dma_periph->dma_handle,
+                              ARM_DMA_USER_PROVIDED_MCODE,
+                              dma_mcode);
+    if(status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    return ARM_DRIVER_OK;
+}
+
+/**
+  \fn          int32_t I2S_DMA_Start(DMA_PERIPHERAL_CONFIG *dma_periph,
+                                     ARM_DMA_PARAMS *dma_params)
   \brief       Start I2S DMA transfer
   \param[in]   dma_periph     Pointer to DMA resources
   \param[in]   dma_params     Pointer to DMA parameters
-  \return      \ref execution_status
+  \return      \ref           execution_status
 */
-__STATIC_INLINE int32_t I2S_DMA_Start (DMA_PERIPHERAL_CONFIG *dma_periph,
-                                       ARM_DMA_PARAMS *dma_params)
+__STATIC_INLINE int32_t I2S_DMA_Start(DMA_PERIPHERAL_CONFIG *dma_periph,
+                                      ARM_DMA_PARAMS *dma_params)
 {
     int32_t        status;
     ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
@@ -268,12 +290,12 @@ __STATIC_INLINE int32_t I2S_DMA_Start (DMA_PERIPHERAL_CONFIG *dma_periph,
 }
 
 /**
-  \fn          int32_t I2S_DMA_Stop (DMA_PERIPHERAL_CONFIG *dma_periph)
+  \fn          int32_t I2S_DMA_Stop(DMA_PERIPHERAL_CONFIG *dma_periph)
   \brief       Stop I2S DMA transfer
-  \param[in]   dma_periph     Pointer to DMA resources
-  \return      \ref execution_status
+  \param[in]   dma_periph   Pointer to DMA resources
+  \return      \ref         execution_status
 */
-__STATIC_INLINE int32_t I2S_DMA_Stop (DMA_PERIPHERAL_CONFIG *dma_periph)
+__STATIC_INLINE int32_t I2S_DMA_Stop(DMA_PERIPHERAL_CONFIG *dma_periph)
 {
     int32_t        status;
     ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
@@ -289,1398 +311,965 @@ __STATIC_INLINE int32_t I2S_DMA_Stop (DMA_PERIPHERAL_CONFIG *dma_periph)
 }
 
 /**
-  \fn          void I2S_GlobalEnable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Global Enable
-  \param[in]   i2s     Pointer to I2S resources
+  \fn          int32_t I2S_DMA_GetStatus(DMA_PERIPHERAL_CONFIG *dma_periph
+                                         uint32_t *count)
+  \brief       Status of I2S DMA transfer
+  \param[in]   dma_periph   Pointer to DMA resources
+  \param[in]   count        Current transfer count
+  \return      \ref         execution_status
 */
-__STATIC_INLINE void I2S_GlobalEnable (I2S_DRV_INFO *i2s)
+__STATIC_INLINE int32_t I2S_DMA_GetStatus(DMA_PERIPHERAL_CONFIG *dma_periph,
+                                          uint32_t *count)
 {
-    i2s->paddr->IER = _VAL2FLD(I2S_IER_IEN, 1U);
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* Stop transfer */
+    status = dma_drv->GetStatus(&dma_periph->dma_handle, count);
+    if(status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    return ARM_DRIVER_OK;
 }
+#endif /* I2S_DMA_ENABLE */
 
 /**
-  \fn          void I2S_GlobalDisable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Global Disable
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_GlobalDisable (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->IER &= ~I2S_IER_IEN_Msk;
-}
-
-/**
-  \fn          void I2S_RxBlockEnable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Receiver Block Enable
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_RxBlockEnable (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->IRER = _VAL2FLD(I2S_IRER_RXEN, 1U);
-}
-
-/**
-  \fn          void I2S_RxBlockDisable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Receiver Block Disable
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_RxBlockDisable (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->IRER &= ~I2S_IRER_RXEN_Msk;
-}
-
-/**
-  \fn          void I2S_TxBlockEnable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Transmitter Block Enable
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_TxBlockEnable (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->ITER = _VAL2FLD(I2S_ITER_TXEN, 1U);
-}
-
-/**
-  \fn          void I2S_TxBlockDisable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Transmitter Block Disable
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_TxBlockDisable (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->ITER &= ~I2S_ITER_TXEN_Msk;
-}
-
-/**
-  \fn          void I2S_ClockEnable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Clock Enable in Master Mode
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_ClockEnable (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->CER = _VAL2FLD(I2S_CER_CLKEN, 1U);
-}
-
-/**
-  \fn          void I2S_ClockDisable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Clock Disable in Master Mode
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_ClockDisable (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->CER &= ~I2S_CER_CLKEN_Msk;
-}
-
-/**
-  \fn          void I2S_ConfigureClock (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Configure WSS and SCLKG in Master Mode.
-               Should be called with Clock disabled.
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_ConfigureClock (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->CCR = _VAL2FLD(I2S_CCR_SCLKG, i2s->cfg->sclkg) | \
-                      _VAL2FLD(I2S_CCR_WSS, i2s->cfg->wss_len);
-}
-
-/**
-  \fn          uint32_t I2S_ReadLeftRx (I2S_DRV_INFO *i2s)
-  \brief       Read Left Receive Buffer Register
-  \param[in]   i2s     Pointer to I2S resources
-  \return      data
-*/
-__STATIC_INLINE uint32_t I2S_ReadLeftRx (I2S_DRV_INFO *i2s)
-{
-	return i2s->paddr->LRBR;
-}
-
-
-/**
-  \fn          void I2S_WriteLeftTx (uint32_t data, I2S_DRV_INFO *i2s)
-  \brief       Write to Left Transmit Holding Register
-  \param[in]   data    data to write
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_WriteLeftTx (uint32_t data, I2S_DRV_INFO *i2s)
-{
-	i2s->paddr->LTHR = data;
-}
-
-/**
-  \fn          uint32_t I2S_ReadRightRx (I2S_DRV_INFO *i2s)
-  \brief       Read from Right Receive Buffer Register
-  \param[in]   i2s     Pointer to I2S resources
-  \return      data
-*/
-__STATIC_INLINE uint32_t I2S_ReadRightRx (I2S_DRV_INFO *i2s)
-{
-	return i2s->paddr->RRBR;
-}
-
-/**
-  \fn          void I2S_WriteRightTx (uint32_t data, I2S_DRV_INFO *i2s)
-  \brief       Write to Right Transmit Holding Register
-  \param[in]   data    data to write
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_WriteRightTx (uint32_t data, I2S_DRV_INFO *i2s)
-{
-	i2s->paddr->RTHR = data;
-}
-
-/**
-  \fn          void I2S_RxChannelEnable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Receiver Channel Enable
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_RxChannelEnable (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->RER = _VAL2FLD(I2S_RER_RXCHEN, 1U);
-}
-
-/**
-  \fn          void I2S_RxChannelDisable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Receiver Channel Disable
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_RxChannelDisable (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->RER &= ~I2S_RER_RXCHEN_Msk;
-}
-
-/**
-  \fn          void I2S_TxChannelEnable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Transmit Channel Enable
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_TxChannelEnable (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->TER = _VAL2FLD(I2S_TER_TXCHEN, 1U);
-}
-
-/**
-  \fn          void I2S_TxChannelDisable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Transmit Channel Disable
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_TxChannelDisable (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->TER &= ~I2S_TER_TXCHEN_Msk;
-}
-
-/**
-  \fn          void I2S_RxConfigWlen (I2S_DRV_INFO *i2s)
-  \brief       Set Wlen in Receive Configuration Register
-               Should be called with RXCHEN disabled.
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_RxConfigWlen (I2S_DRV_INFO *i2s)
-{
-	i2s->paddr->RCR = _VAL2FLD(I2S_RCR_WLEN, i2s->cfg->wlen);
-}
-
-/**
-  \fn          void I2S_TxConfigWlen (I2S_DRV_INFO *i2s)
-  \brief       Set Wlen in Transmit Configuration Register
-               Should be called with TXCHEN disabled.
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_TxConfigWlen (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->TCR = _VAL2FLD(I2S_TCR_WLEN, i2s->cfg->wlen);
-}
-
-/**
-  \fn          void I2S_GetInterruptStatus (I2S_DRV_INFO *i2s)
-  \brief       Read the Interrupt Status Register for the channel
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_GetInterruptStatus (I2S_DRV_INFO *i2s)
-{
-	i2s->int_status = i2s->paddr->ISR;
-}
-
-/**
-  \fn          void I2S_SetInterruptMask (uint32_t imr, I2S_DRV_INFO *i2s)
-  \brief       Set the Interrupt Mask Register for the channel
-  \param[in]   imr     Mask Value
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_SetInterruptMask (uint32_t imr, I2S_DRV_INFO *i2s)
-{
-	i2s->paddr->IMR = imr;
-}
-
-/**
-  \fn          void I2S_GetInterruptMask (I2S_DRV_INFO *i2s)
-  \brief       Get the Interrupt Mask Register for the channel
-  \param[in]   i2s     Pointer to I2S resources
-  \return      Interrupt Mask value
-*/
-__STATIC_INLINE uint32_t I2S_GetInterruptMask (I2S_DRV_INFO *i2s)
-{
-	return i2s->paddr->IMR;
-}
-
-/**
-  \fn          void I2S_ClearRxOverrun (I2S_DRV_INFO *i2s)
-  \brief       Clear Receiver FIFO Data Overrun Interrupt
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_ClearRxOverrun (I2S_DRV_INFO *i2s)
-{
-	(void) (i2s->paddr->ROR);
-}
-
-/**
-  \fn          void I2S_ClearTxOverrun (I2S_DRV_INFO *i2s)
-  \brief       Clear Transmit FIFO Data Overrun Interrupt
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_ClearTxOverrun (I2S_DRV_INFO *i2s)
-{
-	(void) (i2s->paddr->TOR);
-}
-
-/**
-  \fn          void I2S_SetRxTriggerLevel (I2S_DRV_INFO *i2s)
-  \brief       Program the Trigger Level in RxFIFO
-               The channel must be disabled before doing this
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_SetRxTriggerLevel (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->RFCR = _VAL2FLD(I2S_RFCR_RXCHDT, i2s->cfg->rx_fifo_trg_lvl);
-}
-
-/**
-  \fn          void I2S_SetTxTriggerLevel (I2S_DRV_INFO *i2s)
-  \brief       Program the Trigger Level in TxFIFO
-               The channel must be disabled before doing this
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_SetTxTriggerLevel (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->TFCR = _VAL2FLD(I2S_TFCR_TXCHET, i2s->cfg->tx_fifo_trg_lvl);
-}
-
-/**
-  \fn          void I2S_RxFifoReset (I2S_DRV_INFO *i2s)
-  \brief       Flush the Rx Channel FIFO
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_RxFifoReset (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->RFF = _VAL2FLD(I2S_RFF_RXCHFR, 1U);
-}
-
-/**
-  \fn          void I2S_TxFifoReset (I2S_DRV_INFO *i2s)
-  \brief       Flush the Tx Channel FIFO
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_TxFifoReset (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->TFF = _VAL2FLD(I2S_TFF_TXCHFR, 1U);
-}
-
-/**
-  \fn          void I2S_RxDMAEnable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Rx DMA Block Enable
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__USED __STATIC_INLINE void I2S_RxDMAEnable (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->DMACR |= _VAL2FLD(I2S_DMACR_DMAEN_RXBLOCK, 1U);
-}
-
-/**
-  \fn          void I2S_RxDMADisable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Rx DMA Block Disable
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_RxDMADisable (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->DMACR &= ~I2S_DMACR_DMAEN_RXBLOCK_Msk;
-}
-
-/**
-  \fn          void I2S_TxDMAEnable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Tx DMA Block Enable
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__USED __STATIC_INLINE void I2S_TxDMAEnable (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->DMACR |= _VAL2FLD(I2S_DMACR_DMAEN_TXBLOCK, 1U);
-}
-
-/**
-  \fn          void I2S_TxDMADisable (I2S_DRV_INFO *i2s)
-  \brief       Control I2S Tx DMA Block Disable
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_TxDMADisable (I2S_DRV_INFO *i2s)
-{
-    i2s->paddr->DMACR &= ~I2S_DMACR_DMAEN_TXBLOCK_Msk;
-}
-
-/**
-  \fn          void I2S_EnableTxInterrupt (I2S_DRV_INFO *i2s)
-  \brief       Enable I2S Tx Interrupt
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_EnableTxInterrupt (I2S_DRV_INFO *i2s)
-{
-    uint32_t imr;
-
-    imr = I2S_GetInterruptMask (i2s);
-    imr &= ~(I2S_IMR_TXFEM_Msk | I2S_IMR_TXFOM_Msk);
-    I2S_SetInterruptMask (imr, i2s);
-}
-
-/**
-  \fn          void I2S_DisableTxInterrupt (I2S_DRV_INFO *i2s)
-  \brief       Disable I2S Tx Interrupt
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_DisableTxInterrupt (I2S_DRV_INFO *i2s)
-{
-    uint32_t imr;
-
-    imr = I2S_GetInterruptMask (i2s);
-    imr |= _VAL2FLD(I2S_IMR_TXFEM, 1U) | _VAL2FLD(I2S_IMR_TXFOM, 1U);
-    I2S_SetInterruptMask (imr, i2s);
-}
-
-/**
-  \fn          void I2S_EnableRxFOInterrupt (I2S_DRV_INFO *i2s)
-  \brief       Enable I2S Rx Overflow Interrupt
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_EnableRxFOInterrupt (I2S_DRV_INFO *i2s)
-{
-    uint32_t imr;
-
-    imr = I2S_GetInterruptMask (i2s);
-    imr &= ~(I2S_IMR_RXFOM_Msk);
-    I2S_SetInterruptMask (imr, i2s);
-}
-
-/**
-  \fn          void I2S_EnableRxInterrupt (I2S_DRV_INFO *i2s)
-  \brief       Enable I2S Rx Interrupt
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_EnableRxInterrupt (I2S_DRV_INFO *i2s)
-{
-    uint32_t imr;
-
-    imr = I2S_GetInterruptMask (i2s);
-    imr &= ~(I2S_IMR_RXDAM_Msk | I2S_IMR_RXFOM_Msk);
-    I2S_SetInterruptMask (imr, i2s);
-}
-
-/**
-  \fn          void I2S_DisableRxFOInterrupt (I2S_DRV_INFO *i2s)
-  \brief       Disable I2S Rx Overflow Interrupt
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_DisableRxFOInterrupt (I2S_DRV_INFO *i2s)
-{
-    uint32_t imr;
-
-    imr = I2S_GetInterruptMask (i2s);
-    imr |= _VAL2FLD(I2S_IMR_RXFOM, 1U);
-    I2S_SetInterruptMask (imr, i2s);
-}
-
-/**
-  \fn          void I2S_DisableRxInterrupt (I2S_DRV_INFO *i2s)
-  \brief       Disable I2S Rx Interrupt
-  \param[in]   i2s     Pointer to I2S resources
-*/
-__STATIC_INLINE void I2S_DisableRxInterrupt (I2S_DRV_INFO *i2s)
-{
-    uint32_t imr;
-
-    imr = I2S_GetInterruptMask (i2s);
-    imr |= _VAL2FLD(I2S_IMR_RXDAM, 1U) | _VAL2FLD(I2S_IMR_RXFOM, 1U);
-    I2S_SetInterruptMask (imr, i2s);
-}
-
-/**
-  \fn          int32_t I2S_PowerControl (ARM_POWER_STATE state, I2S_DRV_INFO *i2s)
+  \fn          int32_t I2S_PowerControl(ARM_POWER_STATE state, I2S_RESOURCES *I2S)
   \brief       Control I2S Interface Power.
   \param[in]   state  Power state
-  \param[in]   i2s       Pointer to I2S resources
-  \return      \ref execution_status
+  \param[in]   I2S   Pointer to I2S resources
+  \return      \ref  execution_status
 */
-static int32_t I2S_PowerControl (ARM_POWER_STATE state, I2S_DRV_INFO *i2s)
+static int32_t I2S_PowerControl(ARM_POWER_STATE state, I2S_RESOURCES *I2S)
 {
-	switch (state) {
-	case ARM_POWER_OFF:
-		/** Disable I2S IRQ */
-		NVIC_DisableIRQ (i2s->irq);
-		/* Disable the DMA */
-		I2S_RxDMADisable (i2s);
-		I2S_TxDMADisable (i2s);
-		/* Disable the I2S Global Enable */
-		I2S_RxBlockDisable (i2s);
-		I2S_TxBlockDisable (i2s);
+    if(I2S->state.initialized == 0)
+    {
+        return ARM_DRIVER_ERROR;
+    }
 
-		/* Clear Any Pending IRQ*/
-		NVIC_ClearPendingIRQ (i2s->irq);
-		/* Reset the interrupt status and driver status */
-		i2s->int_status = 0U;
-		/* Mask all the interrupts */
-		I2S_DisableTxInterrupt (i2s);
-		I2S_DisableRxInterrupt (i2s);
-		i2s->drv_status.status = 0U;
+    switch (state) {
+    case ARM_POWER_OFF:
 
-		I2S_ClockDisable (i2s);
-		I2S_GlobalDisable (i2s);
+        if(I2S->state.powered == 0)
+        {
+            return ARM_DRIVER_OK;
+        }
 
-		/* Disable the I2S module clock*/
-		disable_i2s_clock (i2s->instance);
-		disable_i2s_sclk_aon (i2s->instance);
+        /** Disable I2S IRQ */
+        NVIC_DisableIRQ(I2S->irq);
 
-		i2s->flags &= ~I2S_FLAG_CLKSRC_ENABLED;
-		break;
+        /* Disable the DMA */
+        i2s_rx_dma_disable(I2S->regs);
+        i2s_tx_dma_disable(I2S->regs);
 
-	case ARM_POWER_FULL:
+        /* Disable the I2S Global Enable */
+        i2s_rxblock_disable(I2S->regs);
+        i2s_txblock_disable(I2S->regs);
 
-		if (!(i2s->flags & I2S_FLAG_DRV_INIT_DONE))
-			return ARM_DRIVER_ERROR;
-		if (i2s->flags & I2S_FLAG_CLKSRC_ENABLED)
-			return ARM_DRIVER_OK;
+        /* Clear Any Pending IRQ*/
+        NVIC_ClearPendingIRQ(I2S->irq);
 
-		i2s->int_status   = 0U;
-		i2s->drv_status.status = 0U;
+        /* Mask all the interrupts */
+        i2s_disable_rx_interrupt(I2S->regs);
+        i2s_disable_tx_interrupt(I2S->regs);
 
-		select_i2s_clock_source (i2s->instance, i2s->cfg->ext_clk_src_enable);
+        I2S->drv_status.status = 0U;
 
-		/* Enable the I2S module clock */
-		enable_i2s_sclk_aon (i2s->instance);
-		enable_i2s_clock (i2s->instance);
+        i2s_clock_disable(I2S->regs);
+        i2s_disable(I2S->regs);
 
-		/* Enable I2S */
-		I2S_GlobalEnable (i2s);
+        /* Disable the I2S module clock */
+        disable_i2s_clock(I2S->instance);
+        disable_i2s_sclk_aon(I2S->instance);
 
-		/* Enable Master Clock */
-		I2S_ConfigureClock (i2s);
-		I2S_ClockEnable (i2s);
+        I2S->state.powered = 0;
+        break;
 
-		/* Mask all the interrupts */
-		I2S_DisableTxInterrupt (i2s);
-		I2S_DisableRxInterrupt (i2s);
+    case ARM_POWER_FULL:
 
-		/* Enable I2S and IRQ*/
-		NVIC_ClearPendingIRQ (i2s->irq);
-		NVIC_SetPriority(i2s->irq, i2s->cfg->irq_priority);
-		NVIC_EnableIRQ (i2s->irq);
+        if(I2S->state.powered == 1)
+        {
+            return ARM_DRIVER_OK;
+        }
 
-		/* Set the power flag enabled */
-		i2s->flags |= I2S_FLAG_CLKSRC_ENABLED;
-		break;
+        I2S->drv_status.status = 0U;
 
-	case ARM_POWER_LOW:
-	default:
-			return ARM_DRIVER_ERROR_UNSUPPORTED;
+        /* Initialize with the internal clock source */
+        select_i2s_clock_source(I2S->instance, I2S_INTERNAL_CLOCK_SOURCE);
 
-	}
+        /* Enable the I2S module clock */
+        enable_i2s_sclk_aon(I2S->instance);
+        enable_i2s_clock(I2S->instance);
 
-	if(i2s->cfg->dma_enable)
-	{
-		/* Power Control DMA for I2S-Tx */
-		if(I2S_DMA_PowerControl (state, &i2s->dma_cfg->dma_tx) != ARM_DRIVER_OK)
-			return ARM_DRIVER_ERROR;
+        /* Enable I2S */
+        i2s_enable(I2S->regs);
 
-		/* Power Control DMA for I2S-Rx */
-		if(I2S_DMA_PowerControl (state, &i2s->dma_cfg->dma_rx) != ARM_DRIVER_OK)
-			return ARM_DRIVER_ERROR;
-	}
+        /* Mask all the interrupts */
+        i2s_disable_rx_interrupt(I2S->regs);
+        i2s_disable_tx_interrupt(I2S->regs);
 
-	return ARM_DRIVER_OK;
+        /* Enable I2S and IRQ */
+        NVIC_ClearPendingIRQ(I2S->irq);
+        NVIC_SetPriority(I2S->irq, I2S->cfg->irq_priority);
+        NVIC_EnableIRQ(I2S->irq);
+
+        /* Set the power flag enabled */
+        I2S->state.powered = 1;
+        break;
+
+    case ARM_POWER_LOW:
+    default:
+        return ARM_DRIVER_ERROR_UNSUPPORTED;
+
+    }
+
+#if I2S_DMA_ENABLE
+    if(I2S->cfg->dma_enable)
+    {
+        /* Power Control DMA for I2S-Tx */
+        if(I2S_DMA_PowerControl(state, &I2S->dma_cfg->dma_tx) != ARM_DRIVER_OK)
+            return ARM_DRIVER_ERROR;
+
+        /* Power Control DMA for I2S-Rx */
+        if(I2S_DMA_PowerControl(state, &I2S->dma_cfg->dma_rx) != ARM_DRIVER_OK)
+            return ARM_DRIVER_ERROR;
+    }
+#endif
+
+    return ARM_DRIVER_OK;
 }
 
 /**
-  \fn          int32_t I2S_Initialize (ARM_SAI_SignalEvent_t cb_event, I2S_DRV_INFO *i2s)
+  \fn          int32_t I2S_Initialize(ARM_SAI_SignalEvent_t cb_event, I2S_RESOURCES *I2S)
   \brief       Initialize I2S Interface.
   \param[in]   cb_event  Pointer to \ref ARM_SAI_SignalEvent
-  \param[in]   i2s       Pointer to I2S resources
-  \return      \ref execution_status
+  \param[in]   I2S       Pointer to I2S resources
+  \return      \ref      execution_status
 */
-static int32_t I2S_Initialize (ARM_SAI_SignalEvent_t cb_event, I2S_DRV_INFO *i2s)
+static int32_t I2S_Initialize(ARM_SAI_SignalEvent_t cb_event, I2S_RESOURCES *I2S)
 {
-	int32_t ret = ARM_DRIVER_OK;
+    int32_t ret = ARM_DRIVER_OK;
 
-	if (i2s->flags & I2S_FLAG_DRV_INIT_DONE)
-		return ARM_DRIVER_OK;
+    if(I2S->state.initialized == 1)
+    {
+        return ARM_DRIVER_OK;
+    }
 
-	if (!cb_event)
-		return ARM_DRIVER_ERROR_PARAMETER;
+    if(!cb_event)
+        return ARM_DRIVER_ERROR_PARAMETER;
 
-	if(i2s->cfg->wss_len >= WSS_CLOCK_CYCLES_MAX)
-		return ARM_DRIVER_ERROR_PARAMETER;
+    if(I2S->cfg->wss_len >= I2S_WSS_SCLK_CYCLES_MAX)
+        return ARM_DRIVER_ERROR_PARAMETER;
 
-	if(i2s->cfg->sclkg >= SCLKG_CLOCK_CYCLES_MAX)
-		return ARM_DRIVER_ERROR_PARAMETER;
+    if(I2S->cfg->sclkg >= I2S_SCLKG_CLOCK_CYCLES_MAX)
+        return ARM_DRIVER_ERROR_PARAMETER;
 
-	if(i2s->cfg->rx_fifo_trg_lvl >= I2S_FIFO_TRIGGER_LEVEL_MAX)
-		return ARM_DRIVER_ERROR_PARAMETER;
+    if(I2S->cfg->rx_fifo_trg_lvl >= I2S_FIFO_TRIGGER_LEVEL_MAX)
+        return ARM_DRIVER_ERROR_PARAMETER;
 
-	if(i2s->cfg->tx_fifo_trg_lvl >= I2S_FIFO_TRIGGER_LEVEL_MAX)
-		return ARM_DRIVER_ERROR_PARAMETER;
+    if(I2S->cfg->tx_fifo_trg_lvl >= I2S_FIFO_TRIGGER_LEVEL_MAX)
+        return ARM_DRIVER_ERROR_PARAMETER;
 
-	/* Initialize the driver elements*/
-	i2s->cb_event = cb_event;
-	i2s->drv_status.status = 0U;
-	i2s->int_status   = 0U;
+    /* Initialize the driver elements*/
+    I2S->cb_event          = cb_event;
+    I2S->drv_status.status = 0U;
 
-	i2s->tx_buff.buf =  NULL;
-	i2s->tx_buff.ofs =  0;
-	i2s->tx_buff.total_len =  0;
+    /* Initialize the transfer structure */
+    I2S->transfer.tx_buff        =  NULL;
+    I2S->transfer.tx_current_cnt =  0;
+    I2S->transfer.total_cnt      =  0;
+    I2S->transfer.rx_buff        =  NULL;
+    I2S->transfer.rx_current_cnt =  0;
+    I2S->transfer.mono_mode      = false;
+    I2S->transfer.status         = I2S_TRANSFER_STATUS_NONE;
 
-	i2s->rx_buff.buf =  NULL;
-	i2s->rx_buff.ofs =  0;
-	i2s->rx_buff.total_len =  0;
+#if I2S_DMA_ENABLE
+    if(I2S->cfg->dma_enable)
+    {
+        I2S->dma_cfg->dma_rx.dma_handle = -1;
+        I2S->dma_cfg->dma_tx.dma_handle = -1;
 
-	if(i2s->cfg->dma_enable)
-	{
-		i2s->dma_cfg->dma_rx.dma_handle = -1;
-		i2s->dma_cfg->dma_tx.dma_handle = -1;
+        /* Initialize DMA for I2S-Tx */
+        if(I2S_DMA_Initialize(&I2S->dma_cfg->dma_tx) != ARM_DRIVER_OK)
+            return ARM_DRIVER_ERROR;
 
-		/* Initialize DMA for I2S-Tx */
-		if(I2S_DMA_Initialize(&i2s->dma_cfg->dma_tx) != ARM_DRIVER_OK)
-			return ARM_DRIVER_ERROR;
+        /* Initialize DMA for I2S-Rx */
+        if(I2S_DMA_Initialize(&I2S->dma_cfg->dma_rx) != ARM_DRIVER_OK)
+            return ARM_DRIVER_ERROR;
+    }
+#endif
 
-		/* Initialize DMA for I2S-Rx */
-		if(I2S_DMA_Initialize(&i2s->dma_cfg->dma_rx) != ARM_DRIVER_OK)
-			return ARM_DRIVER_ERROR;
-	}
+    I2S->state.initialized = 1;
 
-	i2s->flags = I2S_FLAG_DRV_INIT_DONE;
-
-	return ret;
+    return ret;
 }
 
 /**
-  \fn          int32_t I2S_Uninitialize (I2S_DRV_INFO *i2s)
+  \fn          int32_t I2S_Uninitialize(I2S_RESOURCES *I2S)
   \brief       De-initialize I2S Interface.
-  \param[in]   i2s       Pointer to I2S resources
-  \return      \ref execution_status
+  \param[in]   I2S   Pointer to I2S resources
+  \return      \ref  execution_status
 */
-static int32_t I2S_Uninitialize (I2S_DRV_INFO *i2s)
+static int32_t I2S_Uninitialize(I2S_RESOURCES *I2S)
 {
-	i2s->cb_event = NULL;
+    I2S->cb_event = NULL;
 
-	if(i2s->cfg->dma_enable)
-	{
-		i2s->dma_cfg->dma_rx.dma_handle = -1;
-		i2s->dma_cfg->dma_tx.dma_handle = -1;
-	}
+#if I2S_DMA_ENABLE
+    if(I2S->cfg->dma_enable)
+    {
+        I2S->dma_cfg->dma_rx.dma_handle = -1;
+        I2S->dma_cfg->dma_tx.dma_handle = -1;
+    }
+#endif
 
-	i2s->flags = 0U;
-	i2s->drv_status.status = 0U;
-	i2s->int_status   = 0U;
+    I2S->flags             = 0U;
+    I2S->drv_status.status = 0U;
+    I2S->state.initialized = 0U;
 
-	i2s->tx_buff.buf =  NULL;
-	i2s->tx_buff.ofs =  0;
-	i2s->tx_buff.total_len =  0;
+    /* Initialize the transfer structure */
+    I2S->transfer.tx_buff        =  NULL;
+    I2S->transfer.tx_current_cnt =  0;
+    I2S->transfer.total_cnt      =  0;
+    I2S->transfer.rx_buff        =  NULL;
+    I2S->transfer.rx_current_cnt =  0;
+    I2S->transfer.mono_mode      = false;
+    I2S->transfer.status         = I2S_TRANSFER_STATUS_NONE;
 
-	i2s->rx_buff.buf =  NULL;
-	i2s->rx_buff.ofs =  0;
-	i2s->rx_buff.total_len =  0;
-
-	return ARM_DRIVER_OK;
+    return ARM_DRIVER_OK;
 }
 
 /**
-  \fn          int32_t I2S_Send (const void *data, uint32_t num, I2S_DRV_INFO *i2s)
+  \fn          int32_t I2S_Send(const void *data, uint32_t num, I2S_RESOURCES *I2S)
   \brief       Start sending data to I2S transmitter.
   \param[in]   data  Location of the data buffer to be transmitted
   \param[in]   num   Number of data items to send
-  \param[in]   i2s       Pointer to I2S resources
-  \return      \ref execution_status
+  \param[in]   I2S   Pointer to I2S resources
+  \return      \ref  execution_status
 */
-static int32_t I2S_Send (const void *data, uint32_t num, I2S_DRV_INFO *i2s)
+static int32_t I2S_Send(const void *data, uint32_t num, I2S_RESOURCES *I2S)
 {
-	ARM_DMA_PARAMS dma_params;
-	int32_t status;
+    /* Verify the input parameters */
+    if(!data || !num)
+        return ARM_DRIVER_ERROR_PARAMETER;
 
-	/* Verify the input parameters */
-	if (!data || !num)
-		return ARM_DRIVER_ERROR_PARAMETER;
+    /* Verify whether the driver is configured and powered */
+    if(I2S->state.powered == 0)
+    {
+        return ARM_DRIVER_ERROR;
+    }
 
-	/* Verify whether the driver is configured and powered*/
-	if (!((i2s->flags & I2S_FLAG_DRV_CONFIG_DONE) && (i2s->flags & I2S_FLAG_CLKSRC_ENABLED)))
-		return ARM_DRIVER_ERROR;
+    /* Check if any Transfer is in progress */
+    if(I2S->drv_status.status_b.tx_busy || I2S->drv_status.status_b.rx_busy)
+        return ARM_DRIVER_ERROR_BUSY;
 
-	/* Check if any Transfer is in progress*/
-	if (i2s->drv_status.status_b.tx_busy || i2s->drv_status.status_b.rx_busy)
-		return ARM_DRIVER_ERROR_BUSY;
+    /* If the WSS len is 16, check if it is aligned to 2 bytes */
+    if((I2S->cfg->wss_len == I2S_WSS_SCLK_CYCLES_16) && ((uint32_t)data & 0x1U) != 0U)
+        return ARM_DRIVER_ERROR_PARAMETER;
 
-	/* If the WSS len is 16, check if it is aligned to 2 bytes */
-	if ((i2s->cfg->wss_len == WSS_CLOCK_CYCLES_16) && ((uint32_t)data & 0x1U) != 0U)
-		return ARM_DRIVER_ERROR_PARAMETER;
+    /* If the WSS len is greater than 16, check if it is aligned to 4 bytes */
+    if((I2S->cfg->wss_len > I2S_WSS_SCLK_CYCLES_16) && ((uint32_t)data & 0x3U) != 0U)
+        return ARM_DRIVER_ERROR_PARAMETER;
 
-	/* If the WSS len is greater than 16, check if it is aligned to 4 bytes */
-	if ((i2s->cfg->wss_len > WSS_CLOCK_CYCLES_16) && ((uint32_t)data & 0x3U) != 0U)
-		return ARM_DRIVER_ERROR_PARAMETER;
+    /* Set the Tx flags */
+    I2S->drv_status.status_b.tx_busy = 1U;
+    I2S->drv_status.status_b.tx_underflow = 0U;
 
-	/* Set the Tx flags*/
-	i2s->drv_status.status_b.tx_busy = 1U;
-	i2s->drv_status.status_b.tx_underflow = 0U;
+    /* Fill the transfer information */
+    I2S->transfer.tx_buff        = data;
+    I2S->transfer.tx_current_cnt = 0U;
+    I2S->transfer.status         = I2S_TRANSFER_STATUS_NONE;
 
-	/* Update buffer*/
-	i2s->tx_buff.buf = data;
+    if((I2S->cfg->wlen > I2S_WLEN_RES_NONE)
+        && (I2S->cfg->wlen <= I2S_WLEN_RES_16_BIT))
+    {
+        I2S->transfer.total_cnt  = num * sizeof(uint16_t);
+    }
+    else
+    {
+        I2S->transfer.total_cnt  = num * sizeof(uint32_t);
+    }
 
-	if ((i2s->cfg->wlen > IGNORE_WLEN) && (i2s->cfg->wlen <= RES_16_BIT))
-		i2s->tx_buff.total_len = num * sizeof(uint16_t);
-	else
-		i2s->tx_buff.total_len = num * sizeof(uint32_t);
+    if(I2S->flags & I2S_FLAG_DRV_MONO_MODE)
+    {
+        I2S->transfer.mono_mode  = true;
+    }
+    else
+    {
+        I2S->transfer.mono_mode  = false;
+    }
 
-	/* Initialize the offset */
-	i2s->tx_buff.ofs = 0U;
+#if I2S_DMA_ENABLE
+    if(I2S->cfg->dma_enable)
+    {
+        int32_t        status;
+        ARM_DMA_PARAMS dma_params;
 
-	/* Clear Overrun interrupt if any */
-	I2S_ClearTxOverrun (i2s);
+        /* Prepare the I2S controller for DMA transmission */
+        i2s_dma_send(I2S->regs);
 
-	/* Enable Tx Channel */
-	I2S_TxChannelEnable (i2s);
+        /* Start the DMA engine for sending the data to I2S */
+        dma_params.peri_reqno    = (int8_t)I2S->dma_cfg->dma_tx.dma_periph_req;
+        dma_params.dir           = ARM_DMA_MEM_TO_DEV;
+        dma_params.cb_event      = I2S->dma_cb;
+        dma_params.src_addr      = data;
+        dma_params.dst_addr      = i2s_get_dma_tx_addr(I2S->regs);
+        dma_params.num_bytes     = I2S->transfer.total_cnt;
+        dma_params.irq_priority  = I2S->cfg->dma_irq_priority;
 
-	/* Check if DMA is enabled for this */
-	if(i2s->cfg->dma_enable)
-	{
-		dma_params.peri_reqno = i2s->dma_cfg->dma_tx.dma_periph_req;
-		dma_params.dir        = ARM_DMA_MEM_TO_DEV;
-		dma_params.cb_event   = i2s->dma_cb;
-		dma_params.src_addr   = (void*)data;
-		dma_params.dst_addr   = (void*)&i2s->paddr->TXDMA;
-		dma_params.num_bytes  = i2s->tx_buff.total_len;
-		dma_params.irq_priority  = i2s->cfg->dma_irq_priority;
+        if((I2S->cfg->wlen > I2S_WLEN_RES_NONE)
+            && (I2S->cfg->wlen <= I2S_WLEN_RES_16_BIT))
+        {
+            dma_params.burst_size = BS_BYTE_2;
+        }
+        else
+        {
+            dma_params.burst_size = BS_BYTE_4;
+        }
 
-		if ((i2s->cfg->wlen > IGNORE_WLEN) && (i2s->cfg->wlen <= RES_16_BIT))
-			dma_params.burst_size = BS_BYTE_2;
-		else
-			dma_params.burst_size = BS_BYTE_4;
+        /* See if this operation is using only one channel */
+        if(I2S->flags & I2S_FLAG_DRV_MONO_MODE)
+        {
+            dma_params.burst_len  = 1;
+        }
+        else
+        {
+            dma_params.burst_len  = I2S_FIFO_DEPTH - I2S->cfg->tx_fifo_trg_lvl;
+        }
 
-		if(i2s->flags & I2S_FLAG_DRV_MONO_MODE)
-			dma_params.burst_len  = 1;
-		else
-			dma_params.burst_len  = I2S_FIFO_DEPTH - i2s->cfg->tx_fifo_trg_lvl;
+        /* Start DMA transfer */
+        status = I2S_DMA_Start(&I2S->dma_cfg->dma_tx, &dma_params);
+        if(status)
+            return ARM_DRIVER_ERROR;
+    }
+    else
+#endif
+    {
+        i2s_send(I2S->regs);
+    }
 
-		/* Start DMA transfer */
-		status = I2S_DMA_Start(&i2s->dma_cfg->dma_tx, &dma_params);
-		if(status)
-			return ARM_DRIVER_ERROR;
-	}
-	else
-	{
-		/* Enable Tx Interrupt */
-		I2S_EnableTxInterrupt (i2s);
-	}
-
-	return ARM_DRIVER_OK;
+    return ARM_DRIVER_OK;
 }
 
 /**
-  \fn          int32_t I2S_Receive (void *data, uint32_t num, I2S_DRV_INFO *i2s)
+  \fn          int32_t I2S_Receive(void *data, uint32_t num, I2S_RESOURCES *I2S)
   \brief       Start receiving data from I2S receiver.
   \param[out]  data  Data pointer to store the received data from I2S
   \param[in]   num   Number of data items to receive
-  \param[in]   i2s       Pointer to I2S resources
-  \return      \ref execution_status
+  \param[in]   I2S   Pointer to I2S resources
+  \return      \ref  execution_status
 */
-static int32_t I2S_Receive (void *data, uint32_t num, I2S_DRV_INFO *i2s)
+static int32_t I2S_Receive(void *data, uint32_t num, I2S_RESOURCES *I2S)
 {
-	ARM_DMA_PARAMS dma_params;
-	int32_t status;
+    /* Verify the input parameters */
+    if(!data || !num)
+        return ARM_DRIVER_ERROR_PARAMETER;
 
-	/* Verify the input parameters */
-	if (!data || !num)
-		return ARM_DRIVER_ERROR_PARAMETER;
+    /* Verify whether the driver is configured and powered*/
+    if(I2S->state.powered == 0)
+    {
+        return ARM_DRIVER_ERROR;
+    }
 
-	/* Verify whether the driver is configured and powered*/
-	if (!((i2s->flags & I2S_FLAG_DRV_CONFIG_DONE) && (i2s->flags & I2S_FLAG_CLKSRC_ENABLED)))
-		return ARM_DRIVER_ERROR;
+    /* Check if any Transfer is in progress*/
+    if(I2S->drv_status.status_b.tx_busy || I2S->drv_status.status_b.rx_busy)
+        return ARM_DRIVER_ERROR_BUSY;
 
-	/* Check if any Transfer is in progress*/
-	if (i2s->drv_status.status_b.tx_busy || i2s->drv_status.status_b.rx_busy)
-		return ARM_DRIVER_ERROR_BUSY;
+    /* If the WSS len is 16, check if it is aligned to 2 bytes */
+    if((I2S->cfg->wss_len == I2S_WSS_SCLK_CYCLES_16)
+        && ((uint32_t)data & 0x1U) != 0U)
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
 
-	/* If the WSS len is 16, check if it is aligned to 2 bytes */
-	if ((i2s->cfg->wss_len == WSS_CLOCK_CYCLES_16) && ((uint32_t)data & 0x1U) != 0U)
-		return ARM_DRIVER_ERROR_PARAMETER;
+    /* If the WSS len is greater than 16, check if it is aligned to 4 bytes */
+    if((I2S->cfg->wss_len > I2S_WSS_SCLK_CYCLES_16)
+        && ((uint32_t)data & 0x3U) != 0U)
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
 
-	/* If the WSS len is greater than 16, check if it is aligned to 4 bytes */
-	if ((i2s->cfg->wss_len > WSS_CLOCK_CYCLES_16) && ((uint32_t)data & 0x3U) != 0U)
-		return ARM_DRIVER_ERROR_PARAMETER;
+    /* Set the Rx flags*/
+    I2S->drv_status.status_b.rx_busy = 1U;
+    I2S->drv_status.status_b.rx_overflow = 0U;
 
-	/* Set the Rx flags*/
-	i2s->drv_status.status_b.rx_busy = 1U;
-	i2s->drv_status.status_b.rx_overflow = 0U;
-
-	/* Check if DMA & Mono is enabled for this */
-	if(i2s->cfg->dma_enable && (i2s->flags & I2S_FLAG_DRV_MONO_MODE))
-	{
-		/*
-		 * This is a hack for the mono+dma mode.
-		 * Mono mode feature is not supported by I2S HW.
-		 *
-		 * To achieve this in software, we need to read
-		 * Left and Right channel and ignore the right channel
-		 * write to the buffer.
-		 *
-		 * But in DMA, we need to read the data from peripheral
-		 * and write to the buffer. We can't simply ignore the write here.
-		 * So we use the next buffer location to read the right channel
-		 * and re-adjust the destination address to store the next
-		 * left channel data in the same location.
-		 *
-		 * Due to this, there will be memory overwrite to num+1 buffer.
-		 * To avoid this, instruct the DMA to copy the number of samples
-		 * to (num - 1)
-		 */
-		num = num - 1;
-	}
-
-	/* Update buffer*/
-	i2s->rx_buff.buf = data;
-	if ((i2s->cfg->wlen > IGNORE_WLEN) && (i2s->cfg->wlen <= RES_16_BIT))
-		i2s->rx_buff.total_len = num * sizeof(uint16_t);
-	else
-		i2s->rx_buff.total_len = num * sizeof(uint32_t);
-
-	i2s->rx_buff.ofs = 0U;
-
-	/* Clear Overrun interrupt if any */
-	I2S_ClearRxOverrun (i2s);
-
-	/* Enable Rx Channel */
-	I2S_RxChannelEnable (i2s);
-
-	/* Check if DMA is enabled for this */
-	if(i2s->cfg->dma_enable)
-	{
-		dma_params.peri_reqno = i2s->dma_cfg->dma_rx.dma_periph_req;
-		dma_params.dir        = ARM_DMA_DEV_TO_MEM;
-		dma_params.cb_event   = i2s->dma_cb;
-		dma_params.src_addr   = (void*)&i2s->paddr->RXDMA;
-		dma_params.dst_addr   = (void*)data;
-		dma_params.num_bytes  = i2s->rx_buff.total_len;
-		dma_params.irq_priority  = i2s->cfg->dma_irq_priority;
-
-		if ((i2s->cfg->wlen > IGNORE_WLEN) && (i2s->cfg->wlen <= RES_16_BIT))
-			dma_params.burst_size = BS_BYTE_2;
-		else
-			dma_params.burst_size = BS_BYTE_4;
-
-		if(i2s->flags & I2S_FLAG_DRV_MONO_MODE)
-			dma_params.burst_len  = 1;
-		else
-			dma_params.burst_len  = i2s->cfg->rx_fifo_trg_lvl + 1;
-
-#ifdef I2S_USE_CUSTOM_DMA
-		if (i2s->dma_cfg->mcode)
-		{
-			status = i2s->dma_cfg->mcode(&dma_params, i2s->dma_cfg->dma_code);
-			ARM_DRIVER_DMA *dma_drv = i2s->dma_cfg->dma_rx.dma_drv;
-			status = dma_drv->Control(&i2s->dma_cfg->dma_rx.dma_handle, ARM_DMA_USER_PROVIDED_MCODE, (uint32_t)i2s->dma_cfg->dma_code);
-			if(status)
-				return ARM_DRIVER_ERROR;
-		}
-#else
-		/* Enable the Rx Overflow interrupt */
-		I2S_EnableRxFOInterrupt(i2s);
+#if I2S_DMA_ENABLE
+    /* Check if DMA & Mono is enabled for this */
+    if(I2S->cfg->dma_enable && (I2S->flags & I2S_FLAG_DRV_MONO_MODE))
+    {
+        /*
+         * This is a hack for the mono + dma mode.
+         * Mono mode feature is not supported by I2S HW.
+         *
+         * To achieve this in software, we need to read
+         * Left and Right channel and ignore the right channel
+         * data.
+         *
+         * But in DMA, we need to read the data from peripheral
+         * and write to the buffer. We can't simply ignore the write here.
+         * So we use the next buffer location to read the right channel
+         * and re-adjust the destination address to store the next
+         * left channel data in the same location.
+         *
+         * Due to this, there will be memory overwrite to num+1 buffer.
+         * To avoid this, instruct the DMA to copy the number of samples
+         * to (num - 1)
+         */
+        num = num - 1;
+    }
 #endif
-		/* Start DMA transfer */
-		status = I2S_DMA_Start(&i2s->dma_cfg->dma_rx, &dma_params);
-		if(status)
-			return ARM_DRIVER_ERROR;
-	}
-	else
-	{
-		/* Enable RX Interrupts */
-		I2S_EnableRxInterrupt (i2s);
-	}
 
-	return ARM_DRIVER_OK;
+    /* Fill in the transfer buffer information */
+    I2S->transfer.rx_buff        = data;
+    I2S->transfer.rx_current_cnt = 0U;
+    I2S->transfer.status = I2S_TRANSFER_STATUS_NONE;
+
+    if ((I2S->cfg->wlen > I2S_WLEN_RES_NONE) && (I2S->cfg->wlen <= I2S_WLEN_RES_16_BIT))
+        I2S->transfer.total_cnt  = num * sizeof(uint16_t);
+    else
+        I2S->transfer.total_cnt  = num * sizeof(uint32_t);
+
+    /* See if this operation is using only one channel */
+    if(I2S->flags & I2S_FLAG_DRV_MONO_MODE)
+        I2S->transfer.mono_mode  = true;
+    else
+        I2S->transfer.mono_mode  = false;
+
+#if I2S_DMA_ENABLE
+    if(I2S->cfg->dma_enable)
+    {
+        ARM_DMA_PARAMS dma_params;
+        int32_t        status;
+
+        /* Start the DMA engine for sending the data to I2S */
+        dma_params.peri_reqno    = (int8_t)I2S->dma_cfg->dma_rx.dma_periph_req;
+        dma_params.dir           = ARM_DMA_DEV_TO_MEM;
+        dma_params.cb_event      = I2S->dma_cb;
+        dma_params.src_addr      = i2s_get_dma_rx_addr(I2S->regs);
+        dma_params.dst_addr      = data;
+        dma_params.num_bytes     = I2S->transfer.total_cnt;
+        dma_params.irq_priority  = I2S->cfg->dma_irq_priority;
+
+        if ((I2S->cfg->wlen > I2S_WLEN_RES_NONE)
+             && (I2S->cfg->wlen <= I2S_WLEN_RES_16_BIT))
+        {
+            dma_params.burst_size = BS_BYTE_2;
+        }
+        else
+        {
+            dma_params.burst_size = BS_BYTE_4;
+        }
+
+        if(I2S->flags & I2S_FLAG_DRV_MONO_MODE)
+        {
+            dma_params.burst_len  = 1;
+        }
+        else
+        {
+            dma_params.burst_len  = I2S->cfg->rx_fifo_trg_lvl + 1;
+        }
+
+        /* Start DMA transfer */
+        status = I2S_DMA_Start(&I2S->dma_cfg->dma_rx, &dma_params);
+        if(status)
+            return ARM_DRIVER_ERROR;
+
+        /* Prepare the I2S controller for DMA reception */
+        i2s_dma_receive(I2S->regs);
+    }
+    else
+#endif
+    {
+        i2s_receive(I2S->regs);
+    }
+
+    return ARM_DRIVER_OK;
 }
 
 /**
-  \fn          uint32_t I2S_GetTxCount (I2S_DRV_INFO *i2s)
+  \fn          uint32_t I2S_GetTxCount(I2S_RESOURCES *I2S)
   \brief       Get the total transmitted items
-  \param[in]   i2s       Pointer to I2S resources
-  \return      number of data items transmitted
+  \param[in]   I2S  Pointer to I2S resources
+  \return      \ret number of data items transmitted
 */
-static uint32_t I2S_GetTxCount (I2S_DRV_INFO *i2s)
+static uint32_t I2S_GetTxCount(I2S_RESOURCES *I2S)
 {
-	return i2s->tx_buff.ofs;
+#if I2S_DMA_ENABLE
+    uint32_t tx_current_cnt = 0;
+
+    if(I2S->cfg->dma_enable)
+    {
+        /* Get the current transfer count */
+        I2S_DMA_GetStatus(&I2S->dma_cfg->dma_tx, &tx_current_cnt);
+
+        I2S->transfer.tx_current_cnt = tx_current_cnt;
+    }
+#endif
+    return I2S->transfer.tx_current_cnt;
 }
 
 /**
-  \fn          uint32_t I2S_GetRxCount (I2S_DRV_INFO *i2s)
+  \fn          uint32_t I2S_GetRxCount(I2S_RESOURCES *I2S)
   \brief       Get total items received
-  \param[in]   i2s       Pointer to I2S resources
-  \return      number of data items received
+  \param[in]   I2S   Pointer to I2S resources
+  \return      \ret  number of data items received
 */
-static uint32_t I2S_GetRxCount (I2S_DRV_INFO *i2s)
+static uint32_t I2S_GetRxCount(I2S_RESOURCES *I2S)
 {
-	return i2s->rx_buff.ofs;
+#if I2S_DMA_ENABLE
+    uint32_t rx_current_cnt = 0;
+
+    if(I2S->cfg->dma_enable)
+    {
+        /* Get the current transfer count */
+        I2S_DMA_GetStatus(&I2S->dma_cfg->dma_rx, &rx_current_cnt);
+
+        I2S->transfer.rx_current_cnt = rx_current_cnt;
+    }
+#endif
+    return I2S->transfer.rx_current_cnt;
 }
 
 /**
-  \fn          int32_t I2S_Control (uint32_t control, uint32_t arg1, uint32_t arg2, I2S_DRV_INFO *i2s)
+  \fn          int32_t I2S_Control(uint32_t control, uint32_t arg1,
+                                   uint32_t arg2, I2S_RESOURCES *I2S)
   \brief       Control I2S Interface.
   \param[in]   control  Operation
   \param[in]   arg1     Argument 1 of operation (optional)
   \param[in]   arg2     Argument 2 of operation (optional)
-  \param[in]   i2s      Pointer to I2S resources
-  \return      common \ref execution_status and driver specific \ref sai_execution_status
+  \param[in]   I2S      Pointer to I2S resources
+  \return      \ref     execution_status and driver specific \ref sai_execution_status
 */
 
-static int32_t I2S_Control (uint32_t control, uint32_t arg1, uint32_t arg2, I2S_DRV_INFO *i2s)
+static int32_t I2S_Control(uint32_t control, uint32_t arg1,
+                           uint32_t arg2, I2S_RESOURCES *I2S)
 {
-	uint16_t frame_length = 0;
-	uint8_t datasize = 0;
+    uint16_t frame_length = 0;
+    uint8_t  datasize = 0;
+    int32_t  ret = 0;
+    uint16_t mclk_prescaler = 0;
 
-	/* Verify whether the driver is initialized and powered*/
-	if (!((i2s->flags & I2S_FLAG_DRV_INIT_DONE) && (i2s->flags & I2S_FLAG_CLKSRC_ENABLED)))
-		return ARM_DRIVER_ERROR;
+    /* Verify whether the driver is initialized and powered*/
+    if(I2S->state.powered == 0)
+    {
+        return ARM_DRIVER_ERROR;
+    }
 
-	/* Handle Control Codes */
-	switch (control & ARM_SAI_CONTROL_Msk)
-	{
-	case ARM_SAI_CONFIGURE_TX:
-		/* Set FIFO Trigger Level */
-		I2S_SetTxTriggerLevel (i2s);
+    /* Handle Control Codes */
+    switch(control & ARM_SAI_CONTROL_Msk)
+    {
+    case ARM_SAI_CONFIGURE_TX:
+        /* Set FIFO Trigger Level */
+        i2s_set_tx_triggerLevel(I2S->regs, I2S->cfg->tx_fifo_trg_lvl);
 
-		break;
+        break;
+    case ARM_SAI_CONFIGURE_RX:
+        /* Set FIFO Trigger Level */
+        i2s_set_rx_triggerLevel(I2S->regs, I2S->cfg->rx_fifo_trg_lvl);
 
-	case ARM_SAI_CONTROL_CUSTOM_DMA_CODE:
-#ifdef I2S_USE_CUSTOM_DMA
-		i2s->dma_cfg->mcode = (mcode_fptr)arg1;
-		return ARM_DRIVER_OK;
-#else
-		return ARM_DRIVER_ERROR_UNSUPPORTED;
+        break;
+    case ARM_SAI_CONTROL_TX:
+        /* Enable TX */
+        if(arg1 == true)
+        {
+            /* Reset the Tx FIFO */
+            i2s_reset_tx_fifo(I2S->regs);
+
+            /* Set WLEN */
+            i2s_set_tx_wlen(I2S->regs, I2S->cfg->wlen);
+
+            /* Enable Master Clock */
+            i2s_clock_enable(I2S->regs, I2S->cfg->sclkg, I2S->cfg->wss_len);
+
+            /* Enable Tx Block */
+            i2s_txblock_enable(I2S->regs);
+
+#if I2S_DMA_ENABLE
+            /* Check if DMA is enabled for this */
+            if(I2S->cfg->dma_enable)
+            {
+                /* Try to allocate a DMA channel */
+                if(I2S_DMA_Allocate(&I2S->dma_cfg->dma_tx))
+                    return ARM_DRIVER_ERROR;
+
+                if(I2S->flags & I2S_FLAG_DRV_MONO_MODE)
+                {
+                    if(I2S_DMA_EnableMono(&I2S->dma_cfg->dma_tx))
+                        return ARM_DRIVER_ERROR;
+                }
+
+                /* Enable the DMA interface of I2S */
+                i2s_tx_dma_enable(I2S->regs);
+            }
 #endif
-	case ARM_SAI_CONFIGURE_RX:
-		/* Set FIFO Trigger Level */
-		I2S_SetRxTriggerLevel (i2s);
 
-		break;
-	case ARM_SAI_CONTROL_TX:
-		/* Enable TX */
-		if (arg1 == true)
-		{
-			/* Configure the I2S Peripheral Clock */
-			I2S_Configure_ClockSource (true, i2s);
+        }
+        else if(arg1 == false)
+        {
+#if I2S_DMA_ENABLE
+            if(I2S->cfg->dma_enable)
+            {
+                /* Disable the DMA interface of I2S */
+                i2s_tx_dma_disable(I2S->regs);
 
-			/* Reset the Tx FIFO */
-			I2S_TxFifoReset (i2s);
-			/* Set WLEN */
-			I2S_TxConfigWlen (i2s);
-			/* Enable Master Clock */
-			I2S_ConfigureClock (i2s);
-			I2S_ClockEnable (i2s);
+                /* Deallocate DMA channel */
+                if(I2S_DMA_DeAllocate(&I2S->dma_cfg->dma_tx) == ARM_DRIVER_ERROR)
+                    return ARM_DRIVER_ERROR;
+            }
+#endif
+            /* Disable Tx Channel */
+            i2s_txchannel_disable(I2S->regs);
 
-			/* Enable Tx Block */
-			I2S_TxBlockEnable (i2s);
-			/* Disable Rx Channel */
-			I2S_RxChannelDisable (i2s);
+            /* Disable Tx Block */
+            i2s_txblock_disable(I2S->regs);
 
-			/* Check if DMA is enabled for this */
-			if(i2s->cfg->dma_enable)
-			{
-				/* Try to allocate a DMA channel */
-				if(I2S_DMA_Allocate(&i2s->dma_cfg->dma_tx) == ARM_DRIVER_ERROR)
-					return ARM_DRIVER_ERROR;
+            /* Disable Tx Interrupt */
+            i2s_disable_tx_interrupt(I2S->regs);
 
-				if(i2s->flags & I2S_FLAG_DRV_MONO_MODE)
-				{
-					if(I2S_DMA_EnableMono(&i2s->dma_cfg->dma_tx) == ARM_DRIVER_ERROR)
-						return ARM_DRIVER_ERROR;
-				}
+            /* Disable Master Clock */
+            i2s_clock_disable(I2S->regs);
 
-				/* Enable the DMA interface of I2S */
-				I2S_TxDMAEnable(i2s);
-			}
+            /* Set the Tx flags*/
+            I2S->drv_status.status_b.tx_busy = 0U;
 
-		} else if (arg1 == false)
-		{
-			if(i2s->cfg->dma_enable)
-			{
-				/* Disable the DMA interface of I2S */
-				I2S_TxDMADisable(i2s);
+        }
+        else
+            return ARM_DRIVER_ERROR;
 
-				/* Deallocate DMA channel */
-				if(I2S_DMA_DeAllocate(&i2s->dma_cfg->dma_tx) == ARM_DRIVER_ERROR)
-					return ARM_DRIVER_ERROR;
-			}
+        return ARM_DRIVER_OK;
+    case ARM_SAI_CONTROL_RX:
+        /* Enable RX */
+        if(arg1 == true)
+        {
+            /* Reset the Rx FIFO */
+            i2s_reset_rx_fifo(I2S->regs);
 
-			/* Disable Tx Channel */
-			I2S_TxChannelDisable (i2s);
-			/* Disable Tx Block */
-			I2S_TxBlockDisable (i2s);
+            /* Set WLEN */
+            i2s_set_rx_wlen(I2S->regs, I2S->cfg->wlen);
 
-			/* Disable Tx Interrupt */
-			I2S_DisableTxInterrupt (i2s);
+            /* Enable serial Clock */
+            i2s_clock_enable(I2S->regs, I2S->cfg->sclkg, I2S->cfg->wss_len);
 
-			/* Disable Master Clock */
-			I2S_ClockDisable (i2s);
+            /* Enable Rx Block */
+            i2s_rxblock_enable(I2S->regs);
 
-			/* Set the Tx flags*/
-			i2s->drv_status.status_b.tx_busy = 0U;
+#if I2S_DMA_ENABLE
+            /* Check if DMA is enabled for this */
+            if(I2S->cfg->dma_enable)
+            {
+                /* Try to allocate a DMA channel */
+                if(I2S_DMA_Allocate(&I2S->dma_cfg->dma_rx))
+                    return ARM_DRIVER_ERROR;
 
-		} else
-			return ARM_DRIVER_ERROR;
+                if(I2S->flags & I2S_FLAG_DRV_MONO_MODE)
+                {
+                    if(I2S_DMA_EnableMono(&I2S->dma_cfg->dma_rx))
+                        return ARM_DRIVER_ERROR;
+                }
 
-		return ARM_DRIVER_OK;
-	case ARM_SAI_CONTROL_RX:
-		/* Enable RX */
-		if (arg1 == true)
-		{
+                /* Enable the DMA interface of I2S */
+                i2s_rx_dma_enable(I2S->regs);
+            }
+#endif
+        }
+        else if(arg1 == false)
+        {
+#if I2S_DMA_ENABLE
+            /* Check if DMA is enabled for this */
+            if(I2S->cfg->dma_enable)
+            {
+                /* Disable the DMA interface of I2S */
+                i2s_rx_dma_disable(I2S->regs);
 
-			/* Configure the I2S Peripheral Clock */
-			I2S_Configure_ClockSource (true, i2s);
+                /* Deallocate DMA channel */
+                if(I2S_DMA_DeAllocate(&I2S->dma_cfg->dma_rx))
+                    return ARM_DRIVER_ERROR;
+            }
+#endif
+            /* Disable Rx Channel */
+            i2s_rxchannel_disable(I2S->regs);
 
-			/* Reset the Rx FIFO */
-			I2S_RxFifoReset (i2s);
-			/* Set WLEN */
-			I2S_RxConfigWlen (i2s);
-			/* Enable Master Clock */
-			I2S_ConfigureClock (i2s);
-			I2S_ClockEnable (i2s);
-			/* Enable Rx Block */
-			I2S_RxBlockEnable (i2s);
-			/* Disable Tx Channel */
-			I2S_TxChannelDisable (i2s);
+            /* Disable Rx Block */
+            i2s_rxblock_disable(I2S->regs);
 
-			/* Check if DMA is enabled for this */
-			if(i2s->cfg->dma_enable)
-			{
-				/* Try to allocate a DMA channel */
-				if(I2S_DMA_Allocate(&i2s->dma_cfg->dma_rx) == ARM_DRIVER_ERROR)
-					return ARM_DRIVER_ERROR;
+            /* Disable Rx Interrupt */
+            i2s_disable_rx_interrupt(I2S->regs);
 
-				if(i2s->flags & I2S_FLAG_DRV_MONO_MODE)
-				{
-					if(I2S_DMA_EnableMono(&i2s->dma_cfg->dma_rx) == ARM_DRIVER_ERROR)
-						return ARM_DRIVER_ERROR;
-				}
+            /* Disable Master Clock */
+            i2s_clock_disable(I2S->regs);
 
-				/* Enable the DMA interface of I2S */
-				I2S_RxDMAEnable(i2s);
-			}
-		}
-		else if (arg1 == false)
-		{
-			/* Check if DMA is enabled for this */
-			if(i2s->cfg->dma_enable)
-			{
-				/* Disable the DMA interface of I2S */
-				I2S_RxDMADisable(i2s);
+            /* Set the rx flags*/
+            I2S->drv_status.status_b.rx_busy = 0U;
 
-				/* Deallocate DMA channel */
-				if(I2S_DMA_DeAllocate(&i2s->dma_cfg->dma_rx) == ARM_DRIVER_ERROR)
-					return ARM_DRIVER_ERROR;
-			}
+        }
+        else
+            return ARM_DRIVER_ERROR;
 
-			/* Disable Rx Channel */
-			I2S_RxChannelDisable (i2s);
-			/* Disable Rx Block */
-			I2S_RxBlockDisable (i2s);
+        return ARM_DRIVER_OK;
+    case ARM_SAI_ABORT_SEND:
+#if I2S_DMA_ENABLE
+        /* Check if DMA is enabled for this */
+        if(I2S->cfg->dma_enable)
+        {
+            /* Stop DMA transfer */
+            if(I2S_DMA_Stop(&I2S->dma_cfg->dma_tx))
+                return ARM_DRIVER_ERROR;
+        }
+#endif
+        /* Disable Tx Channel */
+        i2s_txchannel_disable(I2S->regs);
 
-			/* Disable Rx Interrupt */
-			I2S_DisableRxInterrupt (i2s);
-			/* Disable Master Clock */
-			I2S_ClockDisable (i2s);
+        /* Disable Tx Interrupt */
+        i2s_disable_tx_interrupt(I2S->regs);
 
-			/* Set the rx flags*/
-			i2s->drv_status.status_b.rx_busy = 0U;
+        /* Reset the Tx FIFO */
+        i2s_reset_tx_fifo(I2S->regs);
 
-		}else
-			return ARM_DRIVER_ERROR;
+        /* Set the Tx flags*/
+        I2S->drv_status.status_b.tx_busy = 0U;
 
-		return ARM_DRIVER_OK;
-	case ARM_SAI_ABORT_SEND:
-		/* Check if DMA is enabled for this */
-		if(i2s->cfg->dma_enable)
-		{
-			/* Stop DMA transfer */
-			if(I2S_DMA_Stop(&i2s->dma_cfg->dma_tx) == ARM_DRIVER_ERROR)
-				return ARM_DRIVER_ERROR;
-		}
+        return ARM_DRIVER_OK;
+    case ARM_SAI_ABORT_RECEIVE:
+#if I2S_DMA_ENABLE
+        /* Check if DMA is enabled for this */
+        if(I2S->cfg->dma_enable)
+        {
+            /* Disable the overflow interrupt */
+            i2s_disable_rx_overflow_interrupt(I2S->regs);
 
-		/* Disable Tx Channel */
-		I2S_TxChannelDisable (i2s);
-		/* Disable Tx Interrupt */
-		I2S_DisableTxInterrupt (i2s);
-		/* Reset the Tx FIFO */
-		I2S_TxFifoReset (i2s);
-		/* Set the Tx flags*/
-		i2s->drv_status.status_b.tx_busy = 0U;
-		/* Enable Tx Channel */
-		I2S_TxChannelEnable (i2s);
-		return ARM_DRIVER_OK;
-	case ARM_SAI_ABORT_RECEIVE:
-		/* Check if DMA is enabled for this */
-		if(i2s->cfg->dma_enable)
-		{
-			/* Disable the overflow interrupt */
-			I2S_DisableRxFOInterrupt(i2s);
+            /* Stop DMA transfer */
+            if(I2S_DMA_Stop(&I2S->dma_cfg->dma_rx))
+                return ARM_DRIVER_ERROR;
+        }
+#endif
 
-			/* Stop DMA transfer */
-			if(I2S_DMA_Stop(&i2s->dma_cfg->dma_rx) == ARM_DRIVER_ERROR)
-				return ARM_DRIVER_ERROR;
-		}
-		/* Disable Rx Channel */
-		I2S_RxChannelDisable (i2s);
-		/* Disable Rx Interrupt */
-		I2S_DisableRxInterrupt (i2s);
-		/* Reset the Rx FIFO */
-		I2S_RxFifoReset (i2s);
-		/* Set the rx flags*/
-		i2s->drv_status.status_b.rx_busy = 0U;
-		/* Enable Rx Channel */
-		I2S_RxChannelEnable (i2s);
-		return ARM_DRIVER_OK;
-	case ARM_SAI_MASK_SLOTS_TX:
-	case ARM_SAI_MASK_SLOTS_RX:
-	default:
-		return ARM_DRIVER_ERROR_UNSUPPORTED;
-	}
+        /* Disable Rx Channel */
+        i2s_rxchannel_disable(I2S->regs);
 
-	/* Handle I2S Modes */
-	if ((control & ARM_SAI_MODE_Msk) != ARM_SAI_MODE_MASTER)
-		return ARM_DRIVER_ERROR_UNSUPPORTED;
+        /* Disable Rx Interrupt */
+        i2s_disable_rx_interrupt(I2S->regs);
 
-	/* Handle Synchronization */
-	switch (control & ARM_SAI_SYNCHRONIZATION_Msk)
-	{
-	case ARM_SAI_ASYNCHRONOUS:
-		break;
-	case ARM_SAI_SYNCHRONOUS:
-		if ((control & ARM_SAI_MODE_Msk) == ARM_SAI_MODE_MASTER)
-			return ARM_SAI_ERROR_SYNCHRONIZATION;
-		break;
-	default:
-		return ARM_SAI_ERROR_SYNCHRONIZATION;
-	}
+        /* Reset the Rx FIFO */
+        i2s_reset_rx_fifo(I2S->regs);
 
-	/* Handle Protocol  */
-	switch (control & ARM_SAI_PROTOCOL_Msk)
-	{
-	case ARM_SAI_PROTOCOL_I2S:
-		break;
-	default:
-		return ARM_SAI_ERROR_PROTOCOL;
-	}
+        /* Set the rx flags*/
+        I2S->drv_status.status_b.rx_busy = 0U;
 
-	/* Handle DataSize */
-	datasize = ((control & ARM_SAI_DATA_SIZE_Msk) >> ARM_SAI_DATA_SIZE_Pos) + 1;
-	switch (datasize)
-	{
-	case 12:
-		i2s->cfg->wlen    = RES_12_BIT;
-		break;
-	case 16:
-		i2s->cfg->wlen    = RES_16_BIT;
-		break;
-	case 20:
-		i2s->cfg->wlen    = RES_20_BIT;
-		break;
-	case 24:
-		i2s->cfg->wlen    = RES_24_BIT;
-		break;
-	case 32:
-		i2s->cfg->wlen    = RES_32_BIT;
-		break;
+        return ARM_DRIVER_OK;
+#if I2S_DMA_ENABLE
+    case ARM_SAI_USE_CUSTOM_DMA_MCODE_TX:
+        if(!arg1)
+            return ARM_DRIVER_ERROR_PARAMETER;
 
-	default:
-		return ARM_SAI_ERROR_DATA_SIZE;
-	}
+        /* Use User Defined microcode for DMA */
+        if(I2S_DMA_Usermcode(&I2S->dma_cfg->dma_tx, arg1))
+            return ARM_DRIVER_ERROR;
+        else
+            return ARM_DRIVER_OK;
+    case ARM_SAI_USE_CUSTOM_DMA_MCODE_RX:
+        if(!arg1)
+            return ARM_DRIVER_ERROR_PARAMETER;
 
-	/* Handle Bit Order */
-	switch (control & ARM_SAI_BIT_ORDER_Msk)
-	{
-		case ARM_SAI_MSB_FIRST:
-		break;
+        /* Use User Defined microcode for DMA */
+        if(I2S_DMA_Usermcode(&I2S->dma_cfg->dma_rx, arg1))
+            return ARM_DRIVER_ERROR;
+        else
+            return ARM_DRIVER_OK;
+#endif
+    case ARM_SAI_MASK_SLOTS_TX:
+    case ARM_SAI_MASK_SLOTS_RX:
+    default:
+        return ARM_DRIVER_ERROR_UNSUPPORTED;
+    }
 
-		default:
-			return ARM_SAI_ERROR_BIT_ORDER;
-	}
+    /* Handle I2S Modes */
+    if((control & ARM_SAI_MODE_Msk) != ARM_SAI_MODE_MASTER)
+        return ARM_DRIVER_ERROR_UNSUPPORTED;
 
-	/* Handle Mono Mode */
-	if (control & ARM_SAI_MONO_MODE)
-	    i2s->flags |= I2S_FLAG_DRV_MONO_MODE;
+    /* Handle Synchronization */
+    switch(control & ARM_SAI_SYNCHRONIZATION_Msk)
+    {
+    case ARM_SAI_ASYNCHRONOUS:
+        break;
+    case ARM_SAI_SYNCHRONOUS:
+        if((control & ARM_SAI_MODE_Msk) == ARM_SAI_MODE_MASTER)
+            return ARM_SAI_ERROR_SYNCHRONIZATION;
+        break;
+    default:
+        return ARM_SAI_ERROR_SYNCHRONIZATION;
+    }
 
-	/* Unsupported Codes */
-	if ((control & ARM_SAI_COMPANDING_Msk)
-		|| (control & ARM_SAI_CLOCK_POLARITY_Msk)
-		|| (control & ARM_SAI_MCLK_PIN_Msk))
-		return ARM_DRIVER_ERROR_UNSUPPORTED;
+    /* Handle Protocol  */
+    switch(control & ARM_SAI_PROTOCOL_Msk)
+    {
+    case ARM_SAI_PROTOCOL_I2S:
+        break;
+    default:
+        return ARM_SAI_ERROR_PROTOCOL;
+    }
 
-	/* Handle Frame Length */
-	frame_length =  ((arg1 & ARM_SAI_FRAME_LENGTH_Msk) >> ARM_SAI_FRAME_LENGTH_Pos);
-	if (frame_length != (datasize*2))
-		return ARM_SAI_ERROR_FRAME_LENGTH;
+    /* Handle DataSize */
+    datasize = ((control & ARM_SAI_DATA_SIZE_Msk) >> ARM_SAI_DATA_SIZE_Pos) + 1;
+    switch(datasize)
+    {
+    case 12:
+        I2S->cfg->wlen    = I2S_WLEN_RES_12_BIT;
+        break;
+    case 16:
+        I2S->cfg->wlen    = I2S_WLEN_RES_16_BIT;
+        break;
+    case 20:
+        I2S->cfg->wlen    = I2S_WLEN_RES_20_BIT;
+        break;
+    case 24:
+        I2S->cfg->wlen    = I2S_WLEN_RES_24_BIT;
+        break;
+    case 32:
+        I2S->cfg->wlen    = I2S_WLEN_RES_32_BIT;
+        break;
 
-	/* Handle Sample Rate */
-	if (arg2 & ARM_SAI_AUDIO_FREQ_Msk)
-		i2s->sample_rate = arg2 & ARM_SAI_AUDIO_FREQ_Msk;
-	else
-		return ARM_SAI_ERROR_AUDIO_FREQ;
+    default:
+        return ARM_SAI_ERROR_DATA_SIZE;
+    }
 
-	i2s->flags |= I2S_FLAG_DRV_CONFIG_DONE;
+    /* Handle Bit Order */
+    switch(control & ARM_SAI_BIT_ORDER_Msk)
+    {
+        case ARM_SAI_MSB_FIRST:
+        break;
 
-	return ARM_DRIVER_OK;
+        default:
+            return ARM_SAI_ERROR_BIT_ORDER;
+    }
+
+    /* Handle Mono Mode */
+    if(control & ARM_SAI_MONO_MODE)
+        I2S->flags |= I2S_FLAG_DRV_MONO_MODE;
+
+    /* Handle Frame Length */
+    frame_length =  ((arg1 & ARM_SAI_FRAME_LENGTH_Msk) >> ARM_SAI_FRAME_LENGTH_Pos);
+    if(frame_length != (datasize * 2))
+        return ARM_SAI_ERROR_FRAME_LENGTH;
+
+    /* Handle Sample Rate */
+    if(arg2 & ARM_SAI_AUDIO_FREQ_Msk)
+        I2S->sample_rate = arg2 & ARM_SAI_AUDIO_FREQ_Msk;
+    else
+        return ARM_SAI_ERROR_AUDIO_FREQ;
+
+    switch(control & ARM_SAI_MCLK_PIN_Msk)
+    {
+    case ARM_SAI_MCLK_PIN_INACTIVE:
+        /* Enable internal clock source */
+        select_i2s_clock_source(I2S->instance, I2S_INTERNAL_CLOCK_SOURCE);
+
+        /* Configure the I2S serial clock */
+        ret = I2S_SetSamplingRate(I2S);
+        if(ret)
+            return ARM_DRIVER_ERROR;
+
+        break;
+
+    case ARM_SAI_MCLK_PIN_OUTPUT:
+        return ARM_DRIVER_ERROR_UNSUPPORTED;
+        break;
+
+    case ARM_SAI_MCLK_PIN_INPUT:
+        /* Enable external clock source */
+        select_i2s_clock_source(I2S->instance, I2S_EXTERNAL_CLOCK_SOURCE);
+
+        /* Set the MCLK clock divider */
+        mclk_prescaler = ((arg2 & ARM_SAI_MCLK_PRESCALER_Msk)
+                           >> ARM_SAI_MCLK_PRESCALER_Pos);
+
+        if(mclk_prescaler > I2S_CLK_DIVISOR_MAX)
+            return ARM_SAI_ERROR_MCLK_PRESCALER;
+
+        if(mclk_prescaler < I2S_CLK_DIVISOR_MIN)
+            bypass_i2s_clock_divider(I2S->instance);
+        else
+            set_i2s_clock_divisor(I2S->instance, mclk_prescaler);
+
+        break;
+
+    default:
+        return ARM_SAI_ERROR_MCLK_PIN;
+    }
+
+    /* Unsupported Codes */
+    if((control & ARM_SAI_COMPANDING_Msk)
+        || (control & ARM_SAI_CLOCK_POLARITY_Msk))
+        return ARM_DRIVER_ERROR_UNSUPPORTED;
+
+    return ARM_DRIVER_OK;
 }
 
 /**
-  \fn          ARM_SAI_STATUS I2S_GetStatus (I2S_DRV_INFO *i2s)
+  \fn          ARM_SAI_STATUS I2S_GetStatus(I2S_RESOURCES *I2S)
   \brief       Get I2S status.
-  \param[in]   i2s       Pointer to I2S resources
-  \return      SAI status \ref ARM_SAI_STATUS
+  \param[in]   I2S  Pointer to I2S resources
+  \return      \ref ARM_SAI_STATUS
 */
-static ARM_SAI_STATUS I2S_GetStatus (I2S_DRV_INFO *i2s)
+static ARM_SAI_STATUS I2S_GetStatus(I2S_RESOURCES *I2S)
 {
-
-	return i2s->drv_status.status_b;
+    return I2S->drv_status.status_b;
 }
 
 /**
-  \fn          void I2S_RxIRQHandler (I2S_DRV_INFO *i2s)
-  \brief       Run the Rx IRQ Handler
-  \param[in]   i2s       Pointer to I2S resources
-*/
-static void I2S_RxIRQHandler (I2S_DRV_INFO *i2s)
-{
-	uint32_t rx_avail = i2s->cfg->rx_fifo_trg_lvl + 1; /* Data available in RX FIFO */
-	void *const buff  = i2s->rx_buff.buf; /* Assign the buffer base address */
-	uint8_t last_lap = 0, bytes = 0, cnt = 0, frames = 0;
-
-	if (_FLD2VAL(I2S_ISR_RXFO, i2s->int_status))
-	{
-		/* Send event to application to handle it */
-		i2s->cb_event (ARM_SAI_EVENT_RX_OVERFLOW);
-	}
-
-	/* If DMA is enabled no need to process the data from the FIFO */
-	if(i2s->cfg->dma_enable)
-		return;
-
-	if ((i2s->cfg->wlen > IGNORE_WLEN) && (i2s->cfg->wlen <= RES_16_BIT))
-		bytes = I2S_16BIT_BUF_TYPE;
-	else
-		bytes = I2S_32BIT_BUF_TYPE;
-
-	/* Check if it is the last lap */
-	if ((i2s->rx_buff.ofs + (2 * rx_avail * bytes)) >  i2s->rx_buff.total_len)
-	{
-		/* Assign the number of iterations required */
-		frames = (i2s->rx_buff.total_len - i2s->rx_buff.ofs)/(2*bytes);
-		last_lap = 1;
-	} else
-		frames = rx_avail;
-
-	for (cnt = 0; cnt < frames; cnt++)
-	{
-		/* Assuming that application uses 16bit buffer for 16bit data resolution */
-		if ((i2s->cfg->wlen > IGNORE_WLEN) && (i2s->cfg->wlen <= RES_16_BIT))
-		{
-		    if (i2s->flags & I2S_FLAG_DRV_MONO_MODE)
-		    {
-		        (*(uint16_t*)(buff + i2s->rx_buff.ofs)) = (uint16_t)I2S_ReadLeftRx (i2s);
-		        I2S_ReadRightRx (i2s);
-		        i2s->rx_buff.ofs = i2s->rx_buff.ofs + I2S_16BIT_BUF_TYPE;
-		    }
-		    else
-		    {
-		        (*(uint16_t*)(buff + i2s->rx_buff.ofs)) = (uint16_t)I2S_ReadLeftRx (i2s);
-		        (*(uint16_t*)(buff + i2s->rx_buff.ofs + I2S_16BIT_BUF_TYPE)) = (uint16_t)I2S_ReadRightRx (i2s);
-		        i2s->rx_buff.ofs = i2s->rx_buff.ofs + 2*I2S_16BIT_BUF_TYPE;
-		    }
-		}
-		else /* For > 16bit data resolution consider as 32bit buffer*/
-		{
-		    if (i2s->flags & I2S_FLAG_DRV_MONO_MODE)
-		    {
-		        (*(uint32_t*)(buff + i2s->rx_buff.ofs)) = I2S_ReadLeftRx (i2s);
-		        I2S_ReadRightRx (i2s);
-		        i2s->rx_buff.ofs = i2s->rx_buff.ofs + I2S_32BIT_BUF_TYPE;
-		    }
-		    else
-		    {
-		        (*(uint32_t*)(buff + i2s->rx_buff.ofs)) = I2S_ReadLeftRx (i2s);
-		        (*(uint32_t*)(buff + i2s->rx_buff.ofs + I2S_32BIT_BUF_TYPE)) = I2S_ReadRightRx (i2s);
-		        i2s->rx_buff.ofs = i2s->rx_buff.ofs + 2*I2S_32BIT_BUF_TYPE;
-		    }
-		}
-	}
-
-	if (last_lap && (i2s->rx_buff.ofs < i2s->rx_buff.total_len))
-	{
-		if ((i2s->cfg->wlen > IGNORE_WLEN) && (i2s->cfg->wlen <= RES_16_BIT))
-		{
-			/* Read the last sample from left */
-			(*(uint16_t*)(buff + i2s->rx_buff.ofs)) = (uint16_t)I2S_ReadLeftRx (i2s);
-			I2S_ReadRightRx (i2s);
-			i2s->rx_buff.ofs = i2s->rx_buff.ofs + I2S_16BIT_BUF_TYPE;
-		}
-		else
-		{
-			/* Read the last sample from left */
-			(*(uint32_t*)(buff + i2s->rx_buff.ofs)) = I2S_ReadLeftRx (i2s);
-			I2S_ReadRightRx (i2s);
-			i2s->rx_buff.ofs = i2s->rx_buff.ofs + I2S_32BIT_BUF_TYPE;
-		}
-	}
-
-	/* Once the buffer is full, send complete event with interrupt disabled */
-	if (i2s->rx_buff.ofs >= i2s->rx_buff.total_len)
-	{
-		/* Disable Rx Interrupt */
-		I2S_DisableRxInterrupt (i2s);
-		/* Set the Rx flags*/
-		i2s->drv_status.status_b.rx_busy = 0U;
-		if (i2s->cb_event)
-			i2s->cb_event (ARM_SAI_EVENT_RECEIVE_COMPLETE);
-	}
-}
-
-/**
-  \fn          void I2S_TxIRQHandler (I2S_DRV_INFO *i2s)
-  \brief       Run the Tx IRQ Handler
-  \param[in]   i2s       Pointer to I2S resources
-*/
-static void I2S_TxIRQHandler (I2S_DRV_INFO *i2s)
-{
-	uint32_t tx_avail = I2S_FIFO_DEPTH - i2s->cfg->tx_fifo_trg_lvl; /* Number of data that can copy to TX FIFO */
-	const void *buff    = i2s->tx_buff.buf; /* Assign the buffer base address */
-	uint8_t last_lap = 0, bytes = 0, cnt = 0, frames = 0;
-
-	if ((i2s->cfg->wlen > IGNORE_WLEN) && (i2s->cfg->wlen <= RES_16_BIT))
-		bytes = I2S_16BIT_BUF_TYPE;
-	else
-		bytes = I2S_32BIT_BUF_TYPE;
-
-	/* Check if it is the last lap */
-	if ((i2s->tx_buff.ofs + (2 * tx_avail * bytes)) >  i2s->tx_buff.total_len)
-	{
-		/* Assign the number of iterations required */
-		frames = (i2s->tx_buff.total_len - i2s->tx_buff.ofs)/(2*bytes);
-		last_lap = 1;
-	} else
-		frames = tx_avail;
-
-	for (cnt = 0; cnt < frames; cnt++)
-	{
-		/* Assuming that application uses 16bit buffer for 16bit data resolution */
-		if ((i2s->cfg->wlen > IGNORE_WLEN) && (i2s->cfg->wlen <= RES_16_BIT))
-		{
-		    if (i2s->flags & I2S_FLAG_DRV_MONO_MODE)
-		    {
-		        I2S_WriteLeftTx ((uint32_t)(*(uint16_t*)(buff + i2s->tx_buff.ofs)), i2s);
-		        I2S_WriteRightTx (0, i2s);
-		        i2s->tx_buff.ofs = i2s->tx_buff.ofs + I2S_16BIT_BUF_TYPE;
-		    }
-		    else
-		    {
-		        I2S_WriteLeftTx ((uint32_t)(*(uint16_t*)(buff + i2s->tx_buff.ofs)), i2s);
-		        I2S_WriteRightTx ((uint32_t)(*(uint16_t*)(buff + i2s->tx_buff.ofs + I2S_16BIT_BUF_TYPE)), i2s);
-		        i2s->tx_buff.ofs = i2s->tx_buff.ofs + 2*I2S_16BIT_BUF_TYPE;
-		    }
-		}
-		else /* For > 16bit data resolution consider as 32bit buffer*/
-		{
-		    if (i2s->flags & I2S_FLAG_DRV_MONO_MODE)
-		    {
-		        I2S_WriteLeftTx (*(uint32_t*)(buff + i2s->tx_buff.ofs), i2s);
-		        I2S_WriteRightTx (0, i2s);
-		        i2s->tx_buff.ofs = i2s->tx_buff.ofs + I2S_32BIT_BUF_TYPE;
-		    }
-		    else
-		    {
-		        I2S_WriteLeftTx (*(uint32_t*)(buff + i2s->tx_buff.ofs), i2s);
-		        I2S_WriteRightTx (*(uint32_t*)(buff + i2s->tx_buff.ofs + I2S_32BIT_BUF_TYPE), i2s);
-		        i2s->tx_buff.ofs = i2s->tx_buff.ofs + 2*I2S_32BIT_BUF_TYPE;
-		    }
-		}
-	}
-
-	if (last_lap && (i2s->tx_buff.ofs < i2s->tx_buff.total_len))
-	{
-		if ((i2s->cfg->wlen > IGNORE_WLEN) && (i2s->cfg->wlen <= RES_16_BIT))
-		{
-			/* Write the Left sample and fill right with 0 */
-			I2S_WriteLeftTx ((uint32_t)(*(uint16_t*)(buff + i2s->tx_buff.ofs)), i2s);
-			I2S_WriteRightTx (0, i2s);
-			i2s->tx_buff.ofs = i2s->tx_buff.ofs + I2S_16BIT_BUF_TYPE;
-		} else
-		{
-			/* Write the Left sample and fill right with 0 */
-			I2S_WriteLeftTx (*(uint32_t*)(buff + i2s->tx_buff.ofs), i2s);
-			I2S_WriteRightTx (0, i2s);
-			i2s->tx_buff.ofs = i2s->tx_buff.ofs + I2S_32BIT_BUF_TYPE;
-		}
-	}
-
-	/* Send complete event once all the data is copied to FIFO */
-	if (i2s->tx_buff.ofs >= i2s->tx_buff.total_len)
-	{
-		/* Disable Tx Interrupt */
-		I2S_DisableTxInterrupt (i2s);
-		/* Set the Tx flags*/
-		i2s->drv_status.status_b.tx_busy = 0U;
-		if (i2s->cb_event)
-			i2s->cb_event (ARM_SAI_EVENT_SEND_COMPLETE);
-	}
-}
-/**
-  \fn          void I2S_IRQHandler (I2S_DRV_INFO *i2s)
+  \fn          void I2S_IRQHandler(I2S_RESOURCES *I2S)
   \brief       Run the IRQ Handler
-  \param[in]   i2s       Pointer to I2S resources
+  \param[in]   I2S  Pointer to I2S resources
 */
-static void I2S_IRQHandler (I2S_DRV_INFO *i2s)
+static void I2S_IRQHandler(I2S_RESOURCES *I2S)
 {
-	/* Get the Current Interrupt Status*/
-	I2S_GetInterruptStatus (i2s);
+    i2s_transfer_t *transfer = &I2S->transfer;
 
-	if (i2s->drv_status.status_b.tx_busy &&
-		(_FLD2VAL(I2S_ISR_TXFE, i2s->int_status))) /* Handle Tx Interrupt */
-		I2S_TxIRQHandler (i2s);
-	else if (i2s->drv_status.status_b.rx_busy) /* Handle Rx Interrupt */
-		I2S_RxIRQHandler (i2s);
+    if(I2S->drv_status.status_b.tx_busy)
+    {
+        i2s_tx_irq_handler(I2S->regs, transfer);
 
-	/* This should not happen */
-	if (_FLD2VAL(I2S_ISR_TXFO, i2s->int_status))
-		I2S_ClearTxOverrun (i2s);
+        if(transfer->status & I2S_TRANSFER_STATUS_COMPLETE)
+        {
+            I2S->cb_event(ARM_SAI_EVENT_SEND_COMPLETE);
+            I2S->drv_status.status_b.tx_busy = 0U;
+            transfer->status = I2S_TRANSFER_STATUS_NONE;
+        }
+    }
+    else
+    {
+        i2s_rx_irq_handler(I2S->regs, transfer);
 
-	if (_FLD2VAL(I2S_ISR_RXFO, i2s->int_status))
-	{
-		/* Clear overrun interrupt */
-		I2S_ClearRxOverrun (i2s);
+        if(transfer->status & I2S_TRANSFER_STATUS_COMPLETE)
+        {
+            I2S->cb_event(ARM_SAI_EVENT_RECEIVE_COMPLETE);
+            I2S->drv_status.status_b.rx_busy = 0U;
+            transfer->status &= ~I2S_TRANSFER_STATUS_COMPLETE;
+        }
 
-		/*
-		 * Disable the Rx Overflow interrupt for now. This will
-		 * be enabled again when Receive function is called
-		 */
-		I2S_DisableRxFOInterrupt(i2s);
-	}
-
+        if(transfer->status & I2S_TRANSFER_STATUS_RX_OVERFLOW)
+        {
+            /* Send event to application to handle it */
+            I2S->cb_event(ARM_SAI_EVENT_RX_OVERFLOW);
+            transfer->status &= ~I2S_TRANSFER_STATUS_RX_OVERFLOW;
+            I2S->drv_status.status_b.rx_overflow = 1U;
+        }
+    }
 }
 
+#if I2S_DMA_ENABLE
 /**
-  \fn          static void  I2S_DMACallback (uint32_t event, int8_t peri_num,
-                                             I2S_DRV_INFO *i2s)
+  \fn          static void  I2S_DMACallback(uint32_t event, int8_t peri_num,
+                                            I2S_RESOURCES *I2S)
   \brief       Callback function from DMA for I2S
   \param[in]   event     Event from DMA
   \param[in]   peri_num  Peripheral number
-  \param[in]   i2s       Pointer to I2S resources
+  \param[in]   I2S       Pointer to I2S resources
 */
-static void I2S_DMACallback (uint32_t event, int8_t peri_num,
-		                          I2S_DRV_INFO *i2s)
+static void I2S_DMACallback(uint32_t event, int8_t peri_num,
+                            I2S_RESOURCES *I2S)
 {
-    if (!i2s->cb_event)
+    if(!I2S->cb_event)
         return;
 
     /* Transfer Completed */
@@ -1696,8 +1285,8 @@ static void I2S_DMACallback (uint32_t event, int8_t peri_num,
         case LPI2S_DMA_TX_PERIPH_REQ:
 #endif
             /* Set the Tx flags*/
-            i2s->drv_status.status_b.tx_busy = 0U;
-            i2s->cb_event (ARM_SAI_EVENT_SEND_COMPLETE);
+            I2S->drv_status.status_b.tx_busy = 0U;
+            I2S->cb_event(ARM_SAI_EVENT_SEND_COMPLETE);
             break;
 
         case I2S0_DMA_RX_PERIPH_REQ:
@@ -1708,10 +1297,12 @@ static void I2S_DMACallback (uint32_t event, int8_t peri_num,
         case LPI2S_DMA_RX_PERIPH_REQ:
 #endif
             /* Set the Rx flags*/
-            i2s->drv_status.status_b.rx_busy = 0U;
+            I2S->drv_status.status_b.rx_busy = 0U;
+
             /* Disable the Overflow interrupt */
-            I2S_DisableRxFOInterrupt(i2s);
-            i2s->cb_event (ARM_SAI_EVENT_RECEIVE_COMPLETE);
+            i2s_disable_rx_overflow_interrupt(I2S->regs);
+
+            I2S->cb_event(ARM_SAI_EVENT_RECEIVE_COMPLETE);
             break;
 
         default:
@@ -1722,17 +1313,16 @@ static void I2S_DMACallback (uint32_t event, int8_t peri_num,
     /* Abort Occurred */
     if(event & ARM_DMA_EVENT_ABORT)
     {
-	    /*
-	    * There is no event for indicating error in SAI driver.
-	    * Let the application get timeout and restart the I2S.
-	    *
-	    */
+        /*
+        * There is no event for indicating error in SAI driver.
+        * Let the application get timeout and restart the I2S.
+        *
+        */
     }
 }
+#endif
 
 #if (RTE_I2S0)
-
-static void I2S0_DMACallback (uint32_t event, int8_t peri_num);
 
 static I2S_CONFIG_INFO I2S0_CONFIG = {
     .wss_len             = RTE_I2S0_WSS_CLOCK_CYCLES,
@@ -1740,16 +1330,15 @@ static I2S_CONFIG_INFO I2S0_CONFIG = {
     .rx_fifo_trg_lvl     = RTE_I2S0_RX_TRIG_LVL,
     .tx_fifo_trg_lvl     = RTE_I2S0_TX_TRIG_LVL,
     .irq_priority        = RTE_I2S0_IRQ_PRI,
+#if RTE_I2S0_DMA_ENABLE
     .dma_enable          = RTE_I2S0_DMA_ENABLE,
     .dma_irq_priority    = RTE_I2S0_DMA_IRQ_PRI,
-    .ext_clk_src_enable  = RTE_I2S0_EXT_CLOCK_SOURCE_ENABLE,
-#if RTE_I2S0_EXT_CLOCK_SOURCE_ENABLE
-    .clk_source          = RTE_I2S0_EXT_CLOCK_SOURCE,
-#else
-    .clk_source          = I2S_CLK_SOURCE_76P8M_IN_HZ,
 #endif
+    .clk_source          = I2S_CLK_SOURCE_76P8M_IN_HZ,
 };
 
+#if RTE_I2S0_DMA_ENABLE
+static void I2S0_DMACallback(uint32_t event, int8_t peri_num);
 static I2S_DMA_HW_CONFIG I2S0_DMA_HW_CONFIG = {
     .dma_rx =
     {
@@ -1777,136 +1366,141 @@ static I2S_DMA_HW_CONFIG I2S0_DMA_HW_CONFIG = {
 
     },
 };
+#endif
 
-static I2S_DRV_INFO I2S0 = {
+static I2S_RESOURCES I2S0 = {
     .cb_event  = NULL,
-    .dma_cb    = I2S0_DMACallback,
     .cfg       = &I2S0_CONFIG,
+#if RTE_I2S0_DMA_ENABLE
+    .dma_cb    = I2S0_DMACallback,
     .dma_cfg   = &I2S0_DMA_HW_CONFIG,
-    .paddr     = (I2S_TypeDef *) I2S0_BASE,
+#endif
+    .regs      = (I2S_Type *) I2S0_BASE,
     .instance  =  I2S_INSTANCE_0,
     .irq       = (IRQn_Type) I2S0_IRQ_IRQn,
     .flags     = 0,
 };
 
 /**
-  \fn          int32_t I2S0_Initialize (ARM_SAI_SignalEvent_t cb_event)
+  \fn          int32_t I2S0_Initialize(ARM_SAI_SignalEvent_t cb_event)
   \brief       Initialize I2S Interface.
   \param[in]   cb_event  Pointer to \ref ARM_SAI_SignalEvent
-  \return      \ref execution_status
+  \return      \ref      execution_status
 */
-static int32_t I2S0_Initialize (ARM_SAI_SignalEvent_t cb_event)
+static int32_t I2S0_Initialize(ARM_SAI_SignalEvent_t cb_event)
 {
-	return I2S_Initialize (cb_event, &I2S0);
+    return I2S_Initialize(cb_event, &I2S0);
 }
 
 /**
-  \fn          int32_t I2S0_Uninitialize (void)
+  \fn          int32_t I2S0_Uninitialize(void)
   \brief       De-initialize I2S Interface.
   \return      \ref execution_status
 */
-static int32_t I2S0_Uninitialize (void)
+static int32_t I2S0_Uninitialize(void)
 {
-	return I2S_Uninitialize (&I2S0);
+    return I2S_Uninitialize(&I2S0);
 }
 
 /**
-  \fn          int32_t I2S0_PowerControl (ARM_POWER_STATE state)
+  \fn          int32_t I2S0_PowerControl(ARM_POWER_STATE state)
   \brief       Control I2S Interface Power.
   \param[in]   state  Power state
-  \return      \ref execution_status
+  \return      \ref   execution_status
 */
-static int32_t I2S0_PowerControl (ARM_POWER_STATE state)
+static int32_t I2S0_PowerControl(ARM_POWER_STATE state)
 {
-	return I2S_PowerControl (state, &I2S0);
+    return I2S_PowerControl(state, &I2S0);
 }
 
 /**
-  \fn          int32_t I2S0_Send (const void *data, uint32_t num)
+  \fn          int32_t I2S0_Send(const void *data, uint32_t num)
   \brief       Start sending data to I2S transmitter.
   \param[in]   data  Pointer to buffer with data to send to I2S transmitter
   \param[in]   num   Number of data items to send
-  \return      \ref execution_status
+  \return      \ref  execution_status
 */
-static int32_t I2S0_Send (const void *data, uint32_t num)
+static int32_t I2S0_Send(const void *data, uint32_t num)
 {
-	return I2S_Send (data, num, &I2S0);
+    return I2S_Send(data, num, &I2S0);
 }
 
 /**
-  \fn          int32_t I2S0_Receive (void *data, uint32_t num)
+  \fn          int32_t I2S0_Receive(void *data, uint32_t num)
   \brief       Start receiving data from I2S receiver.
   \param[out]  data  Pointer to buffer for data to receive from I2S receiver
   \param[in]   num   Number of data items to receive
-  \return      \ref execution_status
+  \return      \ref  execution_status
 */
-static int32_t I2S0_Receive (void *data, uint32_t num)
+static int32_t I2S0_Receive(void *data, uint32_t num)
 {
-	return I2S_Receive (data, num, &I2S0);
+    return I2S_Receive (data, num, &I2S0);
 }
 
 /**
-  \fn          uint32_t I2S0_GetTxCount (void)
+  \fn          uint32_t I2S0_GetTxCount(void)
   \brief       Get transmitted data count.
   \return      number of data items transmitted
 */
-static uint32_t I2S0_GetTxCount (void)
+static uint32_t I2S0_GetTxCount(void)
 {
-	return I2S_GetTxCount (&I2S0);
+    return I2S_GetTxCount(&I2S0);
 }
 
 /**
-  \fn          uint32_t I2S0_GetRxCount (void)
+  \fn          uint32_t I2S0_GetRxCount(void)
   \brief       Get received data count.
   \return      number of data items received
 */
-static uint32_t I2S0_GetRxCount (void)
+static uint32_t I2S0_GetRxCount(void)
 {
-	return I2S_GetRxCount (&I2S0);
+    return I2S_GetRxCount(&I2S0);
 }
 
 /**
-  \fn          int32_t I2S0_Control (uint32_t control, uint32_t arg1, uint32_t arg2)
+  \fn          int32_t I2S0_Control(uint32_t control, uint32_t arg1, uint32_t arg2)
   \brief       Control I2S Interface.
   \param[in]   control  Operation
   \param[in]   arg1     Argument 1 of operation (optional)
   \param[in]   arg2     Argument 2 of operation (optional)
   \return      common \ref execution_status and driver specific \ref sai_execution_status
 */
-static int32_t I2S0_Control (uint32_t control, uint32_t arg1, uint32_t arg2)
+static int32_t I2S0_Control(uint32_t control, uint32_t arg1, uint32_t arg2)
 {
-	return I2S_Control (control, arg1, arg2, &I2S0);
+    return I2S_Control(control, arg1, arg2, &I2S0);
 }
 
 /**
-  \fn          ARM_SAI_STATUS I2S0_GetStatus (void)
+  \fn          ARM_SAI_STATUS I2S0_GetStatus(void)
   \brief       Get I2S status.
   \return      SAI status \ref ARM_SAI_STATUS
 */
-static ARM_SAI_STATUS I2S0_GetStatus (void)
+static ARM_SAI_STATUS I2S0_GetStatus(void)
 {
-	return I2S_GetStatus (&I2S0);
+    return I2S_GetStatus(&I2S0);
 }
 
 /**
   \fn          void  I2S0_IRQHandler (void)
   \brief       Run the IRQ Handler for I2S0
 */
-void I2S0_IRQHandler (void)
+void I2S0_IRQHandler(void)
 {
-	I2S_IRQHandler (&I2S0);
+    I2S_IRQHandler(&I2S0);
 }
 
+#if RTE_I2S0_DMA_ENABLE
 /**
   \fn          static void  I2S0_DMACallback (uint32_t event, int8_t peri_num)
   \param[in]   event     Event from DMA
   \param[in]   peri_num  Peripheral number
   \brief       Callback function from DMA for I2S0
 */
-static void I2S0_DMACallback (uint32_t event, int8_t peri_num)
+static void I2S0_DMACallback(uint32_t event, int8_t peri_num)
 {
-	I2S_DMACallback (event, peri_num, &I2S0);
+    I2S_DMACallback(event, peri_num, &I2S0);
 }
+#endif
 
 /**
 \brief Access structure of the I2S0 Driver.
@@ -1930,24 +1524,21 @@ ARM_DRIVER_SAI Driver_SAI0 = {
 
 #if (RTE_I2S1)
 
-static void I2S1_DMACallback (uint32_t event, int8_t peri_num);
-
 static I2S_CONFIG_INFO I2S1_CONFIG = {
     .wss_len             = RTE_I2S1_WSS_CLOCK_CYCLES,
     .sclkg               = RTE_I2S1_SCLKG_CLOCK_CYCLES,
     .rx_fifo_trg_lvl     = RTE_I2S1_RX_TRIG_LVL,
     .tx_fifo_trg_lvl     = RTE_I2S1_TX_TRIG_LVL,
     .irq_priority        = RTE_I2S1_IRQ_PRI,
+#if RTE_I2S1_DMA_ENABLE
     .dma_enable          = RTE_I2S1_DMA_ENABLE,
     .dma_irq_priority    = RTE_I2S1_DMA_IRQ_PRI,
-    .ext_clk_src_enable  = RTE_I2S1_EXT_CLOCK_SOURCE_ENABLE,
-#if RTE_I2S1_EXT_CLOCK_SOURCE_ENABLE
-    .clk_source          = RTE_I2S1_EXT_CLOCK_SOURCE,
-#else
-    .clk_source          = I2S_CLK_SOURCE_76P8M_IN_HZ,
 #endif
+    .clk_source          = I2S_CLK_SOURCE_76P8M_IN_HZ,
 };
 
+#if RTE_I2S1_DMA_ENABLE
+static void I2S1_DMACallback (uint32_t event, int8_t peri_num);
 static I2S_DMA_HW_CONFIG I2S1_DMA_HW_CONFIG = {
     .dma_rx =
     {
@@ -1974,136 +1565,141 @@ static I2S_DMA_HW_CONFIG I2S1_DMA_HW_CONFIG = {
         },
     },
 };
+#endif
 
-static I2S_DRV_INFO I2S1 = {
+static I2S_RESOURCES I2S1 = {
     .cb_event  = NULL,
-    .dma_cb    = I2S1_DMACallback,
     .cfg       = &I2S1_CONFIG,
+#if RTE_I2S1_DMA_ENABLE
+    .dma_cb    = I2S1_DMACallback,
     .dma_cfg   = &I2S1_DMA_HW_CONFIG,
-    .paddr     = (I2S_TypeDef *) I2S1_BASE,
+#endif
+    .regs      = (I2S_Type *) I2S1_BASE,
     .instance  =  I2S_INSTANCE_1,
     .irq       = (IRQn_Type) I2S1_IRQ_IRQn,
     .flags     = 0,
 };
 
 /**
-  \fn          int32_t I2S1_Initialize (ARM_SAI_SignalEvent_t cb_event)
+  \fn          int32_t I2S1_Initialize(ARM_SAI_SignalEvent_t cb_event)
   \brief       Initialize I2S Interface.
   \param[in]   cb_event  Pointer to \ref ARM_SAI_SignalEvent
-  \return      \ref execution_status
+  \return      \ref      execution_status
 */
-static int32_t I2S1_Initialize (ARM_SAI_SignalEvent_t cb_event)
+static int32_t I2S1_Initialize(ARM_SAI_SignalEvent_t cb_event)
 {
-	return I2S_Initialize (cb_event, &I2S1);
+    return I2S_Initialize(cb_event, &I2S1);
 }
 
 /**
-  \fn          int32_t I2S1_Uninitialize (void)
+  \fn          int32_t I2S1_Uninitialize(void)
   \brief       De-initialize I2S Interface.
   \return      \ref execution_status
 */
-static int32_t I2S1_Uninitialize (void)
+static int32_t I2S1_Uninitialize(void)
 {
-	return I2S_Uninitialize (&I2S1);
+    return I2S_Uninitialize (&I2S1);
 }
 
 /**
-  \fn          int32_t I2S1_PowerControl (ARM_POWER_STATE state)
+  \fn          int32_t I2S1_PowerControl(ARM_POWER_STATE state)
   \brief       Control I2S Interface Power.
   \param[in]   state  Power state
-  \return      \ref execution_status
+  \return      \ref   execution_status
 */
-static int32_t I2S1_PowerControl (ARM_POWER_STATE state)
+static int32_t I2S1_PowerControl(ARM_POWER_STATE state)
 {
-	return I2S_PowerControl (state, &I2S1);
+    return I2S_PowerControl(state, &I2S1);
 }
 
 /**
-  \fn          int32_t I2S1_Send (const void *data, uint32_t num)
+  \fn          int32_t I2S1_Send(const void *data, uint32_t num)
   \brief       Start sending data to I2S transmitter.
   \param[in]   data  Pointer to buffer with data to send to I2S transmitter
   \param[in]   num   Number of data items to send
-  \return      \ref execution_status
+  \return      \ref  execution_status
 */
-static int32_t I2S1_Send (const void *data, uint32_t num)
+static int32_t I2S1_Send(const void *data, uint32_t num)
 {
-	return I2S_Send (data, num, &I2S1);
+    return I2S_Send(data, num, &I2S1);
 }
 
 /**
-  \fn          int32_t I2S1_Receive (void *data, uint32_t num)
+  \fn          int32_t I2S1_Receive(void *data, uint32_t num)
   \brief       Start receiving data from I2S receiver.
   \param[out]  data  Pointer to buffer for data to receive from I2S receiver
   \param[in]   num   Number of data items to receive
-  \return      \ref execution_status
+  \return      \ref  execution_status
 */
-static int32_t I2S1_Receive (void *data, uint32_t num)
+static int32_t I2S1_Receive(void *data, uint32_t num)
 {
-	return I2S_Receive (data, num, &I2S1);
+    return I2S_Receive(data, num, &I2S1);
 }
 
 /**
-  \fn          uint32_t I2S1_GetTxCount (void)
+  \fn          uint32_t I2S1_GetTxCount(void)
   \brief       Get transmitted data count.
   \return      number of data items transmitted
 */
-static uint32_t I2S1_GetTxCount (void)
+static uint32_t I2S1_GetTxCount(void)
 {
-	return I2S_GetTxCount (&I2S1);
+    return I2S_GetTxCount(&I2S1);
 }
 
 /**
-  \fn          uint32_t I2S1_GetRxCount (void)
+  \fn          uint32_t I2S1_GetRxCount(void)
   \brief       Get received data count.
   \return      number of data items received
 */
-static uint32_t I2S1_GetRxCount (void)
+static uint32_t I2S1_GetRxCount(void)
 {
-	return I2S_GetRxCount (&I2S1);
+    return I2S_GetRxCount(&I2S1);
 }
 
 /**
-  \fn          int32_t I2S1_Control (uint32_t control, uint32_t arg1, uint32_t arg2)
+  \fn          int32_t I2S1_Control(uint32_t control, uint32_t arg1, uint32_t arg2)
   \brief       Control I2S Interface.
   \param[in]   control  Operation
   \param[in]   arg1     Argument 1 of operation (optional)
   \param[in]   arg2     Argument 2 of operation (optional)
   \return      common \ref execution_status and driver specific \ref sai_execution_status
 */
-static int32_t I2S1_Control (uint32_t control, uint32_t arg1, uint32_t arg2)
+static int32_t I2S1_Control(uint32_t control, uint32_t arg1, uint32_t arg2)
 {
-	return I2S_Control (control, arg1, arg2, &I2S1);
+    return I2S_Control(control, arg1, arg2, &I2S1);
 }
 
 /**
-  \fn          ARM_SAI_STATUS I2S1_GetStatus (void)
+  \fn          ARM_SAI_STATUS I2S1_GetStatus(void)
   \brief       Get I2S status.
   \return      SAI status \ref ARM_SAI_STATUS
 */
-static ARM_SAI_STATUS I2S1_GetStatus (void)
+static ARM_SAI_STATUS I2S1_GetStatus(void)
 {
-	return I2S_GetStatus (&I2S1);
+    return I2S_GetStatus (&I2S1);
 }
 
 /**
-  \fn          void  I2S1_IRQHandler (void)
+  \fn          void  I2S1_IRQHandler(void)
   \brief       Run the IRQ Handler for I2S1
 */
-void I2S1_IRQHandler (void)
+void I2S1_IRQHandler(void)
 {
-	I2S_IRQHandler (&I2S1);
+    I2S_IRQHandler(&I2S1);
 }
 
+#if RTE_I2S1_DMA_ENABLE
 /**
-  \fn          void  I2S1_DMACallback (uint32_t event, int8_t peri_num)
+  \fn          void  I2S1_DMACallback(uint32_t event, int8_t peri_num)
   \param[in]   event     Event from DMA
   \param[in]   peri_num  Peripheral number
   \brief       Callback function from DMA for I2S1
 */
-void I2S1_DMACallback (uint32_t event, int8_t peri_num)
+void I2S1_DMACallback(uint32_t event, int8_t peri_num)
 {
-	I2S_DMACallback (event, peri_num, &I2S1);
+    I2S_DMACallback(event, peri_num, &I2S1);
 }
+#endif
 
 /**
 \brief Access structure of the I2S1 Driver.
@@ -2127,24 +1723,21 @@ ARM_DRIVER_SAI Driver_SAI1 = {
 
 #if (RTE_I2S2)
 
-static void I2S2_DMACallback (uint32_t event, int8_t peri_num);
-
 static I2S_CONFIG_INFO I2S2_CONFIG = {
     .wss_len             = RTE_I2S2_WSS_CLOCK_CYCLES,
     .sclkg               = RTE_I2S2_SCLKG_CLOCK_CYCLES,
     .rx_fifo_trg_lvl     = RTE_I2S2_RX_TRIG_LVL,
     .tx_fifo_trg_lvl     = RTE_I2S2_TX_TRIG_LVL,
     .irq_priority        = RTE_I2S2_IRQ_PRI,
+#if RTE_I2S2_DMA_ENABLE
     .dma_enable          = RTE_I2S2_DMA_ENABLE,
     .dma_irq_priority    = RTE_I2S2_DMA_IRQ_PRI,
-    .ext_clk_src_enable  = RTE_I2S2_EXT_CLOCK_SOURCE_ENABLE,
-#if RTE_I2S2_EXT_CLOCK_SOURCE_ENABLE
-    .clk_source          = RTE_I2S2_EXT_CLOCK_SOURCE,
-#else
-    .clk_source          = I2S_CLK_SOURCE_76P8M_IN_HZ,
 #endif
+    .clk_source          = I2S_CLK_SOURCE_76P8M_IN_HZ,
 };
 
+#if RTE_I2S2_DMA_ENABLE
+static void I2S2_DMACallback (uint32_t event, int8_t peri_num);
 static I2S_DMA_HW_CONFIG I2S2_DMA_HW_CONFIG = {
     .dma_rx =
     {
@@ -2171,13 +1764,16 @@ static I2S_DMA_HW_CONFIG I2S2_DMA_HW_CONFIG = {
         },
     },
 };
+#endif
 
-static I2S_DRV_INFO I2S2 = {
+static I2S_RESOURCES I2S2 = {
     .cb_event  = NULL,
-    .dma_cb    = I2S2_DMACallback,
     .cfg       = &I2S2_CONFIG,
+#if RTE_I2S2_DMA_ENABLE
+    .dma_cb    = I2S2_DMACallback,
     .dma_cfg   = &I2S2_DMA_HW_CONFIG,
-    .paddr     = (I2S_TypeDef *) I2S2_BASE,
+#endif
+    .regs      = (I2S_Type *) I2S2_BASE,
     .instance  =  I2S_INSTANCE_2,
     .irq       = (IRQn_Type) I2S2_IRQ_IRQn,
     .flags     = 0,
@@ -2185,123 +1781,125 @@ static I2S_DRV_INFO I2S2 = {
 
 
 /**
-  \fn          int32_t I2S2_Initialize (ARM_SAI_SignalEvent_t cb_event)
+  \fn          int32_t I2S2_Initialize(ARM_SAI_SignalEvent_t cb_event)
   \brief       Initialize I2S Interface.
   \param[in]   cb_event  Pointer to \ref ARM_SAI_SignalEvent
-  \return      \ref execution_status
+  \return      \ref      execution_status
 */
-static int32_t I2S2_Initialize (ARM_SAI_SignalEvent_t cb_event)
+static int32_t I2S2_Initialize(ARM_SAI_SignalEvent_t cb_event)
 {
-	return I2S_Initialize (cb_event, &I2S2);
+    return I2S_Initialize(cb_event, &I2S2);
 }
 
 /**
-  \fn          int32_t I2S2_Uninitialize (void)
+  \fn          int32_t I2S2_Uninitialize(void)
   \brief       De-initialize I2S Interface.
   \return      \ref execution_status
 */
-static int32_t I2S2_Uninitialize (void)
+static int32_t I2S2_Uninitialize(void)
 {
-	return I2S_Uninitialize (&I2S2);
+    return I2S_Uninitialize(&I2S2);
 }
 
 /**
-  \fn          int32_t I2S2_PowerControl (ARM_POWER_STATE state)
+  \fn          int32_t I2S2_PowerControl(ARM_POWER_STATE state)
   \brief       Control I2S Interface Power.
   \param[in]   state  Power state
   \return      \ref execution_status
 */
-static int32_t I2S2_PowerControl (ARM_POWER_STATE state)
+static int32_t I2S2_PowerControl(ARM_POWER_STATE state)
 {
-	return I2S_PowerControl (state, &I2S2);
+    return I2S_PowerControl(state, &I2S2);
 }
 
 /**
-  \fn          int32_t I2S2_Send (const void *data, uint32_t num)
+  \fn          int32_t I2S2_Send(const void *data, uint32_t num)
   \brief       Start sending data to I2S transmitter.
   \param[in]   data  Pointer to buffer with data to send to I2S transmitter
   \param[in]   num   Number of data items to send
-  \return      \ref execution_status
+  \return      \ref  execution_status
 */
-static int32_t I2S2_Send (const void *data, uint32_t num)
+static int32_t I2S2_Send(const void *data, uint32_t num)
 {
-	return I2S_Send (data, num, &I2S2);
+    return I2S_Send(data, num, &I2S2);
 }
 
 /**
-  \fn          int32_t I2S2_Receive (void *data, uint32_t num)
+  \fn          int32_t I2S2_Receive(void *data, uint32_t num)
   \brief       Start receiving data from I2S receiver.
   \param[out]  data  Pointer to buffer for data to receive from I2S receiver
   \param[in]   num   Number of data items to receive
   \return      \ref execution_status
 */
-static int32_t I2S2_Receive (void *data, uint32_t num)
+static int32_t I2S2_Receive(void *data, uint32_t num)
 {
-	return I2S_Receive (data, num, &I2S2);
+    return I2S_Receive(data, num, &I2S2);
 }
 
 /**
-  \fn          uint32_t I2S2_GetTxCount (void)
+  \fn          uint32_t I2S2_GetTxCount(void)
   \brief       Get transmitted data count.
   \return      number of data items transmitted
 */
-static uint32_t I2S2_GetTxCount (void)
+static uint32_t I2S2_GetTxCount(void)
 {
-	return I2S_GetTxCount (&I2S2);
+    return I2S_GetTxCount(&I2S2);
 }
 
 /**
-  \fn          uint32_t I2S2_GetRxCount (void)
+  \fn          uint32_t I2S2_GetRxCount(void)
   \brief       Get received data count.
   \return      number of data items received
 */
-static uint32_t I2S2_GetRxCount (void)
+static uint32_t I2S2_GetRxCount(void)
 {
-	return I2S_GetRxCount (&I2S2);
+    return I2S_GetRxCount(&I2S2);
 }
 
 /**
-  \fn          int32_t I2S2_Control (uint32_t control, uint32_t arg1, uint32_t arg2)
+  \fn          int32_t I2S2_Control(uint32_t control, uint32_t arg1, uint32_t arg2)
   \brief       Control I2S Interface.
   \param[in]   control  Operation
   \param[in]   arg1     Argument 1 of operation (optional)
   \param[in]   arg2     Argument 2 of operation (optional)
   \return      common \ref execution_status and driver specific \ref sai_execution_status
 */
-static int32_t I2S2_Control (uint32_t control, uint32_t arg1, uint32_t arg2)
+static int32_t I2S2_Control(uint32_t control, uint32_t arg1, uint32_t arg2)
 {
-	return I2S_Control (control, arg1, arg2, &I2S2);
+    return I2S_Control(control, arg1, arg2, &I2S2);
 }
 
 /**
-  \fn          ARM_SAI_STATUS I2S2_GetStatus (void)
+  \fn          ARM_SAI_STATUS I2S2_GetStatus(void)
   \brief       Get I2S status.
   \return      SAI status \ref ARM_SAI_STATUS
 */
-static ARM_SAI_STATUS I2S2_GetStatus (void)
+static ARM_SAI_STATUS I2S2_GetStatus(void)
 {
-	return I2S_GetStatus (&I2S2);
+    return I2S_GetStatus(&I2S2);
 }
 
 /**
   \fn          void  I2S2_IRQHandler (void)
   \brief       Run the IRQ Handler for I2S2
 */
-void I2S2_IRQHandler (void)
+void I2S2_IRQHandler(void)
 {
-	I2S_IRQHandler (&I2S2);
+    I2S_IRQHandler(&I2S2);
 }
 
+#if RTE_I2S2_DMA_ENABLE
 /**
-  \fn          void  I2S2_DMACallback (uint32_t event, int8_t peri_num)
+  \fn          void  I2S2_DMACallback(uint32_t event, int8_t peri_num)
   \param[in]   event     Event from DMA
   \param[in]   peri_num  Peripheral number
   \brief       Callback function from DMA for I2S2
 */
-void I2S2_DMACallback (uint32_t event, int8_t peri_num)
+void I2S2_DMACallback(uint32_t event, int8_t peri_num)
 {
-	I2S_DMACallback (event, peri_num, &I2S2);
+    I2S_DMACallback(event, peri_num, &I2S2);
 }
+#endif
 
 /**
 \brief Access structure of the I2S2 Driver.
@@ -2325,24 +1923,21 @@ ARM_DRIVER_SAI Driver_SAI2 = {
 
 #if (RTE_I2S3)
 
-static void I2S3_DMACallback (uint32_t event, int8_t peri_num);
-
 static I2S_CONFIG_INFO I2S3_CONFIG = {
     .wss_len             = RTE_I2S3_WSS_CLOCK_CYCLES,
     .sclkg               = RTE_I2S3_SCLKG_CLOCK_CYCLES,
     .rx_fifo_trg_lvl     = RTE_I2S3_RX_TRIG_LVL,
     .tx_fifo_trg_lvl     = RTE_I2S3_TX_TRIG_LVL,
     .irq_priority        = RTE_I2S3_IRQ_PRI,
+#if RTE_I2S3_DMA_ENABLE
     .dma_enable          = RTE_I2S3_DMA_ENABLE,
     .dma_irq_priority    = RTE_I2S3_DMA_IRQ_PRI,
-    .ext_clk_src_enable  = RTE_I2S3_EXT_CLOCK_SOURCE_ENABLE,
-#if RTE_I2S3_EXT_CLOCK_SOURCE_ENABLE
-    .clk_source          = RTE_I2S3_EXT_CLOCK_SOURCE,
-#else
-    .clk_source          = I2S_CLK_SOURCE_76P8M_IN_HZ,
 #endif
+    .clk_source          = I2S_CLK_SOURCE_76P8M_IN_HZ,
 };
 
+#if RTE_I2S3_DMA_ENABLE
+static void I2S3_DMACallback(uint32_t event, int8_t peri_num);
 static I2S_DMA_HW_CONFIG I2S3_DMA_HW_CONFIG = {
     .dma_rx =
     {
@@ -2369,13 +1964,16 @@ static I2S_DMA_HW_CONFIG I2S3_DMA_HW_CONFIG = {
         },
     },
 };
+#endif
 
-static I2S_DRV_INFO I2S3 = {
+static I2S_RESOURCES I2S3 = {
     .cb_event  = NULL,
-    .dma_cb    = I2S3_DMACallback,
     .cfg       = &I2S3_CONFIG,
+#if RTE_I2S3_DMA_ENABLE
+    .dma_cb    = I2S3_DMACallback,
     .dma_cfg   = &I2S3_DMA_HW_CONFIG,
-    .paddr     = (I2S_TypeDef *) I2S3_BASE,
+#endif
+    .regs      = (I2S_Type *) I2S3_BASE,
     .instance  =  I2S_INSTANCE_3,
     .irq       = (IRQn_Type) I2S3_IRQ_IRQn,
     .flags     = 0,
@@ -2383,123 +1981,125 @@ static I2S_DRV_INFO I2S3 = {
 
 
 /**
-  \fn          int32_t I2S3_Initialize (ARM_SAI_SignalEvent_t cb_event)
+  \fn          int32_t I2S3_Initialize(ARM_SAI_SignalEvent_t cb_event)
   \brief       Initialize I2S Interface.
   \param[in]   cb_event  Pointer to \ref ARM_SAI_SignalEvent
-  \return      \ref execution_status
+  \return      \ref      execution_status
 */
-static int32_t I2S3_Initialize (ARM_SAI_SignalEvent_t cb_event)
+static int32_t I2S3_Initialize(ARM_SAI_SignalEvent_t cb_event)
 {
-	return I2S_Initialize (cb_event, &I2S3);
+    return I2S_Initialize(cb_event, &I2S3);
 }
 
 /**
-  \fn          int32_t I2S3_Uninitialize (void)
+  \fn          int32_t I2S3_Uninitialize(void)
   \brief       De-initialize I2S Interface.
   \return      \ref execution_status
 */
-static int32_t I2S3_Uninitialize (void)
+static int32_t I2S3_Uninitialize(void)
 {
-	return I2S_Uninitialize (&I2S3);
+    return I2S_Uninitialize(&I2S3);
 }
 
 /**
-  \fn          int32_t I2S3_PowerControl (ARM_POWER_STATE state)
+  \fn          int32_t I2S3_PowerControl(ARM_POWER_STATE state)
   \brief       Control I2S Interface Power.
   \param[in]   state  Power state
   \return      \ref execution_status
 */
-static int32_t I2S3_PowerControl (ARM_POWER_STATE state)
+static int32_t I2S3_PowerControl(ARM_POWER_STATE state)
 {
-	return I2S_PowerControl (state, &I2S3);
+    return I2S_PowerControl(state, &I2S3);
 }
 
 /**
-  \fn          int32_t I2S3_Send (const void *data, uint32_t num)
+  \fn          int32_t I2S3_Send(const void *data, uint32_t num)
   \brief       Start sending data to I2S transmitter.
   \param[in]   data  Pointer to buffer with data to send to I2S transmitter
   \param[in]   num   Number of data items to send
-  \return      \ref execution_status
+  \return      \ref  execution_status
 */
-static int32_t I2S3_Send (const void *data, uint32_t num)
+static int32_t I2S3_Send(const void *data, uint32_t num)
 {
-	return I2S_Send (data, num, &I2S3);
+    return I2S_Send(data, num, &I2S3);
 }
 
 /**
-  \fn          int32_t I2S3_Receive (void *data, uint32_t num)
+  \fn          int32_t I2S3_Receive(void *data, uint32_t num)
   \brief       Start receiving data from I2S receiver.
   \param[out]  data  Pointer to buffer for data to receive from I2S receiver
   \param[in]   num   Number of data items to receive
-  \return      \ref execution_status
+  \return      \ref  execution_status
 */
-static int32_t I2S3_Receive (void *data, uint32_t num)
+static int32_t I2S3_Receive(void *data, uint32_t num)
 {
-	return I2S_Receive (data, num, &I2S3);
+    return I2S_Receive(data, num, &I2S3);
 }
 
 /**
-  \fn          uint32_t I2S3_GetTxCount (void)
+  \fn          uint32_t I2S3_GetTxCount(void)
   \brief       Get transmitted data count.
   \return      number of data items transmitted
 */
-static uint32_t I2S3_GetTxCount (void)
+static uint32_t I2S3_GetTxCount(void)
 {
-	return I2S_GetTxCount (&I2S3);
+    return I2S_GetTxCount(&I2S3);
 }
 
 /**
-  \fn          uint32_t I2S3_GetRxCount (void)
+  \fn          uint32_t I2S3_GetRxCount(void)
   \brief       Get received data count.
   \return      number of data items received
 */
-static uint32_t I2S3_GetRxCount (void)
+static uint32_t I2S3_GetRxCount(void)
 {
-	return I2S_GetRxCount (&I2S3);
+    return I2S_GetRxCount(&I2S3);
 }
 
 /**
-  \fn          int32_t I2S3_Control (uint32_t control, uint32_t arg1, uint32_t arg2)
+  \fn          int32_t I2S3_Control(uint32_t control, uint32_t arg1, uint32_t arg2)
   \brief       Control I2S Interface.
   \param[in]   control  Operation
   \param[in]   arg1     Argument 1 of operation (optional)
   \param[in]   arg2     Argument 2 of operation (optional)
   \return      common \ref execution_status and driver specific \ref sai_execution_status
 */
-static int32_t I2S3_Control (uint32_t control, uint32_t arg1, uint32_t arg2)
+static int32_t I2S3_Control(uint32_t control, uint32_t arg1, uint32_t arg2)
 {
-	return I2S_Control (control, arg1, arg2, &I2S3);
+    return I2S_Control(control, arg1, arg2, &I2S3);
 }
 
 /**
-  \fn          ARM_SAI_STATUS I2S3_GetStatus (void)
+  \fn          ARM_SAI_STATUS I2S3_GetStatus(void)
   \brief       Get I2S status.
   \return      SAI status \ref ARM_SAI_STATUS
 */
-static ARM_SAI_STATUS I2S3_GetStatus (void)
+static ARM_SAI_STATUS I2S3_GetStatus(void)
 {
-	return I2S_GetStatus (&I2S3);
+    return I2S_GetStatus(&I2S3);
 }
 
 /**
-  \fn          void  I2S3_IRQHandler (void)
+  \fn          void  I2S3_IRQHandler(void)
   \brief       Run the IRQ Handler for I2S3
 */
-void I2S3_IRQHandler (void)
+void I2S3_IRQHandler(void)
 {
-	I2S_IRQHandler (&I2S3);
+    I2S_IRQHandler(&I2S3);
 }
 
+#if RTE_I2S3_DMA_ENABLE
 /**
-  \fn          void  I2S3_DMACallback (uint32_t event, int8_t peri_num)
+  \fn          void  I2S3_DMACallback(uint32_t event, int8_t peri_num)
   \param[in]   event     Event from DMA
   \param[in]   peri_num  Peripheral number
   \brief       Callback function from DMA for I2S3
 */
-void I2S3_DMACallback (uint32_t event, int8_t peri_num)
+void I2S3_DMACallback(uint32_t event, int8_t peri_num)
 {
-	I2S_DMACallback (event, peri_num, &I2S3);
+    I2S_DMACallback(event, peri_num, &I2S3);
 }
+#endif
 
 /**
 \brief Access structure of the I2S3 Driver.
@@ -2523,24 +2123,21 @@ ARM_DRIVER_SAI Driver_SAI3 = {
 
 #if (RTE_LPI2S)
 
-static void LPI2S_DMACallback (uint32_t event, int8_t peri_num);
-
 static I2S_CONFIG_INFO LPI2S_CONFIG = {
-    .wss_len          = RTE_LPI2S_WSS_CLOCK_CYCLES,
-    .sclkg            = RTE_LPI2S_SCLKG_CLOCK_CYCLES,
-    .rx_fifo_trg_lvl  = RTE_LPI2S_RX_TRIG_LVL,
-    .tx_fifo_trg_lvl  = RTE_LPI2S_TX_TRIG_LVL,
-    .irq_priority     = RTE_LPI2S_IRQ_PRI,
-    .dma_enable       = RTE_LPI2S_DMA_ENABLE,
-    .dma_irq_priority = RTE_LPI2S_DMA_IRQ_PRI,
-    .ext_clk_src_enable  = RTE_LPI2S_EXT_CLOCK_SOURCE_ENABLE,
-#if RTE_LPI2S_EXT_CLOCK_SOURCE_ENABLE
-    .clk_source          = RTE_LPI2S_EXT_CLOCK_SOURCE,
-#else
-    .clk_source          = I2S_CLK_SOURCE_76P8M_IN_HZ,
+    .wss_len             = RTE_LPI2S_WSS_CLOCK_CYCLES,
+    .sclkg               = RTE_LPI2S_SCLKG_CLOCK_CYCLES,
+    .rx_fifo_trg_lvl     = RTE_LPI2S_RX_TRIG_LVL,
+    .tx_fifo_trg_lvl     = RTE_LPI2S_TX_TRIG_LVL,
+    .irq_priority        = RTE_LPI2S_IRQ_PRI,
+#if RTE_LPI2S_DMA_ENABLE
+    .dma_enable          = RTE_LPI2S_DMA_ENABLE,
+    .dma_irq_priority    = RTE_LPI2S_DMA_IRQ_PRI,
 #endif
+    .clk_source          = I2S_CLK_SOURCE_76P8M_IN_HZ,
 };
 
+#if RTE_LPI2S_DMA_ENABLE
+static void LPI2S_DMACallback(uint32_t event, int8_t peri_num);
 static I2S_DMA_HW_CONFIG LPI2S_DMA_HW_CONFIG = {
     .dma_rx =
     {
@@ -2567,13 +2164,16 @@ static I2S_DMA_HW_CONFIG LPI2S_DMA_HW_CONFIG = {
         },
     },
 };
+#endif
 
-static I2S_DRV_INFO LPI2S = {
+static I2S_RESOURCES LPI2S = {
     .cb_event  = NULL,
-    .dma_cb    = LPI2S_DMACallback,
     .cfg       = &LPI2S_CONFIG,
+#if RTE_LPI2S_DMA_ENABLE
+    .dma_cb    = LPI2S_DMACallback,
     .dma_cfg   = &LPI2S_DMA_HW_CONFIG,
-    .paddr     = (I2S_TypeDef *) LPI2S_BASE,
+#endif
+    .regs      = (I2S_Type *) LPI2S_BASE,
     .instance  = I2S_INSTANCE_LP,
     .irq       = (IRQn_Type) LPI2S_IRQ_IRQn,
     .flags     = 0,
@@ -2581,123 +2181,125 @@ static I2S_DRV_INFO LPI2S = {
 
 
 /**
-  \fn          int32_t LPI2S_Initialize (ARM_SAI_SignalEvent_t cb_event)
+  \fn          int32_t LPI2S_Initialize(ARM_SAI_SignalEvent_t cb_event)
   \brief       Initialize I2S Interface.
   \param[in]   cb_event  Pointer to \ref ARM_SAI_SignalEvent
-  \return      \ref execution_status
+  \return      \ref      execution_status
 */
-static int32_t LPI2S_Initialize (ARM_SAI_SignalEvent_t cb_event)
+static int32_t LPI2S_Initialize(ARM_SAI_SignalEvent_t cb_event)
 {
-	return I2S_Initialize (cb_event, &LPI2S);
+    return I2S_Initialize(cb_event, &LPI2S);
 }
 
 /**
-  \fn          int32_t LPI2S_Uninitialize (void)
+  \fn          int32_t LPI2S_Uninitialize(void)
   \brief       De-initialize I2S Interface.
   \return      \ref execution_status
 */
-static int32_t LPI2S_Uninitialize (void)
+static int32_t LPI2S_Uninitialize(void)
 {
-	return I2S_Uninitialize (&LPI2S);
+    return I2S_Uninitialize(&LPI2S);
 }
 
 /**
-  \fn          int32_t LPI2S_PowerControl (ARM_POWER_STATE state)
+  \fn          int32_t LPI2S_PowerControl(ARM_POWER_STATE state)
   \brief       Control I2S Interface Power.
   \param[in]   state  Power state
   \return      \ref execution_status
 */
-static int32_t LPI2S_PowerControl (ARM_POWER_STATE state)
+static int32_t LPI2S_PowerControl(ARM_POWER_STATE state)
 {
-	return I2S_PowerControl (state, &LPI2S);
+    return I2S_PowerControl(state, &LPI2S);
 }
 
 /**
-  \fn          int32_t LPI2S_Send (const void *data, uint32_t num)
+  \fn          int32_t LPI2S_Send(const void *data, uint32_t num)
   \brief       Start sending data to I2S transmitter.
   \param[in]   data  Pointer to buffer with data to send to I2S transmitter
   \param[in]   num   Number of data items to send
-  \return      \ref execution_status
+  \return      \ref  execution_status
 */
-static int32_t LPI2S_Send (const void *data, uint32_t num)
+static int32_t LPI2S_Send(const void *data, uint32_t num)
 {
-	return I2S_Send (data, num, &LPI2S);
+    return I2S_Send(data, num, &LPI2S);
 }
 
 /**
-  \fn          int32_t LPI2S_Receive (void *data, uint32_t num)
+  \fn          int32_t LPI2S_Receive(void *data, uint32_t num)
   \brief       Start receiving data from I2S receiver.
   \param[out]  data  Pointer to buffer for data to receive from I2S receiver
   \param[in]   num   Number of data items to receive
-  \return      \ref execution_status
+  \return      \ref  execution_status
 */
-static int32_t LPI2S_Receive (void *data, uint32_t num)
+static int32_t LPI2S_Receive(void *data, uint32_t num)
 {
-	return I2S_Receive (data, num, &LPI2S);
+    return I2S_Receive(data, num, &LPI2S);
 }
 
 /**
-  \fn          uint32_t LPI2S_GetTxCount (void)
+  \fn          uint32_t LPI2S_GetTxCount(void)
   \brief       Get transmitted data count.
   \return      number of data items transmitted
 */
-static uint32_t LPI2S_GetTxCount (void)
+static uint32_t LPI2S_GetTxCount(void)
 {
-	return I2S_GetTxCount (&LPI2S);
+    return I2S_GetTxCount(&LPI2S);
 }
 
 /**
-  \fn          uint32_t LPI2S_GetRxCount (void)
+  \fn          uint32_t LPI2S_GetRxCount(void)
   \brief       Get received data count.
   \return      number of data items received
 */
-static uint32_t LPI2S_GetRxCount (void)
+static uint32_t LPI2S_GetRxCount(void)
 {
-	return I2S_GetRxCount (&LPI2S);
+    return I2S_GetRxCount(&LPI2S);
 }
 
 /**
-  \fn          int32_t LPI2S_Control (uint32_t control, uint32_t arg1, uint32_t arg2)
+  \fn          int32_t LPI2S_Control(uint32_t control, uint32_t arg1, uint32_t arg2)
   \brief       Control I2S Interface.
   \param[in]   control  Operation
   \param[in]   arg1     Argument 1 of operation (optional)
   \param[in]   arg2     Argument 2 of operation (optional)
   \return      common \ref execution_status and driver specific \ref sai_execution_status
 */
-static int32_t LPI2S_Control (uint32_t control, uint32_t arg1, uint32_t arg2)
+static int32_t LPI2S_Control(uint32_t control, uint32_t arg1, uint32_t arg2)
 {
-	return I2S_Control (control, arg1, arg2, &LPI2S);
+    return I2S_Control(control, arg1, arg2, &LPI2S);
 }
 
 /**
-  \fn          ARM_SAI_STATUS LPI2S_GetStatus (void)
+  \fn          ARM_SAI_STATUS LPI2S_GetStatus(void)
   \brief       Get I2S status.
   \return      SAI status \ref ARM_SAI_STATUS
 */
-static ARM_SAI_STATUS LPI2S_GetStatus (void)
+static ARM_SAI_STATUS LPI2S_GetStatus(void)
 {
-	return I2S_GetStatus (&LPI2S);
+    return I2S_GetStatus(&LPI2S);
 }
 
 /**
-  \fn          void  LPI2S_IRQHandler (void)
+  \fn          void  LPI2S_IRQHandler(void)
   \brief       Run the IRQ Handler for LPI2S
 */
-void LPI2S_IRQHandler (void)
+void LPI2S_IRQHandler(void)
 {
-	I2S_IRQHandler (&LPI2S);
+    I2S_IRQHandler(&LPI2S);
 }
 
+#if RTE_LPI2S_DMA_ENABLE
 /**
-  \fn          void  LPI2S_DMACallback (uint32_t event, int8_t peri_num)
+  \fn          void  LPI2S_DMACallback(uint32_t event, int8_t peri_num)
   \param[in]   event     Event from DMA
   \param[in]   peri_num  Peripheral number
   \brief       Callback function from DMA for LPI2S
 */
-void LPI2S_DMACallback (uint32_t event, int8_t peri_num)
+void LPI2S_DMACallback(uint32_t event, int8_t peri_num)
 {
-	I2S_DMACallback (event, peri_num, &LPI2S);
+    I2S_DMACallback(event, peri_num, &LPI2S);
 }
+#endif
 
 /**
 \brief Access structure of the Low Power I2S Driver.

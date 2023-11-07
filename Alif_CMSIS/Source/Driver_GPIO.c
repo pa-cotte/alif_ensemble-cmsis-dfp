@@ -362,6 +362,8 @@ static int32_t GPIO_Control (GPIO_RESOURCES *GPIO, uint8_t pin_no, GPIO_OPERATIO
                 }
             }
 
+            gpio_interrupt_eoi(GPIO->reg_base, pin_no);
+
             NVIC_ClearPendingIRQ (GPIO->IRQ_base_num + pin_no);
             NVIC_SetPriority ((GPIO->IRQ_base_num + pin_no), GPIO->IRQ_priority[pin_no]);
             NVIC_EnableIRQ (GPIO->IRQ_base_num + pin_no);
@@ -400,6 +402,38 @@ static int32_t GPIO_Control (GPIO_RESOURCES *GPIO, uint8_t pin_no, GPIO_OPERATIO
             *arg = gpio_read_config2 (GPIO->reg_base);
             break;
         }
+        case ARM_GPIO_CONFIG_FLEXIO :
+        {
+            if (GPIO->gpio_id == LPGPIO_INSTANCE)
+            {
+                if (!(lpgpio_is_flexio (pin_no)))
+                {
+                    return ARM_DRIVER_ERROR_UNSUPPORTED;
+                }
+            }
+            else
+            {
+                if (!(gpio_is_flexio (pin_no)))
+                {
+                    return ARM_DRIVER_ERROR_UNSUPPORTED;
+                }
+            }
+
+            if (!arg)
+            {
+                return ARM_DRIVER_ERROR_PARAMETER;
+            }
+
+            if (*arg)
+            {
+                set_flexio_gpio_voltage_1v8();
+            }
+            else
+            {
+                set_flexio_gpio_voltage_3v3();
+            }
+            break;
+        }
         default:
         {
             return ARM_DRIVER_ERROR;
@@ -430,6 +464,8 @@ static int32_t GPIO_Uninitialize (GPIO_RESOURCES *GPIO, uint8_t pin_no)
 
     GPIO->cb_event[pin_no] = NULL;
 
+    GPIO->state.initialized = 0;
+
     return ARM_DRIVER_OK;
 }
 
@@ -455,7 +491,7 @@ static void GPIO_IRQ_Handler (GPIO_RESOURCES *GPIO, uint8_t pin_no)
 /**<GPIO Instance 0>*/
 #if RTE_GPIO0
 static GPIO_RESOURCES GPIO0_RES = {
-    .reg_base = (LPGPIO_Type*) GPIO0_BASE,
+    .reg_base = (GPIO_Type*) GPIO0_BASE,
     .IRQ_base_num = GPIO0_IRQ0_IRQn,
     .gpio_id = GPIO0_INSTANCE,
     .db_clkdiv = RTE_GPIO0_DB_CLK_DIV,
@@ -471,28 +507,20 @@ static GPIO_RESOURCES GPIO0_RES = {
     }
 };
 
-extern void GPIO0_IRQ0Handler  (void);
 void GPIO0_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO0_RES, 0);    }
 
-extern void GPIO0_IRQ1Handler  (void);
 void GPIO0_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO0_RES, 1);    }
 
-extern void GPIO0_IRQ2Handler  (void);
 void GPIO0_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO0_RES, 2);    }
 
-extern void GPIO0_IRQ3Handler  (void);
 void GPIO0_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO0_RES, 3);    }
 
-extern void GPIO0_IRQ4Handler  (void);
 void GPIO0_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO0_RES, 4);    }
 
-extern void GPIO0_IRQ5Handler  (void);
 void GPIO0_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO0_RES, 5);    }
 
-extern void GPIO0_IRQ6Handler  (void);
 void GPIO0_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO0_RES, 6);    }
 
-extern void GPIO0_IRQ7Handler  (void);
 void GPIO0_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO0_RES, 7);    }
 
 
@@ -553,7 +581,7 @@ ARM_DRIVER_GPIO Driver_GPIO0 = {
 /**<GPIO Instance 1>*/
 #if RTE_GPIO1
 static GPIO_RESOURCES GPIO1_RES = {
-    .reg_base = (LPGPIO_Type*) GPIO1_BASE,
+    .reg_base = (GPIO_Type*) GPIO1_BASE,
     .IRQ_base_num = GPIO1_IRQ0_IRQn,
     .gpio_id = GPIO1_INSTANCE,
     .db_clkdiv = RTE_GPIO1_DB_CLK_DIV,
@@ -569,28 +597,20 @@ static GPIO_RESOURCES GPIO1_RES = {
     }
 };
 
-extern void GPIO1_IRQ0Handler  (void);
 void GPIO1_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO1_RES, 0);    }
 
-extern void GPIO1_IRQ1Handler  (void);
 void GPIO1_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO1_RES, 1);    }
 
-extern void GPIO1_IRQ2Handler  (void);
 void GPIO1_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO1_RES, 2);    }
 
-extern void GPIO1_IRQ3Handler  (void);
 void GPIO1_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO1_RES, 3);    }
 
-extern void GPIO1_IRQ4Handler  (void);
 void GPIO1_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO1_RES, 4);    }
 
-extern void GPIO1_IRQ5Handler  (void);
 void GPIO1_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO1_RES, 5);    }
 
-extern void GPIO1_IRQ6Handler  (void);
 void GPIO1_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO1_RES, 6);    }
 
-extern void GPIO1_IRQ7Handler  (void);
 void GPIO1_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO1_RES, 7);    }
 
 static int32_t ARM_GPIO1_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
@@ -650,7 +670,7 @@ ARM_DRIVER_GPIO Driver_GPIO1 = {
 /**<GPIO Instance 2>*/
 #if RTE_GPIO2
 static GPIO_RESOURCES GPIO2_RES = {
-    .reg_base = (LPGPIO_Type*) GPIO2_BASE,
+    .reg_base = (GPIO_Type*) GPIO2_BASE,
     .IRQ_base_num = GPIO2_IRQ0_IRQn,
     .gpio_id = GPIO2_INSTANCE,
     .db_clkdiv = RTE_GPIO2_DB_CLK_DIV,
@@ -666,28 +686,20 @@ static GPIO_RESOURCES GPIO2_RES = {
     }
 };
 
-extern void GPIO2_IRQ0Handler  (void);
 void GPIO2_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO2_RES, 0);    }
 
-extern void GPIO2_IRQ1Handler  (void);
 void GPIO2_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO2_RES, 1);    }
 
-extern void GPIO2_IRQ2Handler  (void);
 void GPIO2_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO2_RES, 2);    }
 
-extern void GPIO2_IRQ3Handler  (void);
 void GPIO2_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO2_RES, 3);    }
 
-extern void GPIO2_IRQ4Handler  (void);
 void GPIO2_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO2_RES, 4);    }
 
-extern void GPIO2_IRQ5Handler  (void);
 void GPIO2_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO2_RES, 5);    }
 
-extern void GPIO2_IRQ6Handler  (void);
 void GPIO2_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO2_RES, 6);    }
 
-extern void GPIO2_IRQ7Handler  (void);
 void GPIO2_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO2_RES, 7);    }
 
 static int32_t ARM_GPIO2_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
@@ -747,7 +759,7 @@ ARM_DRIVER_GPIO Driver_GPIO2 = {
 /**<GPIO Instance 3>*/
 #if RTE_GPIO3
 static GPIO_RESOURCES GPIO3_RES = {
-    .reg_base = (LPGPIO_Type*) GPIO3_BASE,
+    .reg_base = (GPIO_Type*) GPIO3_BASE,
     .IRQ_base_num = GPIO3_IRQ0_IRQn,
     .gpio_id = GPIO3_INSTANCE,
     .db_clkdiv = RTE_GPIO3_DB_CLK_DIV,
@@ -763,28 +775,20 @@ static GPIO_RESOURCES GPIO3_RES = {
     }
 };
 
-extern void GPIO3_IRQ0Handler  (void);
 void GPIO3_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO3_RES, 0);    }
 
-extern void GPIO3_IRQ1Handler  (void);
 void GPIO3_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO3_RES, 1);    }
 
-extern void GPIO3_IRQ2Handler  (void);
 void GPIO3_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO3_RES, 2);    }
 
-extern void GPIO3_IRQ3Handler  (void);
 void GPIO3_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO3_RES, 3);    }
 
-extern void GPIO3_IRQ4Handler  (void);
 void GPIO3_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO3_RES, 4);    }
 
-extern void GPIO3_IRQ5Handler  (void);
 void GPIO3_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO3_RES, 5);    }
 
-extern void GPIO3_IRQ6Handler  (void);
 void GPIO3_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO3_RES, 6);    }
 
-extern void GPIO3_IRQ7Handler  (void);
 void GPIO3_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO3_RES, 7);    }
 
 static int32_t ARM_GPIO3_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
@@ -844,7 +848,7 @@ ARM_DRIVER_GPIO Driver_GPIO3 = {
 /**<GPIO Instance 4>*/
 #if RTE_GPIO4
 static GPIO_RESOURCES GPIO4_RES = {
-    .reg_base = (LPGPIO_Type*) GPIO4_BASE,
+    .reg_base = (GPIO_Type*) GPIO4_BASE,
     .IRQ_base_num = GPIO4_IRQ0_IRQn,
     .gpio_id = GPIO4_INSTANCE,
     .db_clkdiv = RTE_GPIO4_DB_CLK_DIV,
@@ -860,28 +864,20 @@ static GPIO_RESOURCES GPIO4_RES = {
     }
 };
 
-extern void GPIO4_IRQ0Handler  (void);
 void GPIO4_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO4_RES, 0);    }
 
-extern void GPIO4_IRQ1Handler  (void);
 void GPIO4_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO4_RES, 1);    }
 
-extern void GPIO4_IRQ2Handler  (void);
 void GPIO4_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO4_RES, 2);    }
 
-extern void GPIO4_IRQ3Handler  (void);
 void GPIO4_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO4_RES, 3);    }
 
-extern void GPIO4_IRQ4Handler  (void);
 void GPIO4_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO4_RES, 4);    }
 
-extern void GPIO4_IRQ5Handler  (void);
 void GPIO4_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO4_RES, 5);    }
 
-extern void GPIO4_IRQ6Handler  (void);
 void GPIO4_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO4_RES, 6);    }
 
-extern void GPIO4_IRQ7Handler  (void);
 void GPIO4_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO4_RES, 7);    }
 
 static int32_t ARM_GPIO4_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
@@ -942,7 +938,7 @@ ARM_DRIVER_GPIO Driver_GPIO4 = {
 /**<GPIO Instance 5>*/
 #if RTE_GPIO5
 static GPIO_RESOURCES GPIO5_RES = {
-    .reg_base = (LPGPIO_Type*) GPIO5_BASE,
+    .reg_base = (GPIO_Type*) GPIO5_BASE,
     .IRQ_base_num = GPIO5_IRQ0_IRQn,
     .gpio_id = GPIO5_INSTANCE,
     .db_clkdiv = RTE_GPIO5_DB_CLK_DIV,
@@ -958,28 +954,20 @@ static GPIO_RESOURCES GPIO5_RES = {
     }
 };
 
-extern void GPIO5_IRQ0Handler  (void);
 void GPIO5_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO5_RES, 0);    }
 
-extern void GPIO5_IRQ1Handler  (void);
 void GPIO5_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO5_RES, 1);    }
 
-extern void GPIO5_IRQ2Handler  (void);
 void GPIO5_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO5_RES, 2);    }
 
-extern void GPIO5_IRQ3Handler  (void);
 void GPIO5_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO5_RES, 3);    }
 
-extern void GPIO5_IRQ4Handler  (void);
 void GPIO5_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO5_RES, 4);    }
 
-extern void GPIO5_IRQ5Handler  (void);
 void GPIO5_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO5_RES, 5);    }
 
-extern void GPIO5_IRQ6Handler  (void);
 void GPIO5_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO5_RES, 6);    }
 
-extern void GPIO5_IRQ7Handler  (void);
 void GPIO5_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO5_RES, 7);    }
 
 static int32_t ARM_GPIO5_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
@@ -1040,7 +1028,7 @@ ARM_DRIVER_GPIO Driver_GPIO5 = {
 /**<GPIO Instance 6>*/
 #if RTE_GPIO6
 static GPIO_RESOURCES GPIO6_RES = {
-    .reg_base = (LPGPIO_Type*) GPIO6_BASE,
+    .reg_base = (GPIO_Type*) GPIO6_BASE,
     .IRQ_base_num = GPIO6_IRQ0_IRQn,
     .gpio_id = GPIO6_INSTANCE,
     .db_clkdiv = RTE_GPIO6_DB_CLK_DIV,
@@ -1056,28 +1044,20 @@ static GPIO_RESOURCES GPIO6_RES = {
     }
 };
 
-extern void GPIO6_IRQ0Handler  (void);
 void GPIO6_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO6_RES, 0);    }
 
-extern void GPIO6_IRQ1Handler  (void);
 void GPIO6_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO6_RES, 1);    }
 
-extern void GPIO6_IRQ2Handler  (void);
 void GPIO6_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO6_RES, 2);    }
 
-extern void GPIO6_IRQ3Handler  (void);
 void GPIO6_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO6_RES, 3);    }
 
-extern void GPIO6_IRQ4Handler  (void);
 void GPIO6_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO6_RES, 4);    }
 
-extern void GPIO6_IRQ5Handler  (void);
 void GPIO6_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO6_RES, 5);    }
 
-extern void GPIO6_IRQ6Handler  (void);
 void GPIO6_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO6_RES, 6);    }
 
-extern void GPIO6_IRQ7Handler  (void);
 void GPIO6_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO6_RES, 7);    }
 
 static int32_t ARM_GPIO6_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
@@ -1138,7 +1118,7 @@ ARM_DRIVER_GPIO Driver_GPIO6 = {
 /**<GPIO Instance 7>*/
 #if RTE_GPIO7
 static GPIO_RESOURCES GPIO7_RES = {
-    .reg_base = (LPGPIO_Type*) GPIO7_BASE,
+    .reg_base = (GPIO_Type*) GPIO7_BASE,
     .IRQ_base_num = GPIO7_IRQ0_IRQn,
     .gpio_id = GPIO7_INSTANCE,
     .db_clkdiv = RTE_GPIO7_DB_CLK_DIV,
@@ -1154,28 +1134,20 @@ static GPIO_RESOURCES GPIO7_RES = {
     }
 };
 
-extern void GPIO7_IRQ0Handler  (void);
 void GPIO7_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO7_RES, 0);    }
 
-extern void GPIO7_IRQ1Handler  (void);
 void GPIO7_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO7_RES, 1);    }
 
-extern void GPIO7_IRQ2Handler  (void);
 void GPIO7_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO7_RES, 2);    }
 
-extern void GPIO7_IRQ3Handler  (void);
 void GPIO7_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO7_RES, 3);    }
 
-extern void GPIO7_IRQ4Handler  (void);
 void GPIO7_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO7_RES, 4);    }
 
-extern void GPIO7_IRQ5Handler  (void);
 void GPIO7_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO7_RES, 5);    }
 
-extern void GPIO7_IRQ6Handler  (void);
 void GPIO7_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO7_RES, 6);    }
 
-extern void GPIO7_IRQ7Handler  (void);
 void GPIO7_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO7_RES, 7);    }
 
 static int32_t ARM_GPIO7_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
@@ -1235,7 +1207,7 @@ ARM_DRIVER_GPIO Driver_GPIO7 = {
 /**<GPIO Instance 8>*/
 #if RTE_GPIO8
 static GPIO_RESOURCES GPIO8_RES = {
-    .reg_base = (LPGPIO_Type*) GPIO8_BASE,
+    .reg_base = (GPIO_Type*) GPIO8_BASE,
     .IRQ_base_num = GPIO8_IRQ0_IRQn,
     .gpio_id = GPIO8_INSTANCE,
     .db_clkdiv = RTE_GPIO8_DB_CLK_DIV,
@@ -1251,28 +1223,20 @@ static GPIO_RESOURCES GPIO8_RES = {
     }
 };
 
-extern void GPIO8_IRQ0Handler  (void);
 void GPIO8_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO8_RES, 0);    }
 
-extern void GPIO8_IRQ1Handler  (void);
 void GPIO8_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO8_RES, 1);    }
 
-extern void GPIO8_IRQ2Handler  (void);
 void GPIO8_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO8_RES, 2);    }
 
-extern void GPIO8_IRQ3Handler  (void);
 void GPIO8_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO8_RES, 3);    }
 
-extern void GPIO8_IRQ4Handler  (void);
 void GPIO8_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO8_RES, 4);    }
 
-extern void GPIO8_IRQ5Handler  (void);
 void GPIO8_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO8_RES, 5);    }
 
-extern void GPIO8_IRQ6Handler  (void);
 void GPIO8_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO8_RES, 6);    }
 
-extern void GPIO8_IRQ7Handler  (void);
 void GPIO8_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO8_RES, 7);    }
 
 static int32_t ARM_GPIO8_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
@@ -1332,7 +1296,7 @@ ARM_DRIVER_GPIO Driver_GPIO8 = {
 /**<GPIO Instance 9>*/
 #if RTE_GPIO9
 static GPIO_RESOURCES GPIO9_RES = {
-    .reg_base = (LPGPIO_Type*) GPIO9_BASE,
+    .reg_base = (GPIO_Type*) GPIO9_BASE,
     .IRQ_base_num = GPIO9_IRQ0_IRQn,
     .gpio_id = GPIO9_INSTANCE,
     .db_clkdiv = RTE_GPIO9_DB_CLK_DIV,
@@ -1348,28 +1312,20 @@ static GPIO_RESOURCES GPIO9_RES = {
     }
 };
 
-extern void GPIO9_IRQ0Handler  (void);
 void GPIO9_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO9_RES, 0);    }
 
-extern void GPIO9_IRQ1Handler  (void);
 void GPIO9_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO9_RES, 1);    }
 
-extern void GPIO9_IRQ2Handler  (void);
 void GPIO9_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO9_RES, 2);    }
 
-extern void GPIO9_IRQ3Handler  (void);
 void GPIO9_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO9_RES, 3);    }
 
-extern void GPIO9_IRQ4Handler  (void);
 void GPIO9_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO9_RES, 4);    }
 
-extern void GPIO9_IRQ5Handler  (void);
 void GPIO9_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO9_RES, 5);    }
 
-extern void GPIO9_IRQ6Handler  (void);
 void GPIO9_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO9_RES, 6);    }
 
-extern void GPIO9_IRQ7Handler  (void);
 void GPIO9_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO9_RES, 7);    }
 
 static int32_t ARM_GPIO9_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
@@ -1429,7 +1385,7 @@ ARM_DRIVER_GPIO Driver_GPIO9 = {
 /**<GPIO Instance 10>*/
 #if RTE_GPIO10
 static GPIO_RESOURCES GPIO10_RES = {
-    .reg_base = (LPGPIO_Type*) GPIO10_BASE,
+    .reg_base = (GPIO_Type*) GPIO10_BASE,
     .IRQ_base_num = GPIO10_IRQ0_IRQn,
     .gpio_id = GPIO10_INSTANCE,
     .db_clkdiv = RTE_GPIO10_DB_CLK_DIV,
@@ -1445,28 +1401,20 @@ static GPIO_RESOURCES GPIO10_RES = {
     }
 };
 
-extern void GPIO10_IRQ0Handler  (void);
 void GPIO10_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO10_RES, 0);    }
 
-extern void GPIO10_IRQ1Handler  (void);
 void GPIO10_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO10_RES, 1);    }
 
-extern void GPIO10_IRQ2Handler  (void);
 void GPIO10_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO10_RES, 2);    }
 
-extern void GPIO10_IRQ3Handler  (void);
 void GPIO10_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO10_RES, 3);    }
 
-extern void GPIO10_IRQ4Handler  (void);
 void GPIO10_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO10_RES, 4);    }
 
-extern void GPIO10_IRQ5Handler  (void);
 void GPIO10_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO10_RES, 5);    }
 
-extern void GPIO10_IRQ6Handler  (void);
 void GPIO10_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO10_RES, 6);    }
 
-extern void GPIO10_IRQ7Handler  (void);
 void GPIO10_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO10_RES, 7);    }
 
 static int32_t ARM_GPIO10_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
@@ -1526,7 +1474,7 @@ ARM_DRIVER_GPIO Driver_GPIO10 = {
 /**<GPIO Instance 11>*/
 #if RTE_GPIO11
 static GPIO_RESOURCES GPIO11_RES = {
-    .reg_base = (LPGPIO_Type*) GPIO11_BASE,
+    .reg_base = (GPIO_Type*) GPIO11_BASE,
     .IRQ_base_num = GPIO11_IRQ0_IRQn,
     .gpio_id = GPIO11_INSTANCE,
     .db_clkdiv = RTE_GPIO11_DB_CLK_DIV,
@@ -1542,28 +1490,20 @@ static GPIO_RESOURCES GPIO11_RES = {
     }
 };
 
-extern void GPIO11_IRQ0Handler  (void);
 void GPIO11_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO11_RES, 0);    }
 
-extern void GPIO11_IRQ1Handler  (void);
 void GPIO11_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO11_RES, 1);    }
 
-extern void GPIO11_IRQ2Handler  (void);
 void GPIO11_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO11_RES, 2);    }
 
-extern void GPIO11_IRQ3Handler  (void);
 void GPIO11_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO11_RES, 3);    }
 
-extern void GPIO11_IRQ4Handler  (void);
 void GPIO11_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO11_RES, 4);    }
 
-extern void GPIO11_IRQ5Handler  (void);
 void GPIO11_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO11_RES, 5);    }
 
-extern void GPIO11_IRQ6Handler  (void);
 void GPIO11_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO11_RES, 6);    }
 
-extern void GPIO11_IRQ7Handler  (void);
 void GPIO11_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO11_RES, 7);    }
 
 static int32_t ARM_GPIO11_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
@@ -1623,7 +1563,7 @@ ARM_DRIVER_GPIO Driver_GPIO11 = {
 /**<GPIO Instance 12>*/
 #if RTE_GPIO12
 static GPIO_RESOURCES GPIO12_RES = {
-    .reg_base = (LPGPIO_Type*) GPIO12_BASE,
+    .reg_base = (GPIO_Type*) GPIO12_BASE,
     .IRQ_base_num = GPIO12_IRQ0_IRQn,
     .gpio_id = GPIO12_INSTANCE,
     .db_clkdiv = RTE_GPIO12_DB_CLK_DIV,
@@ -1639,28 +1579,20 @@ static GPIO_RESOURCES GPIO12_RES = {
     }
 };
 
-extern void GPIO12_IRQ0Handler  (void);
 void GPIO12_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO12_RES, 0);    }
 
-extern void GPIO12_IRQ1Handler  (void);
 void GPIO12_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO12_RES, 1);    }
 
-extern void GPIO12_IRQ2Handler  (void);
 void GPIO12_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO12_RES, 2);    }
 
-extern void GPIO12_IRQ3Handler  (void);
 void GPIO12_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO12_RES, 3);    }
 
-extern void GPIO12_IRQ4Handler  (void);
 void GPIO12_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO12_RES, 4);    }
 
-extern void GPIO12_IRQ5Handler  (void);
 void GPIO12_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO12_RES, 5);    }
 
-extern void GPIO12_IRQ6Handler  (void);
 void GPIO12_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO12_RES, 6);    }
 
-extern void GPIO12_IRQ7Handler  (void);
 void GPIO12_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO12_RES, 7);    }
 
 static int32_t ARM_GPIO12_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
@@ -1720,7 +1652,7 @@ ARM_DRIVER_GPIO Driver_GPIO12 = {
 /**<GPIO Instance 13>*/
 #if RTE_GPIO13
 static GPIO_RESOURCES GPIO13_RES = {
-    .reg_base = (LPGPIO_Type*) GPIO13_BASE,
+    .reg_base = (GPIO_Type*) GPIO13_BASE,
     .IRQ_base_num = GPIO13_IRQ0_IRQn,
     .gpio_id = GPIO13_INSTANCE,
     .db_clkdiv = RTE_GPIO13_DB_CLK_DIV,
@@ -1736,28 +1668,20 @@ static GPIO_RESOURCES GPIO13_RES = {
     }
 };
 
-extern void GPIO13_IRQ0Handler  (void);
 void GPIO13_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO13_RES, 0);    }
 
-extern void GPIO13_IRQ1Handler  (void);
 void GPIO13_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO13_RES, 1);    }
 
-extern void GPIO13_IRQ2Handler  (void);
 void GPIO13_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO13_RES, 2);    }
 
-extern void GPIO13_IRQ3Handler  (void);
 void GPIO13_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO13_RES, 3);    }
 
-extern void GPIO13_IRQ4Handler  (void);
 void GPIO13_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO13_RES, 4);    }
 
-extern void GPIO13_IRQ5Handler  (void);
 void GPIO13_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO13_RES, 5);    }
 
-extern void GPIO13_IRQ6Handler  (void);
 void GPIO13_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO13_RES, 6);    }
 
-extern void GPIO13_IRQ7Handler  (void);
 void GPIO13_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO13_RES, 7);    }
 
 static int32_t ARM_GPIO13_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
@@ -1817,7 +1741,7 @@ ARM_DRIVER_GPIO Driver_GPIO13 = {
 /**<GPIO Instance 14>*/
 #if RTE_GPIO14
 static GPIO_RESOURCES GPIO14_RES = {
-    .reg_base = (LPGPIO_Type*) GPIO14_BASE,
+    .reg_base = (GPIO_Type*) GPIO14_BASE,
     .IRQ_base_num = GPIO14_IRQ0_IRQn,
     .gpio_id = GPIO14_INSTANCE,
     .db_clkdiv = RTE_GPIO14_DB_CLK_DIV,
@@ -1833,28 +1757,20 @@ static GPIO_RESOURCES GPIO14_RES = {
     }
 };
 
-extern void GPIO14_IRQ0Handler  (void);
 void GPIO14_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&GPIO14_RES, 0);    }
 
-extern void GPIO14_IRQ1Handler  (void);
 void GPIO14_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&GPIO14_RES, 1);    }
 
-extern void GPIO14_IRQ2Handler  (void);
 void GPIO14_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&GPIO14_RES, 2);    }
 
-extern void GPIO14_IRQ3Handler  (void);
 void GPIO14_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&GPIO14_RES, 3);    }
 
-extern void GPIO14_IRQ4Handler  (void);
 void GPIO14_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&GPIO14_RES, 4);    }
 
-extern void GPIO14_IRQ5Handler  (void);
 void GPIO14_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&GPIO14_RES, 5);    }
 
-extern void GPIO14_IRQ6Handler  (void);
 void GPIO14_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&GPIO14_RES, 6);    }
 
-extern void GPIO14_IRQ7Handler  (void);
 void GPIO14_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&GPIO14_RES, 7);    }
 
 static int32_t ARM_GPIO14_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
@@ -1914,7 +1830,7 @@ ARM_DRIVER_GPIO Driver_GPIO14 = {
 /**< Low Power GPIO >*/
 #if RTE_LPGPIO
 static GPIO_RESOURCES LPGPIO_RES = {
-    .reg_base = (LPGPIO_Type*) LPGPIO_BASE,
+    .reg_base = (GPIO_Type*) LPGPIO_BASE,
     .gpio_id = LPGPIO_INSTANCE,
     .IRQ_base_num = LPGPIO_IRQ0_IRQn,
     .IRQ_priority = {
@@ -1928,28 +1844,20 @@ static GPIO_RESOURCES LPGPIO_RES = {
             RTE_LPGPIO_PIN7_IRQ_PRIORITY,
     }
 };
-extern void LPGPIO_IRQ0Handler  (void);
 void LPGPIO_IRQ0Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 0);    }
 
-extern void LPGPIO_IRQ1Handler  (void);
 void LPGPIO_IRQ1Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 1);    }
 
-extern void LPGPIO_IRQ2Handler  (void);
 void LPGPIO_IRQ2Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 2);    }
 
-extern void LPGPIO_IRQ3Handler  (void);
 void LPGPIO_IRQ3Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 3);    }
 
-extern void LPGPIO_IRQ4Handler  (void);
 void LPGPIO_IRQ4Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 4);    }
 
-extern void LPGPIO_IRQ5Handler  (void);
 void LPGPIO_IRQ5Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 5);    }
 
-extern void LPGPIO_IRQ6Handler  (void);
 void LPGPIO_IRQ6Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 6);    }
 
-extern void LPGPIO_IRQ7Handler  (void);
 void LPGPIO_IRQ7Handler  (void) {   GPIO_IRQ_Handler (&LPGPIO_RES, 7);    }
 
 static int32_t ARM_LPGPIO_Initialize (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event)
@@ -2003,7 +1911,9 @@ ARM_DRIVER_GPIO Driver_GPIOLP = {
     ARM_LPGPIO_Control,
     ARM_LPGPIO_Uninitialize
 };
+
+/* ---------- LPGPIO instance name Aliases ---------- */
+extern ARM_DRIVER_GPIO __attribute__((alias("Driver_GPIOLP"))) Driver_GPIO15;
 #endif   /* RTE_LPGPIO */
 
 /************************ (C) COPYRIGHT ALIF SEMICONDUCTOR *****END OF FILE****/
-

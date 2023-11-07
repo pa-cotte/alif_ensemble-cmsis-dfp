@@ -46,7 +46,7 @@
  *----------------------------------------------------------------------------*/
 #define __STACK_TOP     (__RAM_BASE + __RAM_SIZE)    /* starts at end of RAM */
 #define __HEAP_BASE     (AlignExpr(+0, 8))           /* starts after RW_RAM section, 8 byte aligned */
-#define __APP_HEAP_BASE (AlignExpr(+0, 8))           /* starts after HEAP, 8 byte aligned */
+#define __APP_HEAP_BASE (AlignExpr(+0, 8)) 	     /* starts after HEAP, 8 byte aligned */
 
 
 /*----------------------------------------------------------------------------
@@ -80,10 +80,10 @@ LR_ROM __RO_BASE __RO_SIZE  {                       ; load region size_region
   APP_HEAP  __APP_HEAP_BASE EMPTY  __APP_HEAP_SIZE {; Reserve empty region for application heap
   }
 
-  NS_REGION_0  NS_REGION_0_BASE  NS_REGION_0_SIZE { ; Non secure region 0
+  NS_REGION_0  NS_REGION_0_BASE  NS_REGION_0_SIZE { /* Non secure region 0 */
    * (eth_buf)
-   * (usb_dma_buf)
    * (sd_dma_buf)
+   * (usb_dma_buf)
   }
 
   ARM_LIB_STACK __STACK_TOP EMPTY -__STACK_SIZE {   ; Reserve empty region for stack
@@ -104,7 +104,10 @@ LR_ROM __RO_BASE __RO_SIZE  {                       ; load region size_region
   RW_SRAM5 SRAM5_BASE SRAM5_SIZE  {  ; Update sections as needed
 
   }
-  RW_SRAM6 SRAM6_BASE SRAM6_SIZE  {  ; Update sections as needed
+  RW_SRAM6_A SRAM6_A_BASE SRAM6_A_SIZE  {  ; Update sections as needed
+
+  }
+  RW_SRAM6_B SRAM6_B_BASE SRAM6_B_SIZE  {  ; Update sections as needed
 
   }
   RW_SRAM7 SRAM7_BASE SRAM7_SIZE  {  ; Update sections as needed
@@ -113,7 +116,10 @@ LR_ROM __RO_BASE __RO_SIZE  {                       ; load region size_region
   RW_SRAM8 SRAM8_BASE SRAM8_SIZE  {  ; Update sections as needed
 
   }
-  RW_SRAM9 SRAM9_BASE SRAM9_SIZE  {  ; Update sections as needed
+  RW_SRAM9_A SRAM9_A_BASE SRAM9_A_SIZE  {  ; Update sections as needed
+
+  }
+  RW_SRAM9_B SRAM9_B_BASE SRAM9_B_SIZE  {  ; Update sections as needed
 
   }
 

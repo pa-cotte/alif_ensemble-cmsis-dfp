@@ -34,6 +34,10 @@ extern "C"
 /* CSI includes */
 #include "Driver_MIPI_CSI2.h"
 #include "csi.h"
+#include "cpi.h"
+
+/*Helper macro*/
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 /** \brief CSI IPI frame info */
 typedef struct _CSI_FRAME_INFO
@@ -67,7 +71,7 @@ typedef struct _CSI_IPI_INFO
 {
     uint32_t                         ipi_memflush;       /**< CSI IPI memory flush                                */
     uint8_t                          ipi_mode;           /**< CSI IPI mode                                        */
-    uint8_t                          ipi_color_cop;      /**< CSI IPI color component                             */
+    uint8_t                          ipi_color_com;      /**< CSI IPI color component                             */
     CSI_FRAME_INFO                   *frame_info;        /**< CSI frame information                               */
     CSI_IPI_ADV_INFO                 *adv_features;      /**< CSI IPI advanced features                           */
 } CSI_IPI_INFO;
@@ -80,6 +84,16 @@ typedef struct _CSI_DRIVER_STATE
     uint32_t csi_configured : 1;                         /**< CSI configuration(host and IPI)                     */
     uint32_t reserved       : 29;                        /**< Reserved                                            */
 } CSI_DRIVER_STATE;
+
+/** \brief CSI CPI related data settings */
+typedef struct _CSI_CPI_DATA_MODE_SETTINGS
+{
+    CSI_DATA_TYPE          data_type;                    /**< CSI data type                                       */
+    CSI_IPI_COLOR_COM_TYPE ipi_color_com;                /**< CSI IPI Color component                             */
+    CPI_COLOR_MODE_CONFIG  cpi_color_mode;               /**< CPI CSI color mode                                  */
+    CPI_DATA_MODE          cpi_data_mode;                /**< CPI Data mode                                       */
+    uint32_t               bpp;                          /**< bits per pixel                                      */
+} CSI_CPI_DATA_MODE_SETTINGS;
 
 /** \brief CSI driver resources */
 typedef struct _CSI_RESOURCES

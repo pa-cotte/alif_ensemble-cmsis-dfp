@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -82,7 +82,11 @@ typedef struct {
     volatile const uint32_t  I2C_COMP_TYPE;          /*!< (@ 0x000000FC) Reserved                                                   */
 } I2C_Type;
 
-#define I2C_SLAVE_7BIT_ADDR_MODE                    (0)          /* 7 bit address mode for slave mode */
+/*!< FIFO Depth for Tx & Rx  */
+#define I2C_FIFO_DEPTH                              32
+
+#define I2C_SLAVE_10BIT_ADDR_MODE                   (1 << 3)          /* 10 bit address mode for slave mode */
+#define I2C_MASTER_10BIT_ADDR_MODE                  (1 << 12)         /* 10 bit address mode for master mode */
 
 /* Enable I2C */
 #define I2C_IC_ENABLE_I2C_ENABLE                    (1)
@@ -145,10 +149,26 @@ typedef struct {
 #define I2C_IC_INTR_STAT_RX_UNDER                   (1 << 0)    /* raw interrupt status */
 
 /* Interrupt enable mask as master */
-#define I2C_IC_INT_MST_TX_ENABLE                    (I2C_IC_INTR_STAT_TX_EMPTY|I2C_IC_INTR_STAT_TX_OVER|I2C_IC_INTR_STAT_TX_ABRT)
-#define I2C_IC_INT_MST_RX_ENABLE                    (I2C_IC_INTR_STAT_TX_EMPTY|I2C_IC_INTR_STAT_RX_FULL|I2C_IC_INTR_STAT_RX_OVER|I2C_IC_INTR_STAT_RX_UNDER|I2C_IC_INTR_STAT_TX_ABRT)
-#define I2C_IC_INT_SLV_TX_ENABLE                    (I2C_IC_INTR_STAT_RD_REQ|I2C_IC_INTR_STAT_TX_ABRT)
-#define I2C_IC_INT_SLV_RX_ENABLE                    (I2C_IC_INTR_STAT_RX_FULL|I2C_IC_INTR_STAT_RX_OVER|I2C_IC_INTR_STAT_RX_UNDER)
+#define I2C_IC_INT_MST_TX_ENABLE                    (I2C_IC_INTR_STAT_TX_EMPTY| \
+                                                     I2C_IC_INTR_STAT_TX_OVER | \
+                                                     I2C_IC_INTR_STAT_TX_ABRT | \
+                                                     I2C_IC_INTR_STAT_STOP_DET)
+
+#define I2C_IC_INT_MST_RX_ENABLE                    (I2C_IC_INTR_STAT_TX_EMPTY| \
+                                                     I2C_IC_INTR_STAT_RX_FULL | \
+                                                     I2C_IC_INTR_STAT_RX_OVER | \
+                                                     I2C_IC_INTR_STAT_RX_UNDER| \
+                                                     I2C_IC_INTR_STAT_TX_ABRT | \
+                                                     I2C_IC_INTR_STAT_STOP_DET)
+
+#define I2C_IC_INT_SLV_TX_ENABLE                    (I2C_IC_INTR_STAT_RD_REQ  | \
+                                                     I2C_IC_INTR_STAT_TX_ABRT | \
+                                                     I2C_IC_INTR_STAT_STOP_DET)
+
+#define I2C_IC_INT_SLV_RX_ENABLE                    (I2C_IC_INTR_STAT_RX_FULL  | \
+                                                     I2C_IC_INTR_STAT_RX_OVER  | \
+                                                     I2C_IC_INTR_STAT_RX_UNDER | \
+                                                     I2C_IC_INTR_STAT_STOP_DET)
 
 /* I2C_TX_ABRT_SOURCE Register Bit Fields */
 #define I2C_IC_TX_ABRT_7B_ADDR_NOACK                (1 << 0)
@@ -170,10 +190,6 @@ typedef struct {
 #define I2C_IC_TX_ABRT_SLVFLUSH_TXFIFO              (1 << 13)
 #define I2C_IC_TX_ABRT_SLV_ARBLOST                  (1 << 14)
 #define I2C_IC_TX_ABRT_SLVRD_INTX                   (1 << 15)
-
-/* I2C TX & RX threshold settings */
-#define I2C_IC_TX_TL_TX_FIFO_THRESHOLD_LVL          (0)
-#define I2C_IC_RX_TL_RX_FIFO_THRESHOLD_LVL          (0)
 
 /* Combined bits for i2c abort source as master */
 #define I2C_MST_ABRT_ADDR_NOACK                     (I2C_IC_TX_ABRT_7B_ADDR_NOACK|I2C_IC_TX_ABRT_10ADDR1_NOACK|I2C_IC_TX_ABRT_10ADDR2_NOACK)
@@ -223,48 +239,35 @@ typedef struct {
 #define I2C_MIN_SS_SCL_HCNT(spklen)     ((spklen)+5)
 #define I2C_MIN_FS_SCL_HCNT(spklen)     ((spklen)+5)
 
-#define I2C_MIN_HS_SCL_LCNT(spklen)     ((spklen)+7)
-#define I2C_MIN_HS_SCL_HCNT(spklen)     ((spklen)+5)
+#define I2C_MIN_SS_HIGH_TIME_NS         (4400)
+#define I2C_MIN_SS_LOW_TIME_NS          (5200)
 
-#define I2C_MIN_SS_HIGH_TIME_NS         (4000)
-#define I2C_MIN_SS_LOW_TIME_NS          (4700)
+#define I2C_MIN_FS_HIGH_TIME_NS         (790)
+#define I2C_MIN_FS_LOW_TIME_NS          (1600)
 
-#define I2C_MIN_FS_HIGH_TIME_NS         (600)
-#define I2C_MIN_FS_LOW_TIME_NS          (1300)
-
-#define I2C_MIN_HS_100PF_HIGH_TIME_NS   (60)
-#define I2C_MIN_HS_100PF_LOW_TIME_NS    (160)
-
-#define I2C_MIN_HS_400PF_HIGH_TIME_NS   (120)
-#define I2C_MIN_HS_400PF_LOW_TIME_NS    (320)
-
-typedef enum _I2C_CAPLOAD
-{
-    I2C_CAP_LOADING_100PF = 0,
-    I2C_CAP_LOADING_400PF
-}I2C_CAPLOAD;
+#define I2C_MIN_FS_PLUS_HIGH_TIME_NS    (290)
+#define I2C_MIN_FS_PLUS_LOW_TIME_NS     (550)
 
 /* I2C Bus possible speed modes */
 typedef enum i2c_speed_mode
 {
-    I2C_SPEED_STANDARD = 0,     /* Bidirectional, Standard-mode (Sm), with a bit rate up to 100 kbit/s               */
-    I2C_SPEED_FAST     = 1,     /* Bidirectional, Fast-mode (Fm), with a bit rate up to 400 kbit/s                   */
-    I2C_SPEED_FASTPLUS = 2,     /* Bidirectional, Fast-mode Plus (Fm+), with a bit rate up to 1 Mbit/s               */
-    I2C_SPEED_HIGH     = 3,     /* Bidirectional, High-speed mode (Hs-mode), with a bit rate up to 3.4 Mbit/s        */
-    I2C_SPEED_ULTRA    = 4      /* Unidirectional(Write only), Ultra Fast-mode (UFm), with a bit rate up to 5 Mbit/s */
+    I2C_SPEED_STANDARD = 1,     /* Bidirectional, Standard-mode (Sm), with a bit rate up to 100 kbit/s               */
+    I2C_SPEED_FAST     = 2,     /* Bidirectional, Fast-mode (Fm), with a bit rate up to 400 kbit/s                   */
+    I2C_SPEED_FASTPLUS = 3      /* Bidirectional, Fast-mode Plus (Fm+), with a bit rate up to 1 Mbit/s               */
 } i2c_speed_mode_t;
 
 /* I2C Error State */
 typedef enum i2c_error_state
 {
-    I2C_ERR_NONE       = 0,     /* Currently in I2C device free state                            */
-    I2C_ERR_LOST_BUS   = 1,     /* Master or slave lost bus during operation                     */
-    I2C_ERR_ADDR_NOACK = 2,     /* Slave address is sent but not addressed by any slave devices  */
-    I2C_ERR_DATA_NOACK = 3,     /* Data in transfer is not acked when it should be acked         */
-    I2C_ERR_TIMEOUT    = 4,     /* Transfer timeout, no more data is received or sent            */
-    I2C_ERR_MSTSTOP    = 5,     /* Slave received a STOP condition from master device            */
-    I2C_ERR_UNDEF      = 6,     /* Undefined error cases */
-    I2C_ERR_GCALL      = 7      /* General call detected after slave receiver address from master */
+    I2C_ERR_NONE           = 0,     /* Currently in I2C device free state                                           */
+    I2C_ERR_LOST_BUS       = 1,     /* Master or slave lost bus during operation                                    */
+    I2C_ERR_ADDR_NOACK     = 2,     /* Slave address is sent but not addressed by any slave devices                 */
+    I2C_ERR_DATA_NOACK     = 3,     /* Data in transfer is not acked when it should be acked                        */
+    I2C_ERR_TIMEOUT        = 4,     /* Transfer timeout, no more data is received or sent                           */
+    I2C_ERR_MSTSTOP        = 5,     /* Slave received a STOP condition from master device                           */
+    I2C_ERR_UNDEF          = 6,     /* Undefined error cases                                                        */
+    I2C_ERR_GCALL          = 7,     /* General call detected after slave receiver address from master               */
+    I2C_ERR_10B_RD_NORSTRT = 8      /* Master in Receive mode during 10 bit addressing but comm restart is disabled */
 } i2c_error_state_t;
 
 /* I2C next Condition */
@@ -350,6 +353,20 @@ static inline void i2c_enable(I2C_Type *i2c)
 static inline void i2c_disable(I2C_Type *i2c)
 {
     i2c->I2C_ENABLE = I2C_IC_ENABLE_I2C_DISABLE;
+}
+
+/**
+ * @brief   Sets I2C bus speed
+ * @note    none
+ * @param   i2c   : Pointer to i2c register map
+ * @param   speed : Bus speed
+ * @retval  none
+ */
+static inline void i2c_set_bus_speed(I2C_Type *i2c, const uint8_t speed)
+{
+    i2c_disable(i2c);
+    i2c->I2C_CON = ((i2c->I2C_CON & ~(I2C_IC_CON_SPEED_MASK)) | speed);
+    i2c_enable(i2c);
 }
 
 /**
@@ -484,59 +501,102 @@ static inline void i2c_slave_disable_tx_interrupt(I2C_Type *i2c)
  */
 static inline void i2c_slave_disable_rx_interrupt(I2C_Type *i2c)
 {
-     i2c_unmask_interrupt(i2c, I2C_IC_INT_SLV_RX_ENABLE);
+     i2c_mask_interrupt(i2c, I2C_IC_INT_SLV_RX_ENABLE);
 }
 
 /**
- * @brief    set i2c target address for slave device in master mode
- * @note     implemented only 7-bit addr mode
- * @param    i2c     : Pointer to i2c resources structure
- * @param    address : i2c 7-bit or 10-bit slave address
- * @retval   none
+ * @brief   check whether Restart Condition is enabled in I2C Master
+ * @note    none
+ * @param   i2c    : Pointer to i2c register map
+ * @retval  1 Restart enabled, 0 not enabled
  */
-static inline void i2c_set_target_addr(I2C_Type *i2c, uint32_t address)
+static inline bool i2c_master_check_restart_cond(I2C_Type *i2c)
 {
-    i2c_disable(i2c);
-    /* clear the 10bit(0-9) of the ic_tar target register. */
-    i2c->I2C_TAR &= ~(I2C_IC_TAR_10BIT_ADDR_MASK);
+  return ((i2c->I2C_CON & I2C_IC_CON_MASTER_RESTART_EN) != 0);
+}
 
-    /* update the 10bit(0-9) of the ic_tar target register as per our address. */
-    i2c->I2C_TAR |= (I2C_IC_TAR_10BIT_ADDR_MASK & address);
-    i2c_enable(i2c);
+/**
+ * @brief   Enables Restart condition for I2C Master
+ * @note    none
+ * @param   i2c    : Pointer to i2c register map
+ * @retval  None
+ */
+static inline void i2c_master_enable_restart_cond(I2C_Type *i2c)
+{
+   i2c->I2C_CON |= I2C_IC_CON_MASTER_RESTART_EN;
+}
+
+/**
+ * @brief   Sets the Tx FIFO threshold value
+ * @note    none
+ * @param   i2c       : Pointer to i2c register map
+ * @param   threshold : Tx Fifo threshold value
+ * @retval  None
+ */
+static inline void i2c_set_tx_threshold(I2C_Type *i2c, const uint8_t threshold)
+{
+   i2c->I2C_TX_TL = threshold;
+}
+
+/**
+ * @brief   Sets the Rx FIFO threshold value
+ * @note    none
+ * @param   i2c       : Pointer to i2c register map
+ * @param   threshold : Rx Fifo threshold value
+ * @retval  None
+ */
+static inline void i2c_set_rx_threshold(I2C_Type *i2c, const uint8_t threshold)
+{
+    i2c->I2C_RX_TL = threshold;
 }
 
 /* function declarations */
 
 /**
- * @brief   initialize i2c master
+ * @brief    set i2c target address for slave device in master mode
+ * @param    i2c       : Pointer to i2c resources structure
+ * @param    address   : i2c 7-bit or 10-bit slave address
+ * @param    addr_mode : Addressing mode (10Bit/7Bit)
+ * @param    cur_state : Current transfer state (Master Tx/ Master Rx)
+ * @retval   none
+ */
+void i2c_set_target_addr(I2C_Type *i2c, const uint32_t address,
+     const i2c_address_mode_t addr_mode, const I2C_TRANSFER_STATE cur_state);
+
+/**
+ * @brief   Setup i2c master clock configuration
  * @note    none
- * @param   i2c        : Pointer to i2c register map
- * @param   clk_khz    : Clock
- * @param   tar_addr   : target address
- * @param   bus_speed  : i2c bus speed
- * param    caploading : Capacitance
+ * @param   i2c          : Pointer to i2c register map
+ * @param   clk_khz      : Clock
+ * @param   speed_mode   : Speed
  *          ARM_I2C_BUS_SPEED_STANDARD /
  *          I2C_IC_CON_SPEED_FAST /
- *          ARM_I2C_BUS_SPEED_FAST_PLUS /
- *          ARM_I2C_BUS_SPEED_HIGH
+ *          ARM_I2C_BUS_SPEED_FAST_PLUS
  * @retval  none
  */
-void i2c_master_init(I2C_Type *i2c, uint32_t clk_khz, uint32_t bus_speed,
-                     uint32_t tar_addr, uint32_t caploading);
+void i2c_master_set_clock(I2C_Type *i2c, const uint32_t clk_khz, uint8_t speed_mode);
+
+/**
+ * @brief   initialize i2c master
+ * @note    none
+ * @param   i2c          : Pointer to i2c register map
+ * @param   tar_addr     : target address
+ * @retval  none
+ */
+void i2c_master_init(I2C_Type *i2c, const uint32_t tar_addr);
 
 /**
  * @brief   initialize i2c slave
  * @note    none
- * @param   i2c        : Pointer to i2c register map
- * @param   slave_addr : i2c slave address
- * param    speed      : Bus speed
+ * @param   i2c          : Pointer to i2c register map
+ * @param   slave_addr   : i2c slave address
+ * param    addr_mode    : Addressing mode (10Bit/7Bit)
  * @retval  none
  */
-void  i2c_slave_init (I2C_Type *i2c, uint32_t salve_addr, uint32_t speed);
+void i2c_slave_init(I2C_Type *i2c, uint32_t slave_addr, i2c_address_mode_t addr_mode);
 
 /**
  * @brief    i2c master transmit data using interrupt method
- * @note     implemented only 7-bit slave addr.
  * @param    i2c      : Pointer to i2c register map
  * @param    transfer : Pointer to i2c_transfer_info_t
  * @retval   callback event
@@ -545,7 +605,6 @@ void i2c_master_tx_isr(I2C_Type *i2c, i2c_transfer_info_t *transfer);
 
 /**
  * @brief    i2c master receive data using interrupt method
- * @note     implemented only 7-bit slave addr.
  * @param    i2c      : Pointer to i2c register map
  * @param    transfer : Pointer to i2c_transfer_info_t
  * @retval   callback event
@@ -554,7 +613,6 @@ void i2c_master_rx_isr(I2C_Type *i2c, i2c_transfer_info_t *transfer);
 
 /**
  * @brief    i2c slave transmit data using interrupt method
- * @note     implemented only 7-bit slave addr.
  * @param    i2c      : Pointer to i2c register map
  * @param    transfer : Pointer to i2c_transfer_info_t
  * @retval   callback event
@@ -563,7 +621,6 @@ void i2c_slave_tx_isr(I2C_Type *i2c, i2c_transfer_info_t *transfer);
 
 /**
  * @brief    i2c slave receive data using interrupt method
- * @note     implemented only 7-bit slave addr.
  * @param    i2c      : Pointer to i2c register map
  * @param    transfer : Pointer to i2c_transfer_info_t
  * @retval   callback event

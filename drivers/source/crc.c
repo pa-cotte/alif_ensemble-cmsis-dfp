@@ -11,22 +11,6 @@
 #include "crc.h"
 
 /**
- @fn           crc_swap(uint32_t input_value)
- @brief        Swap the input data
- @param[in]    input_value   : CRC 32 bit algorithm input data
- @return       result of swapped input data
- */
-static uint32_t crc_swap(uint32_t input_value)
-{
-    uint32_t res = (((input_value & 0xFF) << 24)      |
-                   ((input_value & 0xFF00) << 8)      |
-                   ((input_value & 0xFF0000) >> 8)    |
-                   ((input_value & 0xFF000000) >>24));
-
-    return res;
-}
-
-/**
  @fn           crc_bit_reflect(uint32_t input)
  @brief        Reflect the CRC 32 bit output
  @param[in]    input    : 32 bit CRC output
@@ -48,8 +32,8 @@ uint32_t crc_bit_reflect(uint32_t input)
 }
 
 /**
-@fn         uint32_t CRC_calculate_Unaligned(uint32_t key, uint8_t *input,
-                                             uint8_t length, uint32_t poly)
+@fn         uint32_t CRC_calculate_Unaligned(uint32_t key, const uint8_t *input,
+                                             uint32_t length, uint32_t poly)
 @brief      To calculate the CRC result for unaligned data
              1. It will take the aligned data for CRC result from the hardware.
              2. It will the Unaligned input data and its length.
@@ -64,11 +48,11 @@ uint32_t crc_bit_reflect(uint32_t input)
 @return     Calculated CRC output for unaligned data
 */
 uint32_t crc_calculate_unaligned(uint32_t key, const uint8_t *input,
-                                 const uint8_t length, uint32_t poly)
+                                 uint32_t length, uint32_t poly)
 {
     uint32_t crc, check_bit, polynomial;
-    uint8_t data;
-    int32_t i, j;
+    uint8_t  data;
+    uint32_t i, j;
 
     crc = key;
 
@@ -90,12 +74,11 @@ uint32_t crc_calculate_unaligned(uint32_t key, const uint8_t *input,
             data >>= 1;
         }
     }
-
     return ~crc;
 }
 
 /**
- @fn           crc_calculate_8bit(CRC_Type *crc, void *data_in,
+ @fn           crc_calculate_8bit(CRC_Type *crc, const void *data_in,
                                   uint32_t len, uint32_t *data_out)
  @brief        Calculate the CRC output  for 8 bit CRC algorithm
  @param[in]    crc      : Pointer to the CRC register map
@@ -110,7 +93,7 @@ void crc_calculate_8bit(CRC_Type *crc, const void *data_in,
     for (uint32_t count = 0; count < len; count ++)
     {
         /* User input 8 bit data is storing into the DATA_IN_8 bit register */
-        crc->CRC_DATA_IN_8_0 = ((uint8_t *)data_in)[count];
+        crc->CRC_DATA_IN_8_0 = ((const uint8_t *)data_in)[count];
     }
 
     /* data_out pointer to store the CRC output */
@@ -118,7 +101,7 @@ void crc_calculate_8bit(CRC_Type *crc, const void *data_in,
 }
 
 /**
- @fn           crc_calculate_16bit(CRC_Type *crc, void *data_in,
+ @fn           crc_calculate_16bit(CRC_Type *crc, const void *data_in,
                                    uint32_t len, uint32_t *data_out)
  @brief        Calculate the CRC output  for 16 bit CRC algorithm
  @param[in]    crc      : Pointer to the CRC register map
@@ -133,7 +116,7 @@ void crc_calculate_8bit(CRC_Type *crc, const void *data_in,
     for (uint32_t count = 0; count < len; count ++)
     {
         /* User input 8 bit data is storing into the DATA_IN_8 bit register */
-        crc->CRC_DATA_IN_8_0 = ((uint8_t *)data_in)[count];
+        crc->CRC_DATA_IN_8_0 = ((const uint8_t *)data_in)[count];
     }
 
     /* data_out pointer to store the CRC output */
@@ -141,7 +124,7 @@ void crc_calculate_8bit(CRC_Type *crc, const void *data_in,
 }
 
  /**
-  @fn           crc_calculate_32bit(CRC_Type *crc, void *data_in,
+  @fn           crc_calculate_32bit(CRC_Type *crc, const void *data_in,
                                     uint32_t len, uint32_t *data_out)
   @brief        Calculate the CRC output  for 32 bit CRC algorithm
   @param[in]    crc      : Pointer to the CRC register map
@@ -153,26 +136,93 @@ void crc_calculate_8bit(CRC_Type *crc, const void *data_in,
 void crc_calculate_32bit(CRC_Type *crc, const void *data_in,
                          uint32_t len, uint32_t *data_out)
 {
-    uint32_t *data32;
-    uint32_t value,reverse;
-    uint32_t aligned_length;
+    const uint32_t *data32;
+    uint32_t value;
+    uint32_t control_val;
+    uint32_t aligned_length = len;
 
-    aligned_length   = len - (len % 4);
-    data32           = (uint32_t *)data_in;
+    control_val = crc_get_control_val(crc);
+
+
+    data32           = (const uint32_t *)data_in;
 
     for (uint32_t count = 0; count < aligned_length / 4; count++)
     {
         value = *(data32++);
-
-        /* Swap the input data */
-        value = crc_swap(value);
 
         /* User input 32 bit data is storing into the DATA_IN_32 bit register */
         crc->CRC_DATA_IN_32_0 = value;
     }
 
     /* Store the CRC aligned output */
-    reverse = (crc->CRC_OUT);
+    *data_out = (crc->CRC_OUT);
 
-    *data_out = ~reverse;
+    if((control_val & CRC_REFLECT ) && ((control_val & CRC_32C) == CRC_32C))
+    {
+        *data_out = crc_bit_reflect(*data_out);
+    }
+}
+
+/**
+ @fn           crc_calculate_32bit_unaligned_sw(CRC_Type *crc,
+                                                  crc_transfer_t *transfer)
+ @brief        Calculate the 32bit CRC output for the unaligned part
+ @param[in]    crc      : Pointer to the CRC register map
+ @param[in]    transfer : CRC transfer information
+ @return       None
+ */
+void crc_calculate_32bit_unaligned_sw(CRC_Type *crc, crc_transfer_t *transfer)
+{
+    uint32_t  polynomial_status, control_val;
+    uint32_t  custom;
+    const uint8_t *input = transfer->data_in + transfer->aligned_len;
+
+    if(transfer->unaligned_len > 0)
+    {
+        polynomial_status = crc_custom_poly_enabled(crc);
+
+        control_val = crc_get_control_val(crc);
+
+        /* Check for the custom polynomial bit  */
+        if(polynomial_status)
+        {
+            /* assign the user polynomial */
+            custom = crc_get_custom_poly(crc);
+        }
+        else
+        {
+            /* Assign the 32 bit CRC standard polynomial */
+            custom = CRC_STANDARD_POLY;
+        }
+
+        if(control_val & CRC_INVERT)
+        {
+            /* Invert crc output */
+            *transfer->data_out = ~(*transfer->data_out);
+        }
+
+        if(!(control_val & CRC_REFLECT))
+        {
+            /* Reflect crc output */
+            *transfer->data_out = crc_bit_reflect(*transfer->data_out);
+        }
+
+        /* Calculate the CRC for unaligned data */
+        *transfer->data_out = crc_calculate_unaligned(*transfer->data_out,
+                                                      input,
+                                                      transfer->unaligned_len,
+                                                      custom);
+
+        if(!(control_val & CRC_REFLECT))
+        {
+            /* Reflect crc output */
+            *transfer->data_out = crc_bit_reflect(*transfer->data_out);
+        }
+
+        if(!(control_val & CRC_INVERT))
+        {
+            /* Invert crc output */
+            *transfer->data_out = ~(*transfer->data_out);
+        }
+    }
 }

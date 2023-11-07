@@ -86,11 +86,11 @@ static inline void set_cdc_pixel_clk(CDC_PIX_CLKSEL clksel, uint32_t div)
 }
 
 /**
-  \fn          static inline void clear_cdc_pixel_clk(void)
-  \brief       Clear cdc pixel clock.
+  \fn          static inline void disable_cdc_pixel_clk(void)
+  \brief       Disable cdc pixel clock.
   \return      none.
 */
-static inline void clear_cdc_pixel_clk(void)
+static inline void disable_cdc_pixel_clk(void)
 {
     CLKCTL_PER_MST->CDC200_PIXCLK_CTRL = 0;
 }

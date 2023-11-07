@@ -22,28 +22,14 @@
 #include <stdio.h>
 #include "Driver_SPI.h"
 #include "pinconf.h"
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
 
 #if !defined(M55_HE)
 #error "This Demo application works only on M55_HE"
-#endif
-
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
-
-#ifdef DISABLE_PRINTF
-#define printf(fmt, ...) (0)
-/* Also Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-__asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
-
-void _sys_exit(int return_code) {
-   while (1);
-}
 #endif
 
 /* Use below macro to specify transfer type
@@ -181,8 +167,8 @@ void lpspi_spi0_transfer(void)
      * H/W connections on devkit:
      * short LPSPI MISO (P7_4 -> J12-27 pin) and SPI0 MISO (P5_0 -> J12-13 pin).
      * short LPSPI MOSI (P7_5 -> J15-9 pin) and SPI0 MOSI (P5_1 -> J12-15 pin).
-     * short LPSPI SCLK (P7_4 -> J15-8 pin) and SPI0 SCLK (P5_3 -> J12-5 pin).
-     * short LPSPI SS (P7_4 -> J15-10 pin) and SPI0 SS (P5_2 -> J12-17 pin).
+     * short LPSPI SCLK (P7_6 -> J15-8 pin) and SPI0 SCLK (P5_3 -> J14-5 pin).
+     * short LPSPI SS (P7_7 -> J15-10 pin) and SPI0 SS (P5_2 -> J12-17 pin).
      * */
 
     printf("*** Demo app using SPI0 & LPSPI is starting ***\n");
@@ -209,7 +195,7 @@ void lpspi_spi0_transfer(void)
         goto error_lpspi_uninitialize;
     }
 
-    lpspi_control = (ARM_SPI_SET_BUS_SPEED | ARM_SPI_SS_MASTER_HW_OUTPUT | ARM_SPI_CPOL0_CPHA0 | ARM_SPI_DATA_BITS(32));
+    lpspi_control = (ARM_SPI_MODE_MASTER | ARM_SPI_SS_MASTER_HW_OUTPUT | ARM_SPI_CPOL0_CPHA0 | ARM_SPI_DATA_BITS(32));
 
     /* Baudrate is 1MHz */
     ret = ptrLPSPI->Control(lpspi_control, 1000000);
@@ -337,5 +323,15 @@ error_lpspi_uninitialize :
 
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
     lpspi_spi0_transfer();
 }

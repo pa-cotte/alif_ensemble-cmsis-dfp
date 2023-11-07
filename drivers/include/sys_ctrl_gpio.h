@@ -70,6 +70,30 @@ static inline void set_gpio_debounce_clkdiv (uint16_t clk_div, GPIO_INSTANCE ins
     *gpio_ctrl |= clk_div;
 }
 
+/**
+  \fn          static void inline set_flexio_gpio_voltage_1v8 (void)
+  \brief       Set GPIO voltage to 1.8V
+  \param       none
+  \return      none
+*/
+static inline void set_flexio_gpio_voltage_1v8 (void)
+{
+    /* config gpio voltage as 1.8V */
+    VBAT->GPIO_CTRL = GPIO_CTRL_VOLT_1V8;
+}
+
+/**
+  \fn          static void inline set_flexio_gpio_voltage_3v3 (void)
+  \brief       Set GPIO voltage to 3.3V
+  \param       none
+  \return      none
+*/
+static inline void set_flexio_gpio_voltage_3v3 (void)
+{
+    /* config gpio voltage as 3.3V */
+    VBAT->GPIO_CTRL = ~GPIO_CTRL_VOLT_1V8;
+}
+
 #ifdef __cplusplus
 }
 #endif

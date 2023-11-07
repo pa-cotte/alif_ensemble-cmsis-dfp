@@ -16,25 +16,22 @@ extern "C"
 {
 #endif
 
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
-
 /**
- @brief struct DAC_Type:- Register map for DAC
- */
-typedef struct
-{
-    volatile uint32_t REG1;   /* DAC REGISTER1 */
-    volatile uint32_t INPUT;  /* DAC INPUT register */
-}DAC_Type;
+  * @brief DAC (DAC)
+  */
+typedef struct {                                /*!< (@ 0x49028000) DAC Structure                                              */
+    volatile uint32_t  DAC_REG1;                /*!< (@ 0x00000000) REG1 DAC Control Register                                  */
+    volatile uint32_t  DAC_IN;                  /*!< (@ 0x00000004) DAC Input Value Register                                   */
+} DAC_Type;                                     /*!< Size = 8 (0x8)                                                            */
 
 /* DAC  Control register */
-#define DAC_EN                (1U << 0)   /* Enable DAC */
-#define DAC_RESET             (1U << 27)  /* 0=Reset,this will reset the DAC */
-#define DAC_HP_MODE_EN        (1U << 18)  /* To enable the dac output buffer */
-#define DAC_MAX_INPUT         (0xFFFU)    /* Maximum input for the DAC is 4095(DAC 12 bit resolution) */
-
+#define DAC_EN                   (1U << 0)   /* Enable DAC */
+#define DAC_RESET_B              (1U << 27)  /* 0=Reset,this will reset the DAC */
+#define DAC_HP_MODE_EN           (1U << 18)  /* To enable the dac output buffer */
+#define DAC_MAX_INPUT            (0xFFFU)    /* Maximum input for the DAC is 4095(DAC 12 bit resolution) */
+#define DAC_MAX_BYP_VAL_Msk      (0x7FFU)    /* DAC input data in bypass mode */
+#define DAC_INPUT_BYP_MUX_Pos     1          /* Set DAC input source in bypass mode */
+#define DAC_BYP_VAL_Pos           2          /* DAC input data bypass mode */
 /**
  @fn           void dac_enable(DAC_Type *dac)
  @brief        Enable the DAC.
@@ -44,7 +41,7 @@ typedef struct
 static inline void dac_enable(DAC_Type *dac)
 {
     /* Enable the DAC */
-    dac->REG1 |= (DAC_EN);
+    dac->DAC_REG1 |= (DAC_EN);
 }
 
 /**
@@ -56,22 +53,21 @@ static inline void dac_enable(DAC_Type *dac)
 static inline void dac_disable(DAC_Type *dac)
 {
     /* Disable the DAC */
-    dac->REG1 &= ~(DAC_EN);
+    dac->DAC_REG1 &= ~(DAC_EN);
 }
 
 /**
- @fn           void dac_set_config(DAC_Type *dac, uint32_t value)
+ @fn           void dac_set_config(DAC_Type *dac, uint8_t input_mux_val, uint16_t bypass_val)
  @brief        Configure the DAC
- @param[in]    value : to set Bypass mode, capacitor and resistor control, ibias
-                       value,unsigned input data and to provide the input data in
-                       dac_in register.
+ @param[in]    input_mux_val : To select the Dac input data source
+               bypass_val    : DAC input data in bypass mode
  @param[in]    dac   : Pointer to dac Type
  @return       none
  */
-static inline void dac_set_config(DAC_Type *dac ,uint32_t value)
+static inline void dac_set_config(DAC_Type *dac, uint8_t input_mux_val, uint16_t bypass_val)
 {
-    /* Adding value to the register */
-    dac->REG1 |= value;
+    /* Adding dac input mux and bypass value to the register */
+    dac->DAC_REG1 |= (input_mux_val << DAC_INPUT_BYP_MUX_Pos | ((bypass_val & DAC_MAX_BYP_VAL_Msk) << DAC_BYP_VAL_Pos));
 }
 
 /**
@@ -83,31 +79,43 @@ static inline void dac_set_config(DAC_Type *dac ,uint32_t value)
 static inline void dac_clear_config(DAC_Type *dac)
 {
     /* Clear the DAC configuration */
-    dac->REG1 = 0U;
+    dac->DAC_REG1 = 0U;
 }
 
 /**
- @fn           DAC_HP_MODE(DAC_Type *dac)
+ @fn           dac_hp_mode_enable(DAC_Type *dac)
  @brief        Enable HP mode of DAC.
  @param[in]    dac : Pointer to dac Type
  @return       none
  */
-static inline void DAC_HP_MODE(DAC_Type *dac)
+static inline void dac_hp_mode_enable(DAC_Type *dac)
 {
     /* To enable the output buffer of DAC */
-    dac->REG1 |= DAC_HP_MODE_EN;
+    dac->DAC_REG1 |= DAC_HP_MODE_EN;
 }
 
 /**
- @fn           void reset_dac_blocks(DAC_Type *dac)
- @brief        Reset the DAC.
+ @fn           void dac_reset_deassert(DAC_Type *dac)
+ @brief        DAC reset released.
  @param[in]    dac : Pointer to dac Type
  @return       none
  */
-static inline void dac_reset(DAC_Type *dac)
+static inline void dac_reset_deassert(DAC_Type *dac)
 {
-    /* Reset the DAC */
-    dac->REG1 &= ~(DAC_RESET);
+    /* DAC reset released */
+    dac->DAC_REG1 |= (DAC_RESET_B);
+}
+
+/**
+ @fn           void dac_reset_assert(DAC_Type *dac)
+ @brief        DAC reset asserted.
+ @param[in]    dac : Pointer to dac Type
+ @return       none
+ */
+static inline void dac_reset_assert(DAC_Type *dac)
+{
+    /* DAC reset asserted */
+    dac->DAC_REG1 &= ~(DAC_RESET_B);
 }
 
 /**
@@ -120,7 +128,7 @@ static inline void dac_reset(DAC_Type *dac)
 static inline void dac_input(DAC_Type *dac, uint32_t value)
 {
     /* set the DAC input */
-    dac->INPUT = value;
+    dac->DAC_IN = value;
 }
 
 #endif /* DAC_H */

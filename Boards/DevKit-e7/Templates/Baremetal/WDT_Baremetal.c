@@ -25,32 +25,17 @@
 
 #include <RTE_Components.h>
 #include CMSIS_device_header
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
 
 /* watchdog Driver instance 0 */
 extern ARM_DRIVER_WDT Driver_WDT0;
 static ARM_DRIVER_WDT *WDTdrv = &Driver_WDT0;
 
-void watchdog_demo_thread_entry();
+void watchdog_demo_entry();
 
-/* Comment this if output is to be observed on debugger console via semihosting */
-#define DISABLE_PRINTF
-
-#ifdef DISABLE_PRINTF
-    #define printf(fmt, ...) (0)
-          /* Also Disable Semihosting */
-          #if __ARMCC_VERSION >= 6000000
-                    __asm(".global __use_no_semihosting");
-          #elif __ARMCC_VERSION >= 5000000
-                    #pragma import(__use_no_semihosting)
-          #else
-                    #error Unsupported compiler
-          #endif
-
-          void _sys_exit(int return_code) {
-                    while (1)
-                              ;
-          }
-#endif
 
 void NMI_Handler(void)
 {
@@ -59,7 +44,7 @@ void NMI_Handler(void)
 }
 
 /**
-  \fn          void watchdog_demo_thread_entry()
+  \fn          void watchdog_demo_entry()
   \brief       TestApp to verify watchdog peripheral,
                This demo thread does:
                  - initialize watchdog with timeout value
@@ -70,7 +55,7 @@ void NMI_Handler(void)
   \param[in]   none
   \return      none
 */
-void watchdog_demo_thread_entry()
+void watchdog_demo_entry()
 {
 	uint32_t wdog_timeout_msec = 0;   /* watchdog timeout value in msec        */
 	uint32_t time_to_reset = 0;       /* watchdog remaining time before reset. */
@@ -78,7 +63,7 @@ void watchdog_demo_thread_entry()
 	int32_t  ret = 0;
 	ARM_DRIVER_VERSION version;
 
-	printf("\r\n >>> watchdog demo threadx starting up!!! <<< \r\n");
+	printf("\r\n >>> watchdog demo starting up!!! <<< \r\n");
 
 	version = WDTdrv->GetVersion();
 	printf("\r\n watchdog version api:%X driver:%X...\r\n",version.api, version.drv);
@@ -117,7 +102,8 @@ void watchdog_demo_thread_entry()
 	while(iter--)
 	{
 		/* Delay for 3 sec. */
-		PMU_delay_loop_us (3000000);
+        for(uint32_t count = 0; count < 30; count++)
+            sys_busy_loop_us(100000);
 
 		/* Get watchdog remaining time before reset. */
 		ret = WDTdrv->GetRemainingTime(&time_to_reset);
@@ -170,7 +156,18 @@ error_uninitialize:
 
 int main()
 {
-	watchdog_demo_thread_entry();
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
+    watchdog_demo_entry();
 }
 
 /************************ (C) COPYRIGHT ALIF SEMICONDUCTOR *****END OF FILE****/

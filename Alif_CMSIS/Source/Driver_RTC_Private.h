@@ -45,7 +45,6 @@ typedef struct _LPRTC_RESOURCES {
     LPRTC_Type                *regs;           /* LPRTC register address             */
     ARM_RTC_SignalEvent_t     cb_event;        /* LPRTC Application Event callback   */
     LPRTC_DRIVER_STATE        state;           /* LPRTC Driver state                 */
-    uint32_t                  prescaler_value; /* LPRTC default prescaler value      */
     IRQn_Type                 irq_num;         /* LPRTC interrupt vector number      */
     uint16_t                  irq_priority;    /* LPRTC interrupt priority           */
 }LPRTC_RESOURCES;

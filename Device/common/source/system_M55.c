@@ -39,8 +39,10 @@
 
 #if defined (M55_HP)
   #include "M55_HP.h"
+  #include "M55_HP_Config.h"
 #elif defined (M55_HE)
   #include "M55_HE.h"
+  #include "M55_HE_Config.h"
 #else
   #error device not specified!
 #endif
@@ -59,42 +61,6 @@
 #endif
 
 #include "app_map.h"
-/**
- * Application CPU identifiers
- */
-#define TOC_IMAGE_CPU_ID_MASK       0x0000000Fu
-#define TOC_IMAGE_CPU_A32_0         0u
-#define TOC_IMAGE_CPU_A32_1         1u
-#define TOC_IMAGE_CPU_M55_HP        2u
-#define TOC_IMAGE_CPU_M55_HE        3u
-
-#define MINI_TOC_SIGNATURE			0xFFA0A710u
-
-/*******************************************************************************
- *  T Y P E D E F S
- ******************************************************************************/
-
-typedef struct
-{
-  uint32_t loadAddress;
-  uint32_t configuration;
-  uint32_t execAddress;
-  uint32_t objSize;
-} atoc_t;
-
-const atoc_t __mram_atoc __attribute__((used)) = {
-
-  .loadAddress = 0xFFFFFFFF, // Indicate XIP Mode
-#if defined (M55_HP)
-  .configuration = MINI_TOC_SIGNATURE + TOC_IMAGE_CPU_M55_HP,
-  .execAddress = _APP_ADDRESS_HP,
-#elif defined (M55_HE)
-  .configuration = MINI_TOC_SIGNATURE + TOC_IMAGE_CPU_M55_HE,
-  .execAddress = _APP_ADDRESS_HE,
-#endif
-  .objSize = 0
-};
-
 /*----------------------------------------------------------------------------
   Define clocks
  *----------------------------------------------------------------------------*/
@@ -105,8 +71,6 @@ const atoc_t __mram_atoc __attribute__((used)) = {
 #elif defined (M55_HE)
 #define  SYSTEM_CLOCK    (160U * MHZ)
 #endif
-
-
 
 
 /*----------------------------------------------------------------------------
@@ -183,7 +147,14 @@ void SystemInit (void)
                     MEMSYSCTL_PFCR_ENABLE_Msk;
 
 #if defined (__MPU_PRESENT) && (__MPU_PRESENT == 1U)
+/*
+ * Do not do MPU_Setup() if running from the OSPI XIP regions as MPU_Setup() temporarily
+ * disables the MPU which causes the default Device/XN attributes to take effect for the
+ * OSPI XIP regions.
+ */
+#if !BOOT_FROM_OSPI_FLASH
   MPU_Setup();
+#endif
 #endif
 
   // Enable caches now, for speed, but we will have to clean
@@ -209,27 +180,19 @@ void SystemInit (void)
 
   SystemCoreClock = SYSTEM_CLOCK;
 
-  // Enable Trace so PMU can be enabled
-  DCB->DEMCR |= DCB_DEMCR_TRCENA_Msk;
+  /* Enable the Counter module for busy loops */
+  sys_busy_loop_init();
 
-  //Enable the PMU
-  ARM_PMU_Enable();
-
-  //Enable PMU Cycle Counter
-  ARM_PMU_CNTR_Enable(PMU_CNTENSET_CCNTR_ENABLE_Msk);
-
-  /* Add a feature to enable all the cgu clocks and bypass
-   * the clock gating in the EXPMST0.
+  /* Add a feature to bypass the clock gating in the EXPMST0.
    *
    * Note: This will be removed in the future release
    */
 #define FORCE_ENABLE_SYSTEM_CLOCKS 1
 #if FORCE_ENABLE_SYSTEM_CLOCKS
+  /* Bypass clock gating */
+  enable_force_peripheral_functional_clk();
 
-  /* Enable all the clocks required for the peripherals */
-  enable_cgu_clk38p4m();
-  enable_cgu_clk160m();
-  enable_cgu_clk100m();
-  enable_cgu_clk20m();
+  /* Bypass clock gating */
+  enable_force_apb_interface_clk();
 #endif
 }

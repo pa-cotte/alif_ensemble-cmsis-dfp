@@ -40,7 +40,6 @@ extern "C" {
  */
 typedef struct
 {
-  uint32_t             global_offset;
   uint32_t             packet_buffer_address;
   MHU_send_message_t   fn_send_mhu_message;
   wait_ms_t            fn_wait_ms;

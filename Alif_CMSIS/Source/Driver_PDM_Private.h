@@ -20,6 +20,16 @@
 #include "Driver_PDM.h"
 #include "pdm.h"
 
+#if(RTE_PDM_DMA_ENABLE || RTE_LPPDM_DMA_ENABLE)
+#define PDM_DMA_ENABLE  1
+#else
+#define PDM_DMA_ENABLE  0
+#endif
+
+#if PDM_DMA_ENABLE
+#include <DMA_Common.h>
+#endif
+
 /**
  * enum PDM_INSTANCE.
  * PDM instances.
@@ -37,6 +47,12 @@ typedef volatile struct _PDM_DRIVER_STATE {
     uint32_t reserved    : 30;             /* Reserved */
 } PDM_DRIVER_STATE;
 
+#if PDM_DMA_ENABLE
+typedef struct _PDM_DMA_HW_CONFIG{
+    DMA_PERIPHERAL_CONFIG dma_rx;          /* DMA rx interface */
+}PDM_DMA_HW_CONFIG;
+#endif
+
 /**
  * Access structure for the saving the PDM Setting and status
  */
@@ -47,6 +63,13 @@ typedef struct _PDM_RESOURCES
     pdm_transfer_t                    transfer;             /* To store PDM Capture Configuration */
     PDM_DRIVER_STATE                  state;                /* PDM Driver state                   */
     PDM_INSTANCE                      instance;             /* PDM Driver instance                */
+    uint8_t                           fifo_watermark;       /* PDM fifo watermark value           */
+#if PDM_DMA_ENABLE
+    ARM_DMA_SignalEvent_t             dma_cb;               /* PDM DMA Callback                   */
+    PDM_DMA_HW_CONFIG                *dma_cfg;              /* DMA controller configuration       */
+    bool                              dma_enable;           /* PDM instance DMA enable            */
+    uint8_t                           dma_irq_priority;     /* PDM instance DMA irq priority      */
+#endif
     IRQn_Type                         error_irq;            /* PDM error IRQ number               */
     IRQn_Type                         warning_irq;          /* PDM warning IRQ number             */
     IRQn_Type                         audio_detect_irq;     /* PDM audio detect IRQ number        */

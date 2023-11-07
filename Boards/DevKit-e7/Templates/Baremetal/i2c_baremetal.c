@@ -14,8 +14,8 @@
  *           Slave functionality without any operating system
  *
  *           Code will verify below cases:
- *            1.)Master transmit 10 bytes and Slave receive 10 bytes
- *            2.)Slave transmit 15 bytes and Master receive 15 bytes
+ *           1) Master transmit 30 bytes and Slave receive 30 bytes
+ *           2) Slave transmit 29 bytes and Master receive 29 bytes
  *           I2C1 instance is taken as Master (PIN used P7_2 and P7_3)
  *           I2C0 instance is taken as Slave  (PIN used P0_2 and P0_3)
  *
@@ -35,25 +35,14 @@
 
 #include "Driver_I2C.h"
 #include "pinconf.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
 
-#ifdef DISABLE_PRINTF
-    #define printf(fmt, ...) (0)
-    /* Also Disable Semihosting */
-    #if __ARMCC_VERSION >= 6000000
-            __asm(".global __use_no_semihosting");
-    #elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
-
-    void _sys_exit(int return_code) {
-            while (1);
-    }
-#endif
+#define ADDRESS_MODE_7BIT   1                   /* I2C 7 bit addressing mode     */
+#define ADDRESS_MODE_10BIT  2                   /* I2C 10 bit addressing mode    */
+#define ADDRESS_MODE        ADDRESS_MODE_10BIT  /* 10 bit addressing mode chosen */
 
 /* I2C Driver instance */
 extern ARM_DRIVER_I2C Driver_I2C1;
@@ -65,24 +54,29 @@ static ARM_DRIVER_I2C *I2C_SlvDrv = &Driver_I2C0;
 volatile uint32_t mst_cb_status = 0;
 volatile uint32_t slv_cb_status = 0;
 
-#define TAR_ADDRS         (0X40)   /* Target(Slave) Address, use by Master */
-#define SAR_ADDRS         (0X40)   /* Slave Own Address,     use by Slave  */
-#define RESTART           (0X01)
-#define STOP              (0X00)
+#if (ADDRESS_MODE == ADDRESS_MODE_10BIT)
+    #define TAR_ADDRS       (0X2D0)  /* 10 bit Target(Slave) Address, use by Master */
+    #define SAR_ADDRS       (0X2D0)  /* 10 bit Slave Own Address,     use by Slave  */
+#else
+    #define TAR_ADDRS       (0X40)   /* 7 bit Target(Slave) Address, use by Master  */
+    #define SAR_ADDRS       (0X40)   /* 7 bit Slave Own Address,     use by Slave   */
+#endif
+
+#define RESTART         (0X01)
+#define STOP            (0X00)
 
 /* master transmit and slave receive */
-#define MST_BYTE_TO_TRANSMIT            10
+#define MST_BYTE_TO_TRANSMIT            30
 
 /* slave transmit and master receive */
-#define SLV_BYTE_TO_TRANSMIT            15
+#define SLV_BYTE_TO_TRANSMIT            29
 
 /* Master parameter set */
 
 /* Master TX Data (Any random value). */
 uint8_t MST_TX_BUF[MST_BYTE_TO_TRANSMIT] =
 {
-    0XAF,0xCE,0xAB,0xDE,0x4A,
-    0X22,0X55,0X89,0X46,0X88
+    "!*!Test Message from Master!*!"
 };
 
 /* master receive buffer */
@@ -99,17 +93,13 @@ uint8_t SLV_RX_BUF[MST_BYTE_TO_TRANSMIT];
 /* Slave TX Data (Any random value). */
 uint8_t SLV_TX_BUF[SLV_BYTE_TO_TRANSMIT] =
 {
-    0X84,0xCD,0x6F,0x5E,0x49,
-    0X42,0X2B,0X23,0X46,0X78,
-    0X67,0XCC,0xDD,0XAB,0XAE
+    "!*!Test Message from Slave!*!"
 };
 
 /* Slave parameter set END */
 
-
 static void i2c_mst_conversion_callback(uint32_t event)
 {
-
       if (event & ARM_I2C_EVENT_TRANSFER_DONE) {
         /* Transfer or receive is finished */
         mst_cb_status = 1;
@@ -201,13 +191,16 @@ void I2C_demo()
     }
 
     /* I2C Slave Control */
+#if (ADDRESS_MODE == ADDRESS_MODE_10BIT)
+    ret = I2C_SlvDrv->Control(ARM_I2C_OWN_ADDRESS, (SAR_ADDRS | ARM_I2C_ADDRESS_10BIT));
+#else
     ret = I2C_SlvDrv->Control(ARM_I2C_OWN_ADDRESS, SAR_ADDRS);
+#endif
      if (ret != ARM_DRIVER_OK)
      {
          printf("\r\n Error: I2C slave control failed\n");
          goto error_uninitialize;
      }
-
      printf("\n----------------Master transmit/slave receive-----------------------\n");
 
      /* I2C Slave Receive */
@@ -219,10 +212,14 @@ void I2C_demo()
      }
 
      /* delay */
-     PMU_delay_loop_us(500);
+     sys_busy_loop_us(500);
 
-     /* I2C Master Transmit */
-     I2C_MstDrv->MasterTransmit(TAR_ADDRS, MST_TX_BUF, MST_BYTE_TO_TRANSMIT, STOP);
+     /* I2C Master Transmit*/
+#if (ADDRESS_MODE == ADDRESS_MODE_10BIT)
+    I2C_MstDrv->MasterTransmit((TAR_ADDRS | ARM_I2C_ADDRESS_10BIT), MST_TX_BUF, MST_BYTE_TO_TRANSMIT, STOP);
+#else
+    I2C_MstDrv->MasterTransmit(TAR_ADDRS, MST_TX_BUF, MST_BYTE_TO_TRANSMIT, STOP);
+#endif
      if (ret != ARM_DRIVER_OK)
      {
          printf("\r\n Error: I2C Master Transmit failed\n");
@@ -247,7 +244,11 @@ void I2C_demo()
      printf("\n----------------Master receive/slave transmit-----------------------\n");
 
      /* I2C Master Receive */
+#if (ADDRESS_MODE == ADDRESS_MODE_10BIT)
+     ret = I2C_MstDrv->MasterReceive((TAR_ADDRS | ARM_I2C_ADDRESS_10BIT), MST_RX_BUF, SLV_BYTE_TO_TRANSMIT, STOP);
+#else
      ret = I2C_MstDrv->MasterReceive(TAR_ADDRS, MST_RX_BUF, SLV_BYTE_TO_TRANSMIT, STOP);
+#endif
      if (ret != ARM_DRIVER_OK)
      {
          printf("\r\n Error: I2C Master Receive failed\n");
@@ -324,6 +325,17 @@ void I2C_demo()
 
 int main (void)
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
     I2C_demo();
     while(1);
 }

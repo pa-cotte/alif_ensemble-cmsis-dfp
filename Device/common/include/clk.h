@@ -13,7 +13,6 @@
 
 #include <peripheral_types.h>
 
-#if 0
 #ifndef AXI_CLOCK
 #define AXI_CLOCK 400000000
 #endif
@@ -25,22 +24,6 @@
 #ifndef APB_CLOCK
 #define APB_CLOCK 100000000
 #endif
-#else
-#ifndef AXI_CLOCK
-#define AXI_CLOCK 400000000
-#endif
-
-#ifndef AHB_CLOCK
-#define AHB_CLOCK 200000000
-#endif
-
-#ifndef APB_CLOCK
-#define APB_CLOCK 100000000
-#endif
-#endif
-
-#define HFRC_CLOCK  76800000
-#define HFOSC_CLOCK 38400000
 
 #ifndef RTSS_HE_CLK
 #define RTSS_HE_CLK 160000000
@@ -52,6 +35,9 @@
 
 #define SYST_PCLK               APB_CLOCK
 #define I2C_PERIPHERAL_CLOCK    APB_CLOCK
+
+#define PLL_CLK1                800000000
+#define PLL_CLK3                480000000
 
 #define CDC200_PIXCLK           AXI_CLOCK
 

@@ -114,8 +114,12 @@ typedef struct {                                           /*!< (@ 0x49033000) C
     volatile       uint32_t  CSI_SCRAMBLING_SEED2;         /*!< (@ 0x00000308) Descrambling Seed Configuration Lane 1 Register   */
 } CSI_Type;                                                /*!< Size = 780 (0x30c)                                               */
 
+/* CSI2 Parameters */
+#define CSI_IPI_FIFO_DEPTH                           1024
+#define CSI2_HOST_IPI_DWIDTH                         64
+
 /* CSI N LANES register (CSI_N_LANES) bit[2:0] */
-#define CSI_N_LANES_Pos                               0U
+#define CSI_N_LANES_Pos                              0U
 #define CSI_N_LANES_Msk                              (0x7U << CSI_N_LANES_Pos)
 
 /* CSI software reset register (CSI_CSI2_RESETN) bit[0] */
@@ -302,6 +306,17 @@ typedef enum _CSI_N_LANES
 } CSI_N_LANES;
 
 /**
+ * enum  CSI_VC_ID
+ * CSI virtual channel ID.
+ */
+typedef enum _CSI_VC_ID{
+    CSI_VC_ID_0,             /**< Virtual channel ID 0 */
+    CSI_VC_ID_1,             /**< Virtual channel ID 1 */
+    CSI_VC_ID_2,             /**< Virtual channel ID 2 */
+    CSI_VC_ID_3              /**< Virtual channel ID 3 */
+}CSI_VC_ID;
+
+/**
  * enum  CSI_LANE
  * CSI lane select.
  */
@@ -410,6 +425,26 @@ typedef enum _CSI_IPI_SYNC_EVENT
     CSI_IPI_SYNC_EVENT_FSN,                        /**< Frame Start do not trigger any sync event.           */
     CSI_IPI_SYNC_EVENT_FS                          /**< Frame Start triggers a sync event.                   */
 } CSI_IPI_SYNC_EVENT;
+
+/**
+ * enum CSI_DATA_TYPE
+ * CSI data types supported
+ */
+typedef enum _CSI_DATA_TYPE
+{
+    CSI_DT_RGB444 = 0x20,                       /**< Data type RGB444 */
+    CSI_DT_RGB555 = 0x21,                       /**< Data type RGB555 */
+    CSI_DT_RGB565 = 0x22,                       /**< Data type RGB565 */
+    CSI_DT_RGB666 = 0x23,                       /**< Data type RGB666 */
+    CSI_DT_RGB888 = 0x24,                       /**< Data type RGB888 */
+    CSI_DT_RAW6   = 0x28,                       /**< Data type RAW6   */
+    CSI_DT_RAW7   = 0x29,                       /**< Data type RAW7   */
+    CSI_DT_RAW8   = 0x2A,                       /**< Data type RAW8   */
+    CSI_DT_RAW10  = 0x2B,                       /**< Data type RAW10  */
+    CSI_DT_RAW12  = 0x2C,                       /**< Data type RAW12  */
+    CSI_DT_RAW14  = 0x2D,                       /**< Data type RAW14  */
+    CSI_DT_RAW16  = 0x2E                        /**< Data type RAW16  */
+} CSI_DATA_TYPE;
 
 /**
   \fn          void csi_set_n_active_lanes(CSI_Type *csi, CSI_N_LANES n_lanes)

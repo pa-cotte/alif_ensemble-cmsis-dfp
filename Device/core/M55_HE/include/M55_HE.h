@@ -46,6 +46,9 @@
 extern "C" {
 #endif
 
+#define CPU_NAME                    "M55_HE"    /*     CPU Name     */
+#define CPU_ID                      3           /*     CPU ID       */
+
 /* -------------------------  Aliases for Local Resources  ------------------------ */
 /* ----------  Local DMA IRQ Handler Aliases  ---------- */
 #define DMALOCAL_IRQ0Handler        DMA2_IRQ0Handler
@@ -718,17 +721,6 @@ typedef enum {
 #endif
 
 #define HWSEM_MASTERID                           0x410FD222
-
-/*
- * Prefetch Control Default Values
- */
- /* Max Outstanding line-fills issued on AXI. Possible values <1-6>*/
-#define MEMSYSCTL_PFCR_MAX_OS_DEFAULT_VALUE      3
-/* Max Look Ahead distance. Possible values <0-6>*/
-#define MEMSYSCTL_PFCR_MAX_LA_DEFAULT_VALUE      6
-/* Min Look Ahead distance. Possible values <0-6>*/
-#define MEMSYSCTL_PFCR_MIN_LA_DEFAULT_VALUE      2
-
 
 #ifdef __cplusplus
 }

@@ -31,25 +31,10 @@
 #include "task.h"
 #include "Driver_GPIO.h"
 #include "pinconf.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
-
-#ifdef DISABLE_PRINTF
-#define printf(fmt, ...) (0)
-/* Also Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-__asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
-
-void _sys_exit(int return_code) {
-   while (1);
-}
-#endif
 
 /*Define for FreeRTOS*/
 #define STACK_SIZE     1024
@@ -186,38 +171,38 @@ void led_demo_Thread(void *pvParameters)
     ret2 = gpioDrv6->PowerControl(LED1_R, ARM_POWER_FULL);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to powered full\n");
-        return;
+        goto error_uninitialize;
     }
     ret1 = gpioDrv7->PowerControl(LED0_G, ARM_POWER_FULL);
     ret2 = gpioDrv6->PowerControl(LED1_G, ARM_POWER_FULL);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to powered full\n");
-        return;
+        goto error_uninitialize;
     }
     ret1 = gpioDrv12->PowerControl(LED0_B, ARM_POWER_FULL);
     ret2 = gpioDrv6->PowerControl(LED1_B, ARM_POWER_FULL);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to powered full\n");
-        return;
+        goto error_uninitialize;
     }
 
     ret1 = gpioDrv12->SetDirection(LED0_R, GPIO_PIN_DIRECTION_OUTPUT);
     ret2 = gpioDrv6->SetDirection(LED1_R, GPIO_PIN_DIRECTION_OUTPUT);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to configure\n");
-        return;
+        goto error_power_off;
     }
     ret1 = gpioDrv7->SetDirection(LED0_G, GPIO_PIN_DIRECTION_OUTPUT);
     ret2 = gpioDrv6->SetDirection(LED1_G, GPIO_PIN_DIRECTION_OUTPUT);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to configure\n");
-        return;
+        goto error_power_off;
     }
     ret1 = gpioDrv12->SetDirection(LED0_B, GPIO_PIN_DIRECTION_OUTPUT);
     ret2 = gpioDrv6->SetDirection(LED1_B, GPIO_PIN_DIRECTION_OUTPUT);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to configure\n");
-        return;
+        goto error_power_off;
     }
 
     while (1)
@@ -342,6 +327,16 @@ error_uninitialize:
  *---------------------------------------------------------------------------*/
 int main( void )
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
    /* System Initialization */
    SystemCoreClockUpdate();
    /* Create application main thread */

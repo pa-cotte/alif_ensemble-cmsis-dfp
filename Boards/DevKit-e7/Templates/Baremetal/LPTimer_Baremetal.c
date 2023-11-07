@@ -24,8 +24,12 @@
 #include <stdlib.h>
 #include "Driver_LPTIMER.h"
 
+
 #include "RTE_Components.h"
 #include CMSIS_device_header
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
 extern ARM_DRIVER_LPTIMER DRIVER_LPTIMER0;
 ARM_DRIVER_LPTIMER *ptrDrv = &DRIVER_LPTIMER0;
@@ -33,25 +37,6 @@ ARM_DRIVER_LPTIMER *ptrDrv = &DRIVER_LPTIMER0;
 #define LPTIMER_CHANNEL_0    0
 
 volatile uint32_t Cb_status  =  0;
-
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
-
-#ifdef DISABLE_PRINTF
-#define printf(fmt, ...) (0)
-/* Also Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-__asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
-
-void _sys_exit(int return_code) {
-   while (1);
-}
-#endif
 
 static void lptimer_cb_fun (uint8_t event)
 {
@@ -122,7 +107,9 @@ static void lptimer_Thread ()
     }
 
     /* delay for 6sec */
-    PMU_delay_loop_us (6000000);
+    for(uint32_t count = 0; count < 60; count++)
+        sys_busy_loop_us(100000);
+
     if (Cb_status)
     {
         printf("5 seconds timer expired \r\n");
@@ -165,6 +152,16 @@ error_uninstall:
 
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
     lptimer_Thread();
     return 0;
 }

@@ -72,6 +72,7 @@ extern "C"
 
 /* ISSI Register Settings */
 #define OCTAL_DDR                                         0xC7
+#define OCTAL_DDR_DQS                                     0xE7
 #define WRAP_32_BYTE                                      0xFD
 #define XIP_8IOFR                                         0xFE
 #define DEFAULT_WAIT_CYCLES_ISSI                          0x10

@@ -104,7 +104,10 @@ LR_ROM __RO_BASE __RO_SIZE  {                       ; load region size_region
   RW_SRAM3 SRAM3_BASE SRAM3_SIZE  {  ; Update sections as needed
 
   }
-  RW_SRAM6 SRAM6_BASE SRAM6_SIZE  {  ; Update sections as needed
+  RW_SRAM6_A SRAM6_A_BASE SRAM6_A_SIZE  {  ; Update sections as needed
+
+  }
+  RW_SRAM6_B SRAM6_B_BASE SRAM6_B_SIZE  {  ; Update sections as needed
 
   }
   RW_SRAM7 SRAM7_BASE SRAM7_SIZE  {  ; Update sections as needed
@@ -113,7 +116,10 @@ LR_ROM __RO_BASE __RO_SIZE  {                       ; load region size_region
   RW_SRAM8 SRAM8_BASE SRAM8_SIZE  {  ; Update sections as needed
 
   }
-  RW_SRAM9 SRAM9_BASE SRAM9_SIZE  {  ; Update sections as needed
+  RW_SRAM9_A SRAM9_A_BASE SRAM9_A_SIZE  {  ; Update sections as needed
+
+  }
+  RW_SRAM9_B SRAM9_B_BASE SRAM9_B_SIZE  {  ; Update sections as needed
 
   }
 

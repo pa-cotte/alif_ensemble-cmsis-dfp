@@ -39,6 +39,19 @@ extern "C"
 #endif
 #endif
 
+/* Check if DMA Support is enable? */
+#if (RTE_UART0_DMA_ENABLE || RTE_UART1_DMA_ENABLE || RTE_UART2_DMA_ENABLE  || \
+     RTE_UART3_DMA_ENABLE || RTE_UART4_DMA_ENABLE || RTE_UART5_DMA_ENABLE  || \
+     RTE_UART6_DMA_ENABLE || RTE_UART7_DMA_ENABLE || RTE_LPUART_DMA_ENABLE)
+#define UART_DMA_ENABLE  1
+#else
+#define UART_DMA_ENABLE  0
+#endif
+
+#if UART_DMA_ENABLE
+#include <DMA_Common.h>
+#endif
+
 /**
  * enum UART_INSTANCE
  * UART instances
@@ -95,12 +108,28 @@ typedef struct _UART_RS485_CONFIG
 } UART_RS485_CONFIG;
 #endif /* END RS485_SUPPORT */
 
+#if UART_DMA_ENABLE
+typedef struct _UART_DMA_HW_CONFIG
+{
+    DMA_PERIPHERAL_CONFIG dma_tx;  /* DMA Tx interface */
+    DMA_PERIPHERAL_CONFIG dma_rx;  /* DMA Rx interface */
+} UART_DMA_HW_CONFIG;
+#endif
+
+
 /* UART Resources definitions */
 /* @brief Structure to save contexts for a UART */
 typedef struct _UART_RESOURCES
 {
     UART_Type                 *regs;               /* Pointer to UART regs            */
+
     ARM_USART_SignalEvent_t    cb_event;           /* Pointer to call back function   */
+
+#if UART_DMA_ENABLE
+    ARM_DMA_SignalEvent_t      dmatx_cb;           /* Pointer to DMA Tx Callback      */
+    ARM_DMA_SignalEvent_t      dmarx_cb;           /* Pointer to DMA Rx Callback      */
+#endif
+
     UART_TRANSFER              transfer;           /* UART Transfer information       */
     ARM_USART_STATUS           status;             /* UART driver status              */
     UART_DRIVER_STATE          state;              /* UART driver state               */
@@ -112,6 +141,12 @@ typedef struct _UART_RESOURCES
     IRQn_Type                  irq_num;            /* UART interrupt vector number    */
     uint32_t                   irq_priority;       /* UART interrupt priority         */
     uint8_t                    instance;           /* UART instance                   */
+
+#if UART_DMA_ENABLE
+    const bool                 dma_enable;         /* UART dma enable                  */
+    const uint32_t             dma_irq_priority;   /* DMA IRQ priority number          */
+    UART_DMA_HW_CONFIG        *dma_cfg;            /* DMA Controller configuration     */
+#endif
 
 #if RS485_SUPPORT
     UART_RS485_CONFIG          rs485_cfg;          /* UART rs485 configuration.       */

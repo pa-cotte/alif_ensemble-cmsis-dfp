@@ -50,15 +50,6 @@ typedef enum _DPHY_PLL_STATUS {
 } DPHY_PLL_STATUS;
 
 /**
- * enum DPHY_CLK_MODE
- * DPHY clock lane mode
- */
-typedef enum _DPHY_CLK_MODE {
-	DPHY_CLK_MODE_CONTINUOUS,           /**< DPHY clock mode continues     */
-	DPHY_CLK_MODE_NON_CONTINUOUS,       /**< DPHY clock mode Non continues */
-}DPHY_CLK_MODE;
-
-/**
  * enum DPHY_INIT_STATUS
  * DPHY initialization status
  */

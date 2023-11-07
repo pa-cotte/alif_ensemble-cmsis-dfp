@@ -24,25 +24,18 @@
 #include <stdio.h>
 #include <RTE_Components.h>
 #include CMSIS_device_header
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
-/* Comment this if output is to be observed on debugger console via semihosting */
-#define DISABLE_PRINTF
 
-#ifdef DISABLE_PRINTF
-#define printf(fmt, ...) (0)
-/* Also Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-__asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
+/* Uncomment to use the pin configuration provided by the conductor tool */
+//#define USE_CONDUCTOR_PIN_CONFIG
 
-void _sys_exit(int return_code) {
-   while (1);
-}
+#ifdef USE_CONDUCTOR_PIN_CONFIG
+#include "conductor_board_config.h"
 #endif
+
 
 /* LED0 gpio pins */
 #define GPIO12_PORT                     12  /*< Use LED0_R,LED0_B GPIO port >*/
@@ -115,6 +108,14 @@ void led_blink_app (void)
 
     printf("led blink demo application started\n\n");
 
+#ifdef USE_CONDUCTOR_PIN_CONFIG
+    ret1 = conductor_pins_config();
+
+    if (ret1 != 0) {
+        printf("ERROR: Conductor pin configuration failed\n");
+        return;
+    }
+#else
     /* pinmux configurations for all GPIOs */
     pinconf_set(GPIO12_PORT, LED0_R, PINMUX_ALTERNATE_FUNCTION_0, 0);
     pinconf_set(GPIO7_PORT, LED0_G, PINMUX_ALTERNATE_FUNCTION_0, 0);
@@ -122,6 +123,7 @@ void led_blink_app (void)
     pinconf_set(GPIO6_PORT, LED1_R, PINMUX_ALTERNATE_FUNCTION_0, 0);
     pinconf_set(GPIO6_PORT, LED1_G, PINMUX_ALTERNATE_FUNCTION_0, 0);
     pinconf_set(GPIO6_PORT, LED1_B, PINMUX_ALTERNATE_FUNCTION_0, 0);
+#endif
 
     ret1 = gpioDrv12->Initialize(LED0_R, NULL);
     ret2 = gpioDrv6->Initialize(LED1_R, NULL);
@@ -146,38 +148,38 @@ void led_blink_app (void)
     ret2 = gpioDrv6->PowerControl(LED1_R, ARM_POWER_FULL);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to powered full\n");
-        return;
+        goto error_uninitialize;
     }
     ret1 = gpioDrv7->PowerControl(LED0_G, ARM_POWER_FULL);
     ret2 = gpioDrv6->PowerControl(LED1_G, ARM_POWER_FULL);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to powered full\n");
-        return;
+        goto error_uninitialize;
     }
     ret1 = gpioDrv12->PowerControl(LED0_B, ARM_POWER_FULL);
     ret2 = gpioDrv6->PowerControl(LED1_B, ARM_POWER_FULL);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to powered full\n");
-        return;
+        goto error_uninitialize;
     }
 
     ret1 = gpioDrv12->SetDirection(LED0_R, GPIO_PIN_DIRECTION_OUTPUT);
     ret2 = gpioDrv6->SetDirection(LED1_R, GPIO_PIN_DIRECTION_OUTPUT);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to configure\n");
-        return;
+        goto error_power_off;
     }
     ret1 = gpioDrv7->SetDirection(LED0_G, GPIO_PIN_DIRECTION_OUTPUT);
     ret2 = gpioDrv6->SetDirection(LED1_G, GPIO_PIN_DIRECTION_OUTPUT);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to configure\n");
-        return;
+        goto error_power_off;
     }
     ret1 = gpioDrv12->SetDirection(LED0_B, GPIO_PIN_DIRECTION_OUTPUT);
     ret2 = gpioDrv6->SetDirection(LED1_B, GPIO_PIN_DIRECTION_OUTPUT);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to configure\n");
-        return;
+        goto error_power_off;
     }
 
     while (1)
@@ -300,6 +302,16 @@ error_uninitialize:
 /* Define main entry point.  */
 int main (void)
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
     /* Configure Systick for each millisec */
     SysTick_Config(SystemCoreClock/1000);
 

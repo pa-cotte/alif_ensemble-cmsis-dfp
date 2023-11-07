@@ -47,6 +47,25 @@ extern "C" {
 #endif
 
 /* =========================================================================================================================== */
+/* ================                                            Generic Counter Module                         ================ */
+/* =========================================================================================================================== */
+
+/* CNTControlBase CNTCR field definitions */
+#define CNTCR_EN    (1U << 0)                   /* Enable the counter */
+
+typedef struct {                                /*!<  Generic Counter Module Control Structure                                 */
+  __IOM uint32_t  CNTCR;                        /*!< (@ 0x00000000) Counter Control Register                                   */
+  __IM uint32_t   CNTSR;                        /*!< (@ 0x00000004) Counter Status Register                                    */
+  __IOM uint32_t  CNTCVL;                       /*!< (@ 0x00000008) Counter Count Lower Value Register                         */
+  __IOM uint32_t  CNTCVH;                       /*!< (@ 0x0000000C) Counter Count Higher Value Register                        */
+} CNTControlBase_Type;                          /*!<                                                                           */
+
+typedef struct {                                /*!< Generic Counter Module Control Read Structure                             */
+  __IM uint32_t  CNTCVL;                        /*!< (@ 0x00000000) Counter Count Lower Value Register                         */
+  __IM uint32_t  CNTCVH;                        /*!< (@ 0x00000004) Counter Count Higher Value Register                        */
+} CNTReadBase_Type;                             /*!<                                                                           */
+
+/* =========================================================================================================================== */
 /* ================                                            CGU                                            ================ */
 /* =========================================================================================================================== */
 
@@ -82,69 +101,86 @@ typedef struct {                                /*!< (@ 0x1A602000) CGU Structur
   */
 
 /* CLKCTL_PER_MST CAMERA_PIXCLK_CTRL field definitions */
-#define CAMERA_PIXCLK_CTRL_CKEN             (1U << 0) /* Camera Pixel clock enables */
-#define CAMERA_PIXCLK_CTRL_CLK_SEL          (1U << 4) /* Camera Pixel clock select  */
-#define CAMERA_PIXCLK_CTRL_DIVISOR_Pos      16U       /* Camera Pixel clock divisor */
-#define CAMERA_PIXCLK_CTRL_DIVISOR_Msk      (0x1FF << CAMERA_PIXCLK_CTRL_DIVISOR_Pos)
+#define CAMERA_PIXCLK_CTRL_CKEN                (1U << 0) /* Camera Pixel clock enables */
+#define CAMERA_PIXCLK_CTRL_CLK_SEL             (1U << 4) /* Camera Pixel clock select  */
+#define CAMERA_PIXCLK_CTRL_DIVISOR_Pos         16U       /* Camera Pixel clock divisor */
+#define CAMERA_PIXCLK_CTRL_DIVISOR_Msk         (0x1FF << CAMERA_PIXCLK_CTRL_DIVISOR_Pos)
 
 /* CLKCTL_PER_MST CDC200_PIXCLK_CTRL field definitions */
-#define CDC200_PIXCLK_CTRL_CKEN             (1U << 0) /* CDC200 Pixel clock enables */
-#define CDC200_PIXCLK_CTRL_CLK_SEL          (1U << 4) /* CDC200 Pixel clock select  */
-#define CDC200_PIXCLK_CTRL_DIVISOR_Pos      16U       /* CDC200 Pixel clock divisor */
-#define CDC200_PIXCLK_CTRL_DIVISOR_Msk      (0x1FFU << CDC200_PIXCLK_CTRL_DIVISOR_Pos)
+#define CDC200_PIXCLK_CTRL_CKEN                (1U << 0) /* CDC200 Pixel clock enables */
+#define CDC200_PIXCLK_CTRL_CLK_SEL             (1U << 4) /* CDC200 Pixel clock select  */
+#define CDC200_PIXCLK_CTRL_DIVISOR_Pos         16U       /* CDC200 Pixel clock divisor */
+#define CDC200_PIXCLK_CTRL_DIVISOR_Msk         (0x1FFU << CDC200_PIXCLK_CTRL_DIVISOR_Pos)
 
 /* CLKCTL_PER_MST CSI_PIXCLK_CTRL field definitions */
-#define CSI_PIXCLK_CTRL_CKEN                (0x1U << 0) /* CSI Pixel clock enables */
-#define CSI_PIXCLK_CTRL_CLK_SEL             (0x1U << 4) /* CSI Pixel clock select  */
-#define CSI_PIXCLK_CTRL_DIVISOR_Pos         16U         /* CSI Pixel clock divisor */
-#define CSI_PIXCLK_CTRL_DIVISOR_Msk         (0x1FF << CSI_PIXCLK_CTRL_DIVISOR_Pos)
+#define CSI_PIXCLK_CTRL_CKEN                   (0x1U << 0) /* CSI Pixel clock enables */
+#define CSI_PIXCLK_CTRL_CLK_SEL                (0x1U << 4) /* CSI Pixel clock select  */
+#define CSI_PIXCLK_CTRL_DIVISOR_Pos            16U         /* CSI Pixel clock divisor */
+#define CSI_PIXCLK_CTRL_DIVISOR_Msk            (0x1FF << CSI_PIXCLK_CTRL_DIVISOR_Pos)
 
 /* CLKCTL_PER_MST PERIPH_CLK_ENA field definitions */
-#define PERIPH_CLK_ENA_CPI_CKEN             (1U << 0)  /* Enable clock supply for CPI */
-#define PERIPH_CLK_ENA_DPI_CKEN             (1U << 1)  /* Enable clock supply for DPI controller (CDC) */
-#define PERIPH_CLK_ENA_DMA_CKEN             (1U << 4)  /* Enable clock supply for DMA0 */
-#define PERIPH_CLK_ENA_GPU_CKEN             (1U << 8)  /* Enable clock supply for GPU2D */
-#define PERIPH_CLK_ENA_ETH_CKEN             (1U << 12) /* Enable clock supply for ETH */
-#define PERIPH_CLK_ENA_SDC_CKEN             (1U << 16) /* Enable clock supply for SDMMC */
-#define PERIPH_CLK_ENA_USB_CKEN             (1U << 20) /* Enable clock supply for USB */
-#define PERIPH_CLK_ENA_CSI_CKEN             (1U << 24) /* Enable clock supply for CSI */
-#define PERIPH_CLK_ENA_DSI_CKEN             (1U << 28) /* Enable clock supply for DSI */
+#define PERIPH_CLK_ENA_CPI_CKEN                (1U << 0)  /* Enable clock supply for CPI */
+#define PERIPH_CLK_ENA_DPI_CKEN                (1U << 1)  /* Enable clock supply for DPI controller (CDC) */
+#define PERIPH_CLK_ENA_DMA_CKEN                (1U << 4)  /* Enable clock supply for DMA0 */
+#define PERIPH_CLK_ENA_GPU_CKEN                (1U << 8)  /* Enable clock supply for GPU2D */
+#define PERIPH_CLK_ENA_ETH_CKEN                (1U << 12) /* Enable clock supply for ETH */
+#define PERIPH_CLK_ENA_SDC_CKEN                (1U << 16) /* Enable clock supply for SDMMC */
+#define PERIPH_CLK_ENA_USB_CKEN                (1U << 20) /* Enable clock supply for USB */
+#define PERIPH_CLK_ENA_CSI_CKEN                (1U << 24) /* Enable clock supply for CSI */
+#define PERIPH_CLK_ENA_DSI_CKEN                (1U << 28) /* Enable clock supply for DSI */
 
 /* CLKCTL_PER_MST DPHY_PLL_CTRL0 field definitions */
-#define DPHY_PLL_CTRL0_FORCE_LOCK           (1U << 0)  /* Force lock to device */
-#define DPHY_PLL_CTRL0_SHADOW_CONTROL       (1U << 4)  /* Selection of PLL configuration mechanism */
-#define DPHY_PLL_CTRL0_UPDATEPLL            (1U << 8)  /* Control for PLL operation frequency updated */
-#define DPHY_PLL_CTRL0_SHADOW_CLEAR         (1U << 12) /* Shadow registers clear */
-#define DPHY_PLL_CTRL0_CLKSEL_Pos           20U        /* CLKEXT divider selection */
-#define DPHY_PLL_CTRL0_CLKSEL_Msk           (0x3U << DPHY_PLL_CTRL0_CLKSEL_Pos)
+#define DPHY_PLL_CTRL0_FORCE_LOCK              (1U << 0)  /* Force lock to device */
+#define DPHY_PLL_CTRL0_SHADOW_CONTROL          (1U << 4)  /* Selection of PLL configuration mechanism */
+#define DPHY_PLL_CTRL0_UPDATEPLL               (1U << 8)  /* Control for PLL operation frequency updated */
+#define DPHY_PLL_CTRL0_SHADOW_CLEAR            (1U << 12) /* Shadow registers clear */
+#define DPHY_PLL_CTRL0_GMP_CTRL_Pos            16U        /* Control for effective loop-filter resistance */
+#define DPHY_PLL_CTRL0_GMP_CTRL_Msk            (0x3U << DPHY_PLL_CTRL0_GMP_CTRL_Pos)
+#define DPHY_PLL_CTRL0_CLKSEL_Pos              20U        /* CLKEXT divider selection */
+#define DPHY_PLL_CTRL0_CLKSEL_Msk              (0x3U << DPHY_PLL_CTRL0_CLKSEL_Pos)
+
+/* CLKCTL_PER_MST DPHY_PLL_CTRL1 field definitions */
+#define DPHY_PLL_CTRL1_FEEDBACK_MULT_RATIO_Pos 0U      /* Control for feedback multiplication ratio */
+#define DPHY_PLL_CTRL1_FEEDBACK_MULT_RATIO_Msk (0x3FFU << DPHY_PLL_CTRL1_FEEDBACK_MULT_RATIO_Pos)
+#define DPHY_PLL_CTRL1_INPUT_DIV_FACTOR_Pos    12U     /* Control for input frequency division ratio */
+#define DPHY_PLL_CTRL1_INPUT_DIV_FACTOR_Msk    (0xFU << DPHY_PLL_CTRL1_INPUT_DIV_FACTOR_Pos)
+
+/* CLKCTL_PER_MST DPHY_PLL_CTRL2 field definitions */
+#define DPHY_PLL_CTRL2_CPBIAS_CTRL_Pos         0U      /* Charge pump bias control */
+#define DPHY_PLL_CTRL2_CPBIAS_CTRL_Msk         (0x7FU << DPHY_PLL_CTRL2_CPBIAS_CTRL_Pos)
+#define DPHY_PLL_CTRL2_INT_CTRL_Pos            8U      /* Integral charge pump control */
+#define DPHY_PLL_CTRL2_INT_CTRL_Msk            (0x3FU << DPHY_PLL_CTRL2_INT_CTRL_Pos)
+#define DPHY_PLL_CTRL2_PROP_CTRL_Pos           16U     /* Proportional charge pump control */
+#define DPHY_PLL_CTRL2_PROP_CTRL_Msk           (0x3FU << DPHY_PLL_CTRL2_PROP_CTRL_Pos)
+#define DPHY_PLL_CTRL2_VCO_CTRL_Pos            24U     /* VCO operating range */
+#define DPHY_PLL_CTRL2_VCO_CTRL_Msk            (0x3FU << DPHY_PLL_CTRL2_VCO_CTRL_Pos)
 
 /* CLKCTL_PER_MST DPHY_CTRL0 field definitions */
-#define DPHY_CTRL0_BIST_ON                  (1U << 0) /* BIST OK */
-#define DPHY_CTRL0_BIST_DONE                (1U << 1) /* BIST DONE */
-#define DPHY_CTRL0_BIST_OK                  (1U << 2) /* BIST OK */
-#define DPHY_CTRL0_TESTPORT_SEL             (1U << 4) /* Test port select */
-#define DPHY_CTRL0_TXRXZ                    (1U << 8) /* Selects master or slave configuration for the PHY */
-#define DPHY_CTRL0_BASEDIR_Pos              12U       /* Configures the base direction for PHY data lanes */
-#define DPHY_CTRL0_BASEDIR_Msk              (0x3U << DPHY_CTRL0_BASEDIR_Pos)
-#define DPHY_CTRL0_HSFREQRANGE_Pos          16U       /* Module operating frequency */
-#define DPHY_CTRL0_HSFREQRANGE_Msk          (0x7FU << DPHY_CTRL0_HSFREQRANGE_Pos)
-#define DPHY_CTRL0_CFGCLKFREQRANGE_Pos      24U       /* Input reference clock frequency */
-#define DPHY_CTRL0_CFGCLKFREQRANGE_Msk      (0xFFU << DPHY_CTRL0_CFGCLKFREQRANGE_Pos)
+#define DPHY_CTRL0_BIST_ON                     (1U << 0) /* BIST OK */
+#define DPHY_CTRL0_BIST_DONE                   (1U << 1) /* BIST DONE */
+#define DPHY_CTRL0_BIST_OK                     (1U << 2) /* BIST OK */
+#define DPHY_CTRL0_TESTPORT_SEL                (1U << 4) /* Test port select */
+#define DPHY_CTRL0_TXRXZ                       (1U << 8) /* Selects master or slave configuration for the PHY */
+#define DPHY_CTRL0_BASEDIR_Pos                 12U       /* Configures the base direction for PHY data lanes */
+#define DPHY_CTRL0_BASEDIR_Msk                 (0x3U << DPHY_CTRL0_BASEDIR_Pos)
+#define DPHY_CTRL0_HSFREQRANGE_Pos             16U       /* Module operating frequency */
+#define DPHY_CTRL0_HSFREQRANGE_Msk             (0x7FU << DPHY_CTRL0_HSFREQRANGE_Pos)
+#define DPHY_CTRL0_CFGCLKFREQRANGE_Pos         24U       /* Input reference clock frequency */
+#define DPHY_CTRL0_CFGCLKFREQRANGE_Msk         (0xFFU << DPHY_CTRL0_CFGCLKFREQRANGE_Pos)
 
 /* CLKCTL_PER_MST DPHY_CTRL1 field definitions */
-#define DPHY_CTRL1_FORCERXMODE_Pos          0U /* Controls FORCERXMODE pin of DPHY */
-#define DPHY_CTRL1_FORCERXMODE_Msk          (0x3U << DPHY_CTRL1_FORCERXMODE_Pos)
+#define DPHY_CTRL1_FORCERXMODE_Pos             0U /* Controls FORCERXMODE pin of DPHY */
+#define DPHY_CTRL1_FORCERXMODE_Msk             (0x3U << DPHY_CTRL1_FORCERXMODE_Pos)
 
 /* CLKCTL_PER_MST MIPI_CKEN field definitions */
-#define MIPI_CLKEN_TXDPHY_CKEN              (1U << 0)  /* Enable configure clock for TX D-PHY */
-#define MIPI_CLKEN_RXDPHY_CKEN              (1U << 4)  /* Enable configure clock for RX D-PHY */
-#define MIPI_CLKEN_PLLREF_CKEN              (1U << 8)  /* Enable reference clock for MIPI D-PHY PLL */
-#define MIPI_CLKEN_BYPASS_CKEN              (1U << 12) /* Enable bypass clock for MIPI D-PHY PLL */
+#define MIPI_CLKEN_TXDPHY_CKEN                 (1U << 0)  /* Enable configure clock for TX D-PHY */
+#define MIPI_CLKEN_RXDPHY_CKEN                 (1U << 4)  /* Enable configure clock for RX D-PHY */
+#define MIPI_CLKEN_PLLREF_CKEN                 (1U << 8)  /* Enable reference clock for MIPI D-PHY PLL */
+#define MIPI_CLKEN_BYPASS_CKEN                 (1U << 12) /* Enable bypass clock for MIPI D-PHY PLL */
 
 /* CLKCTL_PER_MST, M55_Common_CFG DMA_CTRL field definitions */
-#define DMA_CTRL_BOOT_MANAGER               (1U << 0)  /* 0: Secure, 1: Non-Secure */
-#define DMA_CTRL_SW_RST                     (1U << 16) /* Software reset of DMA */
-
+#define DMA_CTRL_BOOT_MANAGER                  (1U << 0)  /* 0: Secure, 1: Non-Secure */
+#define DMA_CTRL_SW_RST                        (1U << 16) /* Software reset of DMA */
 
 typedef struct {                                /*!< (@ 0x4903F000) CLKCTL_PER_MST Structure                                   */
   __IOM uint32_t  CAMERA_PIXCLK_CTRL;           /*!< (@ 0x00000000) CPI Pixel Clock Control Register                           */
@@ -222,9 +258,10 @@ typedef struct {                                /*!< (@ 0x4903F000) CLKCTL_PER_M
 #define SSI_CTRL_SS_IN_VAL_3                (1U  << 11U) /* SPI3 Slave select value */
 
 /* CLKCTL_PER_SLV ADC_CTRL field definitions */
-#define ADC_CTRL_ADC0_CKEN                  (1U  << 0U)  /* ADC0 clock enable */
-#define ADC_CTRL_ADC1_CKEN                  (1U  << 4U)  /* ADC1 clock enable */
-#define ADC_CTRL_ADC2_CKEN                  (1U  << 8U)  /* ADC2 clock enable */
+#define ADC_CTRL_ADC0_CKEN                  (1U  << 0U)  /* ADC0 clock enable  */
+#define ADC_CTRL_ADC1_CKEN                  (1U  << 4U)  /* ADC1 clock enable  */
+#define ADC_CTRL_ADC2_CKEN                  (1U  << 8U)  /* ADC2 clock enable  */
+#define ADC_CTRL_ADC24_CKEN                 (1U  << 12U) /* ADC24 clock enable */
 
 /* CLKCTL_PER_SLV GPIO_CTRLn field definitions */
 #define GPIO_CTRL_DB_CKEN                   (1U  << 12U) /* GPIO Debounce clock enable */
@@ -285,6 +322,9 @@ typedef struct {                                /*!< (@ 0x4902F000) CLKCTL_PER_S
 /**
   * @brief VBAT (VBAT)
   */
+
+/* VBAT GPIO_CTRL field definition */
+#define GPIO_CTRL_VOLT_1V8                 (1U << 0U)
 
 /* VBAT TIMER_CLKSEL field definitions */
 #define TIMER_CLKSEL_Pos                   (0U)   /* TIMER_CLKSEL bit position */
@@ -387,6 +427,8 @@ typedef struct {                                /*!< M55_HE_CFG and M55_HP_CFG c
   __IOM uint32_t  CLK_ENA;                      /*!< (@ 0x00000010) Local Peripheral Clock Enable Register                     */
 } M55_CFG_Common_Type;
 
+#define LPCMP_CTRL_CLKEN                    (1 << 14)  /* Enable 32-kHz clock to LPCMP comparator */
+
 /**
   * @brief ANA (ANA)
   */
@@ -410,26 +452,6 @@ typedef struct {                                /*!< (@ 0x1A60A000) ANA Structur
   __IOM uint32_t  VBAT_ANA_REG3;                /*!< (@ 0x00000040) VBAT Analog Control Register 3                             */
 } ANA_Type;
 
-/* =========================================================================================================================== */
-/* ================                                           CMP0                                            ================ */
-/* =========================================================================================================================== */
-
-
-/**
-  * @brief CMP0 (CMP0)
-  */
-
-typedef struct {                                /*!< (@ 0x49023000) CMP0 Structure                                             */
-  __IOM uint32_t  CMP_COMP_REG1;                /*!< (@ 0x00000000) Comparator Register 1                                      */
-  __IOM uint32_t  CMP_COMP_REG2;                /*!< (@ 0x00000004) Comparator Register 2                                      */
-  __IOM uint32_t  CMP_POLARITY_CTRL;            /*!< (@ 0x00000008) CMP Polarity Control Register                              */
-  __IOM uint32_t  CMP_WINDOW_CTRL;              /*!< (@ 0x0000000C) CMP Window Control Register                                */
-  __IOM uint32_t  CMP_FILTER_CTRL;              /*!< (@ 0x00000010) CMP Filter Control Register                                */
-  __IOM uint32_t  CMP_PRESCALER_CTRL;           /*!< (@ 0x00000014) CMP Prescaler Control Register                             */
-  __IM  uint32_t  RESERVED[2];
-  __IOM uint32_t  CMP_INTERRUPT_STATUS;         /*!< (@ 0x00000020) CMP Interrupt Status and Clear Register                    */
-  __IOM uint32_t  CMP_INTERRUPT_MASK;           /*!< (@ 0x00000024) CMP Interrupt Mask Register                                */
-} CMP01_Type;                                    /*!< Size = 40 (0x28)                                                          */
 
 /* =========================================================================================================================== */
 /* ================                                      AON Register                                         ================ */
@@ -437,6 +459,26 @@ typedef struct {                                /*!< (@ 0x49023000) CMP0 Structu
 /**
   * @brief AON (AON)
   */
+
+/* PMU_PERIPH field definitions */
+#define PMU_PERIPH_ADC1_PGA_EN                  (1U << 0)
+#define PMU_PERIPH_ADC1_PGA_GAIN_Pos            (1)
+#define PMU_PERIPH_ADC1_PGA_GAIN_Msk            (0x7 << PMU_PERIPH_ADC1_PGA_GAIN_Pos)
+#define PMU_PERIPH_ADC2_PGA_EN                  (1U << 4)
+#define PMU_PERIPH_ADC2_PGA_GAIN_Pos            (5)
+#define PMU_PERIPH_ADC2_PGA_GAIN_Msk            (0x7 << PMU_PERIPH_ADC2_PGA_GAIN_Pos)
+#define PMU_PERIPH_ADC3_PGA_EN                  (1U << 8)
+#define PMU_PERIPH_ADC3_PGA_GAIN_Pos            (9)
+#define PMU_PERIPH_ADC3_PGA_GAIN_Msk            (0x7 << PMU_PERIPH_ADC3_PGA_GAIN_Pos)
+#define PMU_PERIPH_ADC24_EN                     (1U << 12)
+#define PMU_PERIPH_ADC24_OUTPUT_RATE_Pos        (13)
+#define PMU_PERIPH_ADC24_OUTPUT_RATE_Msk        (0x7 << PMU_PERIPH_ADC24_OUTPUT_RATE_Pos)
+#define PMU_PERIPH_ADC24_PGA_EN                 (1U << 16)
+#define PMU_PERIPH_ADC24_PGA_GAIN_Pos           (17)
+#define PMU_PERIPH_ADC24_PGA_GAIN_Msk           (0x7 << PMU_PERIPH_ADC24_PGA_GAIN_Pos)
+#define PMU_PERIPH_ADC24_BIAS_Pos               (20)
+#define PMU_PERIPH_ADC24_BIAS_Msk               (0x7 << PMU_PERIPH_ADC24_BIAS_Pos)
+
 typedef struct {                                /*!< (@ 0x1A604000) AON Structure                               */
   __IOM uint32_t  RTSS_HP_CTRL;                 /*!< (@ 0x00000000) M55-HP Control Register                     */
   __IOM uint32_t  RTSS_HP_RESET;                /*!< (@ 0x00000004) M55-HP Reset Status Register                */
@@ -459,6 +501,11 @@ typedef struct {                                /*!< (@ 0x1A604000) AON Structur
 /**
   * @brief AES (AES)
   */
+
+#define AES_CONTROL_DECRYPT_EN                  (1U << 0)
+#define AES_CONTROL_RESET_LOGIC                 (1U << 1)
+#define AES_CONTROL_XIP_EN                      (1U << 4)
+#define AES_CONTROL_LD_KEY                      (1U << 7)
 
 typedef struct {                                /*!<  AES Structure                                                            */
   __IOM uint32_t  AES_CONTROL;                  /*!< (@ 0x00000000) AES Control Register                                       */
@@ -576,13 +623,14 @@ typedef struct {                                /*!< (@ 0x400E2000) EVTRTR1 Stru
   * @{
   */
 
+#define S32K_CNTControl             ((CNTControlBase_Type*)    S32K_CNTControl_BASE)
+#define S32K_CNTRead                ((CNTReadBase_Type*)       S32K_CNTRead_BASE)
 #define CGU                         ((CGU_Type*)               CGU_BASE)
 #define CLKCTL_PER_SLV              ((CLKCTL_PER_SLV_Type*)    CLKCTL_PER_SLV_BASE)
 #define CLKCTL_PER_MST              ((CLKCTL_PER_MST_Type*)    CLKCTL_PER_MST_BASE)
 #define VBAT                        ((VBAT_Type*)              VBAT_BASE)
 #define AON                         ((AON_Type*)               AON_BASE)
 #define ANA_REG                     ((ANA_Type *)              ANA_BASE)
-#define CMP_REG                     ((CMP01_Type *)            CMP0_BASE)
 #define AES0                        ((AES_Type *)              AES0_BASE)
 #define AES1                        ((AES_Type *)              AES1_BASE)
 #define M55HE_CFG                   ((M55HE_CFG_Type*)         M55HE_CFG_BASE)

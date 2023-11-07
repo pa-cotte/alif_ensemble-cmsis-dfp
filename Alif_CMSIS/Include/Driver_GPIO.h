@@ -39,6 +39,10 @@
 #define ARM_GPIO_IRQ_SENSITIVE_LEVEL        0x00000000
 #define ARM_GPIO_IRQ_SENSITIVE_EDGE         0x00000004
 
+/****** GPIO Control code : ARM_GPIO_CONFIG_FLEXIO arg definition *****/
+#define ARM_GPIO_FLEXIO_VOLT_3V3            0x0
+#define ARM_GPIO_FLEXIO_VOLT_1V8            0x1
+
 /****** GPIO Interrupt events *****/
 #define ARM_GPIO_IRQ_EVENT_EXTERNAL         (1)
 
@@ -51,7 +55,8 @@ typedef enum _GPIO_OPERATION {
     ARM_GPIO_ENABLE_INTERRUPT,              /**<GPIO ENABLE interrupt configuration>*/
     ARM_GPIO_DISABLE_INTERRUPT,             /**<GPIO DISABLE interrupt configuration>*/
     ARM_GPIO_GET_CONFIG_VALUE1,             /**<GPIO GET Config reg-1 value operation>*/
-    ARM_GPIO_GET_CONFIG_VALUE2              /**<GPIO GET Config reg-2 value operation>*/
+    ARM_GPIO_GET_CONFIG_VALUE2,             /**<GPIO GET Config reg-2 value operation>*/
+    ARM_GPIO_CONFIG_FLEXIO                  /**<GPIO Config voltage flexio>*/
 } GPIO_OPERATION;
 
 typedef enum _GPIO_PIN_DIRECTION {
@@ -119,6 +124,7 @@ typedef enum _GPIO_PIN_STATE {
                 - ARM_GPIO_DISABLE_INTERRUPT: GPIO DISABLE interrupt configuration.
                 - ARM_GPIO_GET_CONFIG_VALUE1: get Config reg-1 value.
                 - ARM_GPIO_GET_CONFIG_VALUE2: get Config reg-2 value.
+                - ARM_GPIO_CONFIG_FLEXIO: Voltage config for FLEXIO GPIO.
  \param[in]     *arg: pointer to operation parameters
  \param[out]    int32_t : execution_status
 

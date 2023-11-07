@@ -30,6 +30,14 @@ extern "C"
 {
 #endif
 
+/* Coprocessor Power Control Register Definitions */
+#define ICB_CPPWR_SU11_Pos         22U                             /*!< CPPWR: State Unknown 11 Position */
+#define ICB_CPPWR_SU11_Msk        (0x1UL << ICB_CPPWR_SU11_Pos)    /*!< CPPWR: State Unknown 11 Mask */
+
+#define ICB_CPPWR_SU10_Pos         20U                             /*!< CPPWR: State Unknown 10 Position */
+#define ICB_CPPWR_SU10_Msk        (0x1UL << ICB_CPPWR_SU10_Pos)    /*!< CPPWR: State Unknown 10 Mask */
+
+
 /**
   \ingroup  CMSIS_core_register
   \defgroup EWIC_Type     External Wakeup Interrupt Controller Registers
@@ -109,21 +117,24 @@ typedef struct
 /*@}*/ /* end of group EWIC_Type */
 
 /**
-  @brief enum ow power state:-
+  @brief WakeUp Interrupt Controller(WIC) Type:-
  */
-typedef enum LPSTATE
+typedef enum _PM_WIC
 {
-    LPSTATE_ON,                 /*!<  On                */
-    LPSTATE_ON_CLK_OFF,         /*!<  On, clock is off  */
-    LPSTATE_RET,                /*!<  Retention         */
-    LPSTATE_OFF                 /*!<  Off               */
-} LP_STATE;
+    PM_WIC_IS_EWIC,                     /*!<  WIC used is EWIC  */
+    PM_WIC_IS_IWIC ,                    /*!<  WIC used is IWIC  */
+} PM_WIC;
 
-#define CPDLP_CLPSTATE_MASK(val) ((val << PWRMODCTL_CPDLPSTATE_CLPSTATE_Pos) | \
-                                  (val << PWRMODCTL_CPDLPSTATE_ELPSTATE_Pos) | \
-                                  (val << PWRMODCTL_CPDLPSTATE_RLPSTATE_Pos))
-
-#define CPDLP_DLPSTATE_MASK(val)  (val << PWRMODCTL_DPDLPSTATE_DLPSTATE_Pos)
+/**
+  @brief enum Low power state:-
+ */
+typedef enum _PM_LPSTATE
+{
+    PM_LPSTATE_ON,                      /*!<  ON                */
+    PM_LPSTATE_ON_CLK_OFF ,             /*!<  ON, clock is off  */
+    PM_LPSTATE_RET,                     /*!<  Not supported     */
+    PM_LPSTATE_OFF                      /*!<  OFF               */
+} PM_LPSTATE;
 
 /* Same address for both RTSS */
 /* Cold_Wakeup bit in external system 0/1 */

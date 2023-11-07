@@ -34,7 +34,8 @@ extern "C"
 #include "Driver_UTIMER.h"
 #include "utimer.h"
 
-#define ARM_UTIMER_MAX_CHANNEL                      16U
+#define ARM_UTIMER_MAX_CHANNEL                      15U
+#define ARM_UTIMER_TOTAL_CHANNELS                   16U
 
 #define UTIMER_MODE_ENABLE                          1U
 #define QEC_MODE_ENABLE                             0U
@@ -105,7 +106,7 @@ typedef struct _UTIMER_CHANNEL_INFO
 typedef struct _UTIMER_RESOURCES
 {
     UTIMER_Type *regs;                /**< Pointer to UTIMER registers >*/
-    UTIMER_CHANNEL_INFO ch_info[ARM_UTIMER_MAX_CHANNEL]; /**< Pointer to Info structure of UTIMER >*/
+    UTIMER_CHANNEL_INFO ch_info[ARM_UTIMER_TOTAL_CHANNELS]; /**< Pointer to Info structure of UTIMER >*/
 } UTIMER_RESOURCES;
 
 /**
@@ -323,42 +324,42 @@ static inline uint32_t UTIMER_Get_TriggerType (ARM_UTIMER_TRIGGER trigger)
         }
         case ARM_UTIMER_FAULT_TRIG0_RISING:
         {
-            value = FAULT_CTRL_FUALT_EN_TRIG0;
+            value = (FAULT_CTRL_FAULT_EN_TRIG0 | FAULT_CTRL_FAULT_POL_HIGH_TRIG0);
             break;
         }
         case ARM_UTIMER_FAULT_TRIG0_FALLING:
         {
-            value = (FAULT_CTRL_FUALT_EN_TRIG0 | FAULT_CTRL_FUALT_POL_LOW_TRIG0);
+            value = FAULT_CTRL_FAULT_EN_TRIG0;
             break;
         }
         case ARM_UTIMER_FAULT_TRIG1_RISING:
         {
-            value = FAULT_CTRL_FUALT_EN_TRIG1;
+            value = (FAULT_CTRL_FAULT_EN_TRIG1 | FAULT_CTRL_FAULT_POL_HIGH_TRIG1);
             break;
         }
         case ARM_UTIMER_FAULT_TRIG1_FALLING:
         {
-            value = (FAULT_CTRL_FUALT_EN_TRIG1 | FAULT_CTRL_FUALT_POL_LOW_TRIG1);
+            value = FAULT_CTRL_FAULT_EN_TRIG1;
             break;
         }
         case ARM_UTIMER_FAULT_TRIG2_RISING:
         {
-            value = FAULT_CTRL_FUALT_EN_TRIG2;
+            value = (FAULT_CTRL_FAULT_EN_TRIG2 | FAULT_CTRL_FAULT_POL_HIGH_TRIG2);
             break;
         }
         case ARM_UTIMER_FAULT_TRIG2_FALLING:
         {
-            value = (FAULT_CTRL_FUALT_EN_TRIG2 | FAULT_CTRL_FUALT_POL_LOW_TRIG2);
+            value = FAULT_CTRL_FAULT_EN_TRIG2;
             break;
         }
         case ARM_UTIMER_FAULT_TRIG3_RISING:
         {
-            value = FAULT_CTRL_FUALT_EN_TRIG3;
+            value = (FAULT_CTRL_FAULT_EN_TRIG3 | FAULT_CTRL_FAULT_POL_HIGH_TRIG3);
             break;
         }
         case ARM_UTIMER_FAULT_TRIG3_FALLING:
         {
-            value = (FAULT_CTRL_FUALT_EN_TRIG3 | FAULT_CTRL_FUALT_POL_LOW_TRIG3);
+            value = FAULT_CTRL_FAULT_EN_TRIG3;
             break;
         }
         case ARM_UTIMER_PAUSE_SRC_0_HIGH:

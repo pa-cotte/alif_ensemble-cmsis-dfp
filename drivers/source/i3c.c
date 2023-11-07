@@ -610,7 +610,8 @@ void i3c_irq_handler(I3C_Type *i3c,
     case I3C_CCC_SET_TID:
       if (xfer->error)
       {
-        xfer->status = I3C_XFER_STATUS_ERROR;
+        xfer->status = I3C_XFER_STATUS_ERROR   | \
+                       I3C_XFER_STATUS_ERROR_TX;
       }
       else
       {
@@ -624,8 +625,11 @@ void i3c_irq_handler(I3C_Type *i3c,
         }
         if (tid == I3C_CCC_SET_TID)
         {
-          xfer->status = I3C_XFER_STATUS_DONE;
+          xfer->status = I3C_XFER_STATUS_CCC_SET_DONE;
         }
+
+        /* mark all success event also as Transfer DONE */
+        xfer->status |= I3C_XFER_STATUS_DONE;
       }
       break;
 
@@ -634,7 +638,10 @@ void i3c_irq_handler(I3C_Type *i3c,
     case I3C_CCC_GET_TID:
       if (xfer->rx_len && !xfer->error)
       {
-        i3c_read_rx_fifo(i3c, xfer->rx_buf, xfer->rx_len);
+        if (xfer->rx_buf)
+        {
+          i3c_read_rx_fifo(i3c, xfer->rx_buf, xfer->rx_len);
+        }
 
         if (tid == I3C_MST_RX_TID)
         {
@@ -646,23 +653,30 @@ void i3c_irq_handler(I3C_Type *i3c,
         }
         if (tid == I3C_CCC_GET_TID)
         {
-          xfer->status = I3C_XFER_STATUS_DONE;
+          xfer->status = I3C_XFER_STATUS_CCC_GET_DONE;
         }
+
+        /* mark all success event also as Transfer DONE */
+        xfer->status |= I3C_XFER_STATUS_DONE;
       }
       else if (xfer->error)
       {
-        xfer->status = I3C_XFER_STATUS_ERROR;
+        xfer->status = I3C_XFER_STATUS_ERROR    | \
+                       I3C_XFER_STATUS_ERROR_RX;
       }
       break;
 
     case I3C_ADDR_ASSIGN_TID:
       if (xfer->error)
       {
-        xfer->status = I3C_XFER_STATUS_ERROR;
+        xfer->status = I3C_XFER_STATUS_ERROR            | \
+                       I3C_XFER_STATUS_ERROR_ADDR_ASSIGN;
       }
       else
       {
-        xfer->status = I3C_XFER_STATUS_DONE;
+        /* mark all success event also as Transfer DONE */
+        xfer->status = I3C_XFER_STATUS_ADDR_ASSIGN_DONE |
+                       I3C_XFER_STATUS_DONE;
       }
       break;
   }

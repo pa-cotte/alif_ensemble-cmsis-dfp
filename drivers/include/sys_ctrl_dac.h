@@ -30,40 +30,48 @@ extern "C"
 #include "peripheral_types.h"
 
 /**
-  \fn          static inline void DacCoreClkControl(const DAC_RESOURCES *DAC, bool enable)
-  \brief       Enable/Disable DAC input clock
-  \param[in]   DAC       Pointer to the DAC_RESOURCES structure
-  \param[in]   enable    Enable/Disable control
-  \return      none
-*/
-static inline void DacCoreClkControl(const DAC_RESOURCES *DAC, bool enable)
+ * enum DAC_INSTANCE.
+ * DAC instances.
+ */
+typedef enum _DAC_INSTANCE
 {
-    switch (DAC->drv_instance)
+    DAC_INSTANCE_0,    /* DAC instance - 0 */
+    DAC_INSTANCE_1     /* DAC instance - 1 */
+}DAC_INSTANCE;
+
+/**
+  \fn     static inline void enable_dac_periph_clk(DAC_INSTANCE instance)
+  \brief  Enable DAC0 and DAC1 peripheral clock register.
+  \param  none.
+  \return none.
+ */
+static inline void enable_dac_periph_clk(DAC_INSTANCE instance)
+{
+    if (instance == DAC_INSTANCE_0)
     {
-        case DAC_INSTANCE_0:
-        {
-            if (enable)
-            {
-                CLKCTL_PER_SLV->DAC_CTRL |= DAC_CTRL_DAC0_CKEN;
-            }
-            else {
-                CLKCTL_PER_SLV->DAC_CTRL &= ~(DAC_CTRL_DAC0_CKEN);
-            }
-            break;
-        }
+        CLKCTL_PER_SLV->DAC_CTRL |= DAC_CTRL_DAC0_CKEN;
+    }
+    else
+    {
+        CLKCTL_PER_SLV->DAC_CTRL |= DAC_CTRL_DAC1_CKEN;
+    }
+}
 
-        case DAC_INSTANCE_1:
-        {
-            if (enable)
-            {
-                CLKCTL_PER_SLV->DAC_CTRL |= DAC_CTRL_DAC1_CKEN;
-            }
-            else {
-                CLKCTL_PER_SLV->DAC_CTRL &= ~(DAC_CTRL_DAC1_CKEN);
-            }
-
-            break;
-        }
+/**
+  \fn     static inline void disable_dac_periph_clk(DAC_INSTANCE instance)
+  \brief  Disable DAC0 and DAC1 peripheral clock register.
+  \param  none.
+  \return none.
+ */
+static inline void disable_dac_periph_clk(DAC_INSTANCE instance)
+{
+    if (instance == DAC_INSTANCE_0)
+    {
+        CLKCTL_PER_SLV->DAC_CTRL &= ~(DAC_CTRL_DAC0_CKEN);
+    }
+    else
+    {
+        CLKCTL_PER_SLV->DAC_CTRL &= ~(DAC_CTRL_DAC1_CKEN);
     }
 }
 

@@ -18,32 +18,54 @@
  * @Note     None
  ******************************************************************************/
 #include <system_utils.h>
+#include <peripheral_types.h>
 
 /**
-  \fn          void PMU_delay_loop_us(unsigned int delay_us)
-  \brief       Using PMU cycle counter for delay. User need to
-               take care of disabling the preemption before
-	       calling this PMU_delay_loop_us function. Maximum
-               delay supported (2^32/(SystemCoreClock/1000000))
-               micro seconds.
-  \param[in]   delay_us delay in micro seconds.
+  \fn          void sys_busy_loop_init(void)
+  \brief       Initialize the S32K Counter Module to use as busy loop
+  \return      none
 */
-void PMU_delay_loop_us(unsigned int delay_us)
+void sys_busy_loop_init(void)
 {
-    if (delay_us == 0)
-            return;
-    uint32_t timestamp = ARM_PMU_Get_CCNTR();
-    unsigned int delay_in_cycles = delay_us * (GetSystemCoreClock()/1000000);
-    unsigned int diff = 0, curt_count = 0;
+    S32K_CNTControl->CNTCR |= CNTCR_EN;
+}
 
-    while (diff < delay_in_cycles)
+/**
+  \fn          int32_t sys_busy_loop_us(uint32_t delay_us)
+  \brief       Using S32K counter for delay.
+               Minimum delay = 30.51us
+               Maximum delay = 100ms
+  \param[in]   delay_us delay in micro seconds.
+  \return      0 for Success -1 for Overflow error.
+*/
+int32_t sys_busy_loop_us(uint32_t delay_us)
+{
+    /*
+     * Overflow will happen if requested busy loop is more than 130ms.
+     *
+     * Restricting the users to use this function for delays less than 102.4ms
+     */
+#define SYS_MAX_DELAY_IN_MICROSECONDS  (100 * 1024)
+
+    uint32_t delay_in_cycles;
+    uint32_t diff = 0;
+    uint32_t cntcv, curr_cntcv;
+
+    if(delay_us > SYS_MAX_DELAY_IN_MICROSECONDS)
+        return -1;
+
+    cntcv = S32K_CNTRead->CNTCVL;
+
+    delay_in_cycles = (uint32_t) (((delay_us * 32768U) + 999999U) / 1000000U);
+
+    while(diff <= delay_in_cycles)
     {
-        curt_count = ARM_PMU_Get_CCNTR();
-        if(curt_count > timestamp)
-            diff = curt_count - timestamp;
-        else
-            diff = (((0xFFFFFFFF) - timestamp) + curt_count);
+        curr_cntcv = S32K_CNTRead->CNTCVL;
+
+        diff = curr_cntcv - cntcv;
     }
+
+    return 0;
 }
 
 /**

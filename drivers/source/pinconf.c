@@ -63,12 +63,12 @@ int32_t pinconf_set(const uint8_t port, const uint8_t pin, const uint8_t alt_fun
 {
     uint32_t offset;
 
-    if ((port > PORT_LP) || (pin > PIN_7))
+    if ((port > PORT_15) || (pin > PIN_7))
     {
         return -1;
     }
 
-    if (port == PORT_LP)
+    if (port == PORT_15)
     {
         /*
          * LPGPIO pad control configuration. Note that alt_func is ignored for this
@@ -102,12 +102,12 @@ int32_t pinconf_get(const uint8_t port, const uint8_t pin, uint8_t *alt_func, ui
 {
     uint32_t offset, val;
 
-    if ((port > PORT_LP) || (pin > PIN_7) || (alt_func == NULL) || (pad_ctrl == NULL))
+    if ((port > PORT_15) || (pin > PIN_7) || (alt_func == NULL) || (pad_ctrl == NULL))
     {
         return -1;
     }
 
-    if (port == PORT_LP)
+    if (port == PORT_15)
     {
         /* No alternate function for pads in the LPGPIO port */
         *alt_func = 0U;

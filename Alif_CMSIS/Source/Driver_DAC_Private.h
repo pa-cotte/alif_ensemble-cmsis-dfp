@@ -22,18 +22,9 @@ extern "C"
 #include CMSIS_device_header
 
 /* Project includes */
-#include"Driver_DAC.h"
 #include "dac.h"
-
-/**
- * enum DAC_INSTANCE.
- * DAC instances.
- */
-typedef enum _DAC_INSTANCE
-{
-    DAC_INSTANCE_0,    /* DAC instance - 0 */
-    DAC_INSTANCE_1     /* DAC instance - 1 */
-}DAC_INSTANCE;
+#include "Driver_DAC.h"
+#include "sys_ctrl_dac.h"
 
 /**
  @brief   : DAC flags to check the DAC initialization, DAC power done and DAC started.
@@ -54,8 +45,9 @@ typedef struct _DAC_resources
 {
     DAC_Type            *regs;         /* DAC register address */
     DAC_DRIVER_STATE     flags;        /* DAC Driver Flags */
-    uint32_t             config;       /* DAC configuration information */
-    DAC_INSTANCE         drv_instance; /* DAC Driver instance */
+    DAC_INSTANCE         instance;     /* DAC Driver instance */
+    uint16_t             bypass_val;   /* DAC input data in bypass mode */
+    uint8_t              input_mux_val;/* DAC input data source  */
 }DAC_RESOURCES;
 
 #ifdef  __cplusplus
@@ -63,4 +55,3 @@ typedef struct _DAC_resources
 #endif
 
 #endif /* DRIVER_DAC_PRIVATE_H_ */
-

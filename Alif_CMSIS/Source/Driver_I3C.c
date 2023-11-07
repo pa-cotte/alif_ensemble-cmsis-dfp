@@ -44,6 +44,276 @@ static const ARM_I3C_CAPABILITIES DriverCapabilities =
 };
 
 
+#if I3C_DMA_ENABLE
+/**
+  \fn          int32_t I3C_DMA_Initialize(DMA_PERIPHERAL_CONFIG *dma_periph)
+  \brief       Initialize DMA for I3C
+  \param[in]   dma_periph   Pointer to DMA resources
+  \return      \ref         execution_status
+*/
+__STATIC_INLINE int32_t I3C_DMA_Initialize(DMA_PERIPHERAL_CONFIG *dma_periph)
+{
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* Initializes DMA interface */
+    status = dma_drv->Initialize();
+    if(status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    return ARM_DRIVER_OK;
+}
+
+/**
+  \fn          int32_t I3C_DMA_PowerControl(ARM_POWER_STATE state,
+                                            DMA_PERIPHERAL_CONFIG *dma_periph)
+  \brief       PowerControl DMA for I3C
+  \param[in]   state  Power state
+  \param[in]   dma_periph     Pointer to DMA resources
+  \return      \ref execution_status
+*/
+__STATIC_INLINE int32_t I3C_DMA_PowerControl(ARM_POWER_STATE state,
+                                             DMA_PERIPHERAL_CONFIG *dma_periph)
+{
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* Initializes DMA interface */
+    status = dma_drv->PowerControl(state);
+    if(status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    return ARM_DRIVER_OK;
+}
+
+/**
+  \fn          int32_t I3C_DMA_Allocate(DMA_PERIPHERAL_CONFIG *dma_periph)
+  \brief       Allocate a channel for I3C
+  \param[in]   dma_periph  Pointer to DMA resources
+  \return      \ref        execution_status
+*/
+__STATIC_INLINE int32_t I3C_DMA_Allocate(DMA_PERIPHERAL_CONFIG *dma_periph)
+{
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* Allocate handle for peripheral */
+    status = dma_drv->Allocate(&dma_periph->dma_handle);
+    if(status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    /* Enable the channel in the Event Router */
+    if(dma_periph->evtrtr_cfg.instance == 0)
+    {
+        evtrtr0_enable_dma_channel(dma_periph->evtrtr_cfg.channel,
+                                   dma_periph->evtrtr_cfg.group,
+                                   DMA_ACK_COMPLETION_PERIPHERAL);
+        evtrtr0_enable_dma_handshake(dma_periph->evtrtr_cfg.channel,
+                                     dma_periph->evtrtr_cfg.group);
+    }
+    else
+    {
+        evtrtrlocal_enable_dma_channel(dma_periph->evtrtr_cfg.channel,
+                                       DMA_ACK_COMPLETION_PERIPHERAL);
+    }
+
+    return ARM_DRIVER_OK;
+}
+
+/**
+  \fn          int32_t I3C_DMA_DeAllocate(DMA_PERIPHERAL_CONFIG *dma_periph)
+  \brief       De-allocate channel of I3C
+  \param[in]   dma_periph  Pointer to DMA resources
+  \return      \ref        execution_status
+*/
+__STATIC_INLINE int32_t I3C_DMA_DeAllocate(DMA_PERIPHERAL_CONFIG *dma_periph)
+{
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* De-Allocate handle  */
+    status = dma_drv->DeAllocate(&dma_periph->dma_handle);
+    if(status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    /* Disable the channel in the Event Router */
+    if(dma_periph->evtrtr_cfg.instance == 0)
+    {
+        evtrtr0_disable_dma_channel(dma_periph->evtrtr_cfg.channel);
+        evtrtr0_disable_dma_handshake(dma_periph->evtrtr_cfg.channel,
+                                      dma_periph->evtrtr_cfg.group);
+    }
+    else
+    {
+        evtrtrlocal_disable_dma_channel(dma_periph->evtrtr_cfg.channel);
+    }
+
+    return ARM_DRIVER_OK;
+}
+
+/**
+  \fn          int32_t I3C_DMA_Start(DMA_PERIPHERAL_CONFIG *dma_periph,
+                                     ARM_DMA_PARAMS *dma_params)
+  \brief       Start I3C DMA transfer
+  \param[in]   dma_periph     Pointer to DMA resources
+  \param[in]   dma_params     Pointer to DMA parameters
+  \return      \ref           execution_status
+*/
+__STATIC_INLINE int32_t I3C_DMA_Start(DMA_PERIPHERAL_CONFIG *dma_periph,
+                                      ARM_DMA_PARAMS *dma_params)
+{
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* Start transfer */
+    status = dma_drv->Start(&dma_periph->dma_handle, dma_params);
+    if(status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    return ARM_DRIVER_OK;
+}
+
+/**
+  \fn          int32_t I3C_DMA_Stop(DMA_PERIPHERAL_CONFIG *dma_periph)
+  \brief       Stop I3C DMA transfer
+  \param[in]   dma_periph   Pointer to DMA resources
+  \return      \ref         execution_status
+*/
+__STATIC_INLINE int32_t I3C_DMA_Stop(DMA_PERIPHERAL_CONFIG *dma_periph)
+{
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* Stop transfer */
+    status = dma_drv->Stop(&dma_periph->dma_handle);
+    if(status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    return ARM_DRIVER_OK;
+}
+
+/**
+  \fn          int32_t I3C_DMA_Start_TX(I3C_RESOURCES *i3c,
+                                        const void    *src_addr,
+                                        uint32_t       len)
+  \brief       Start sending data to I3C TX FIFO using DMA
+  \param[in]   i3c      : Pointer to i3c resources structure
+  \param[in]   src_addr : Pointer to source address
+  \param[in]   len      : number of bytes
+  \return      execution_status
+*/
+static int32_t I3C_DMA_Start_TX(I3C_RESOURCES *i3c,
+                                const void    *src_addr,
+                                uint32_t       len)
+{
+    int32_t        status;
+    ARM_DMA_PARAMS dma_params;
+
+    /* Start the DMA engine for sending the data to I3C */
+    dma_params.peri_reqno    = (int8_t)i3c->dma_cfg->dma_tx.dma_periph_req;
+    dma_params.dir           = ARM_DMA_MEM_TO_DEV;
+    dma_params.cb_event      = i3c->dma_cb;
+    dma_params.src_addr      = src_addr;
+    dma_params.dst_addr      = i3c_get_dma_tx_addr(i3c->regs);
+
+    dma_params.num_bytes     = len;
+    /* i3c TX/RX FIFO is 4-byte(word) aligned,
+     *  if length is not 4-byte aligned(multiple of 4),
+     *   make it aligned by adding extra length.
+     */
+    if(len % 4)
+    {
+        dma_params.num_bytes += (4 - (len % 4));
+    }
+
+    dma_params.irq_priority  = i3c->dma_irq_priority;
+
+    /* i3c TX/RX FIFO is 4-byte(word) aligned */
+    dma_params.burst_size = BS_BYTE_4;
+    dma_params.burst_len  = i3c_get_tx_empty_buf_thld(i3c->regs);
+    if( dma_params.burst_len > 16)
+    {
+        dma_params.burst_len = 16;
+    }
+
+    /* Start DMA transfer */
+    status = I3C_DMA_Start(&i3c->dma_cfg->dma_tx, &dma_params);
+    if(status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    return ARM_DRIVER_OK;
+}
+
+/**
+  \fn          int32_t I3C_DMA_Start_RX(I3C_RESOURCES *i3c,
+                                        void          *dst_addr
+                                        uint32_t       len)
+  \brief       Start receiving data from I3C RX FIFO using DMA
+  \param[in]   i3c      : Pointer to i3c resources structure
+  \param[in]   dst_addr : Pointer to destination address
+  \param[in]   len      : number of bytes
+  \return      execution_status
+*/
+static int32_t I3C_DMA_Start_RX(I3C_RESOURCES *i3c,
+                                void          *dst_addr,
+                                uint32_t       len)
+{
+    ARM_DMA_PARAMS dma_params;
+    int32_t        status;
+
+    /* Start the DMA engine for sending the data to i3c */
+    dma_params.peri_reqno    = (int8_t)i3c->dma_cfg->dma_rx.dma_periph_req;
+    dma_params.dir           = ARM_DMA_DEV_TO_MEM;
+    dma_params.cb_event      = i3c->dma_cb;
+    dma_params.src_addr      = i3c_get_dma_rx_addr(i3c->regs);
+    dma_params.dst_addr      = dst_addr;
+
+    dma_params.num_bytes     = len;
+    /* i3c TX/RX FIFO is 4-byte(word) aligned,
+     *  if length is not 4-byte aligned(multiple of 4),
+     *   make it aligned by adding extra length.
+     */
+    if(len % 4)
+    {
+        dma_params.num_bytes += (4 - (len % 4));
+    }
+
+    dma_params.irq_priority  = i3c->dma_irq_priority;
+
+    /* i3c TX/RX FIFO is 4-byte(word) aligned */
+    dma_params.burst_size = BS_BYTE_4;
+    dma_params.burst_len  = i3c_get_rx_buf_thld(i3c->regs);
+    if( dma_params.burst_len > 16)
+    {
+        dma_params.burst_len = 16;
+    }
+
+    /* Start DMA transfer */
+    status = I3C_DMA_Start(&i3c->dma_cfg->dma_rx, &dma_params);
+    if(status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    return ARM_DRIVER_OK;
+}
+#endif /* I3C_DMA_ENABLE */
+
+
 /**
   \fn           int I3cMasterGetAddrPos(I3C_RESOURCES *i3c, uint8_t addr)
   \brief        Get already assigned slave address position from DAT(Device Address Table).
@@ -56,7 +326,7 @@ static const ARM_I3C_CAPABILITIES DriverCapabilities =
 */
 static int I3cMasterGetAddrPos(I3C_RESOURCES *i3c, uint8_t addr)
 {
-  int pos;
+  uint32_t pos;
 
   for (pos = 0; pos < i3c->maxdevs; pos++)
   {
@@ -77,7 +347,7 @@ static int I3cMasterGetAddrPos(I3C_RESOURCES *i3c, uint8_t addr)
 */
 static int I3cMasterGetFreePos(I3C_RESOURCES *i3c)
 {
-  int i;
+  uint32_t i;
 
   if (!(i3c->freepos & GENMASK(i3c->maxdevs - 1, 0)))
     return ARM_DRIVER_ERROR;
@@ -122,6 +392,10 @@ static int I3Cx_MasterSendCommand(I3C_RESOURCES *i3c, I3C_CMD *ccc)
 {
   int32_t index;
 
+#if I3C_DMA_ENABLE
+  int32_t ret;
+#endif
+
   if (i3c->state.powered == 0U)
     return ARM_DRIVER_ERROR;
 
@@ -140,23 +414,47 @@ static int I3Cx_MasterSendCommand(I3C_RESOURCES *i3c, I3C_CMD *ccc)
 
   i3c->status.busy = 1;
 
-  if (ccc->rw)
+  if (ccc->rw) /* command read */
   {
+
+#if (!I3C_DMA_ENABLE) /* update only if DMA disable */
     i3c->xfer.tx_buf = NULL;
     i3c->xfer.tx_len = 0;
     i3c->xfer.rx_buf = ccc->data;
     i3c->xfer.rx_len = ccc->len;
+#endif
 
     i3c_ccc_get(i3c->regs, &(i3c->xfer), index, ccc->cmd_id, ccc->len);
-  }
-  else
+
+#if I3C_DMA_ENABLE
+    ret = I3C_DMA_Start_RX(i3c, ccc->data, ccc->len);
+    if(ret)
+    {
+      return ARM_DRIVER_ERROR;
+    }
+#endif
+
+  }    /* command read  */
+  else /* command write */
   {
+
+#if (!I3C_DMA_ENABLE) /* update only if DMA disable */
     i3c->xfer.rx_buf = NULL;
     i3c->xfer.rx_len = 0;
     i3c->xfer.tx_buf = ccc->data;
     i3c->xfer.tx_len = ccc->len;
+#endif
 
     i3c_ccc_set(i3c->regs, &(i3c->xfer), index, ccc->cmd_id, ccc->len);
+
+#if I3C_DMA_ENABLE
+    ret = I3C_DMA_Start_TX(i3c, ccc->data, ccc->len);
+    if(ret)
+    {
+      return ARM_DRIVER_ERROR;
+    }
+#endif
+
   }
 
   return ARM_DRIVER_OK;
@@ -178,6 +476,10 @@ static int I3Cx_MasterTransmit(I3C_RESOURCES *i3c,  uint8_t  addr,
 {
   int32_t index;
 
+#if I3C_DMA_ENABLE
+  int32_t ret;
+#endif
+
   if (i3c->state.powered == 0U)
     return ARM_DRIVER_ERROR;
 
@@ -196,12 +498,22 @@ static int I3Cx_MasterTransmit(I3C_RESOURCES *i3c,  uint8_t  addr,
 
   i3c->status.busy = 1;
 
+#if (!I3C_DMA_ENABLE) /* update only if DMA disable */
   i3c->xfer.rx_buf = NULL;
   i3c->xfer.rx_len = 0;
   i3c->xfer.tx_buf = data;
   i3c->xfer.tx_len = len;
+#endif
 
   i3c_master_tx(i3c->regs, &(i3c->xfer), index, len);
+
+#if I3C_DMA_ENABLE
+  ret = I3C_DMA_Start_TX(i3c, data, len);
+  if(ret)
+  {
+    return ARM_DRIVER_ERROR;
+  }
+#endif
 
   return ARM_DRIVER_OK;
 }
@@ -222,6 +534,10 @@ static int I3Cx_MasterReceive(I3C_RESOURCES *i3c,  uint8_t  addr,
 {
   int32_t index;
 
+#if I3C_DMA_ENABLE
+  int32_t ret;
+#endif
+
   if (i3c->state.powered == 0U)
     return ARM_DRIVER_ERROR;
 
@@ -240,12 +556,22 @@ static int I3Cx_MasterReceive(I3C_RESOURCES *i3c,  uint8_t  addr,
 
   i3c->status.busy = 1;
 
+#if (!I3C_DMA_ENABLE) /* update only if DMA disable */
   i3c->xfer.rx_buf = data;
   i3c->xfer.rx_len = len;
   i3c->xfer.tx_buf = NULL;
   i3c->xfer.tx_len = 0;
+#endif
 
   i3c_master_rx(i3c->regs, &(i3c->xfer), index, len);
+
+#if I3C_DMA_ENABLE
+  ret = I3C_DMA_Start_RX(i3c, data, len);
+  if(ret)
+  {
+    return ARM_DRIVER_ERROR;
+  }
+#endif
 
   return ARM_DRIVER_OK;
 }
@@ -548,7 +874,13 @@ static int32_t I3Cx_Control(I3C_RESOURCES *i3c,
       return ARM_DRIVER_ERROR_UNSUPPORTED;
     }
     break;
+
   case I3C_SLAVE_SET_ADDR:
+
+#if I3C_DMA_ENABLE
+    /* currently, I3C DMA for Slave is not supported. */
+    return ARM_DRIVER_ERROR_UNSUPPORTED;
+#endif
 
       i3c->datp    = i3c_get_dat_addr(i3c->regs);
       i3c->maxdevs = i3c_get_dat_depth(i3c->regs);
@@ -590,6 +922,19 @@ static int32_t I3Cx_Initialize(I3C_RESOURCES         *i3c,
   /* set the user callback event. */
   i3c->cb_event = cb_event;
 
+#if I3C_DMA_ENABLE
+  i3c->dma_cfg->dma_rx.dma_handle = -1;
+  i3c->dma_cfg->dma_tx.dma_handle = -1;
+
+  /* Initialize DMA for I3C-Tx */
+  if(I3C_DMA_Initialize(&i3c->dma_cfg->dma_tx) != ARM_DRIVER_OK)
+    return ARM_DRIVER_ERROR;
+
+  /* Initialize DMA for I3C-Rx */
+  if(I3C_DMA_Initialize(&i3c->dma_cfg->dma_rx) != ARM_DRIVER_OK)
+    return ARM_DRIVER_ERROR;
+#endif
+
   /* set the state as initialized. */
   i3c->state.initialized = 1;
   return ARM_DRIVER_OK;
@@ -603,6 +948,11 @@ static int32_t I3Cx_Initialize(I3C_RESOURCES         *i3c,
 */
 static int32_t I3Cx_Uninitialize(I3C_RESOURCES  *i3c)
 {
+#if I3C_DMA_ENABLE
+  i3c->dma_cfg->dma_rx.dma_handle = -1;
+  i3c->dma_cfg->dma_tx.dma_handle = -1;
+#endif
+
   i3c->state.initialized = 0;
   return ARM_DRIVER_OK;
 }
@@ -628,6 +978,19 @@ static int32_t I3Cx_PowerControl(I3C_RESOURCES   *i3c,
       /* Clear Any Pending i3c IRQ */
       NVIC_ClearPendingIRQ(i3c->irq);
 
+#if I3C_DMA_ENABLE
+      /* Disable i3c DMA */
+      i3c_dma_disable(i3c->regs);
+
+      /* Deallocate DMA channel for Tx */
+      if(I3C_DMA_DeAllocate(&i3c->dma_cfg->dma_tx))
+        return ARM_DRIVER_ERROR;
+
+      /* Deallocate DMA channel for Rx */
+      if(I3C_DMA_DeAllocate(&i3c->dma_cfg->dma_rx))
+        return ARM_DRIVER_ERROR;
+#endif /* I3C_DMA_ENABLE */
+
       /* i3c EXPMST0 control configuration:
        *  Disable i3c clock. */
       disable_i3c_clock();
@@ -648,6 +1011,18 @@ static int32_t I3Cx_PowerControl(I3C_RESOURCES   *i3c,
        *  Enable i3c clock. */
       enable_i3c_clock();
 
+#if I3C_DMA_ENABLE
+      /* if DMA2 is selected? */
+      if(i3c->dma_cfg->dma_tx.evtrtr_cfg.instance == 2)
+      {
+        select_i3c_dma2();
+      }
+      /* else: default DMA0 is selected. */
+
+      /* Enable i3c DMA */
+      i3c_dma_enable(i3c->regs);
+#endif /* I3C_DMA_ENABLE */
+
       /* Enable i3c IRQ */
       NVIC_ClearPendingIRQ(i3c->irq);
       NVIC_SetPriority(i3c->irq, i3c->irq_priority);
@@ -661,12 +1036,138 @@ static int32_t I3Cx_PowerControl(I3C_RESOURCES   *i3c,
       return ARM_DRIVER_ERROR_UNSUPPORTED;
   }
 
+#if I3C_DMA_ENABLE
+  /* Power Control DMA for I3C-Tx */
+  if(I3C_DMA_PowerControl(state, &i3c->dma_cfg->dma_tx) != ARM_DRIVER_OK)
+  {
+    i3c->state.powered = 0;
+    return ARM_DRIVER_ERROR;
+  }
+
+  /* Power Control DMA for I3C-Rx */
+  if(I3C_DMA_PowerControl(state, &i3c->dma_cfg->dma_rx) != ARM_DRIVER_OK)
+  {
+    i3c->state.powered = 0;
+    return ARM_DRIVER_ERROR;
+  }
+
+  if(state == ARM_POWER_FULL)
+  {
+    /* Try to allocate a DMA channel for TX */
+    if(I3C_DMA_Allocate(&i3c->dma_cfg->dma_tx))
+    {
+      i3c->state.powered = 0;
+      return ARM_DRIVER_ERROR;
+    }
+
+    /* Try to allocate a DMA channel for RX */
+    if(I3C_DMA_Allocate(&i3c->dma_cfg->dma_rx))
+    {
+      i3c->state.powered = 0;
+      return ARM_DRIVER_ERROR;
+    }
+  }
+#endif /* I3C_DMA_ENABLE */
+
   return ARM_DRIVER_OK;
 }
 
 
+#if I3C_DMA_ENABLE
+/**
+  \fn          static void  I3Cx_DMACallback(uint32_t event, int8_t peri_num,
+                                            I3C_RESOURCES *i3c)
+  \brief       Callback function from DMA for I3C
+  \param[in]   event     Event from DMA
+  \param[in]   peri_num  Peripheral number
+  \param[in]   I3C       Pointer to I3C resources
+  \return      none
+*/
+static void I3Cx_DMACallback(uint32_t event, int8_t peri_num,
+                            I3C_RESOURCES *i3c)
+{
+    if(!i3c->cb_event)
+        return;
+
+    /* Transfer Completed */
+    if(event & ARM_DMA_EVENT_COMPLETE)
+    {
+        switch(peri_num)
+        {
+        case I3C_DMA_TX_PERIPH_REQ:
+          /* For DMA TX,
+           *  Success/Error decision will be taken by
+           *   Interrupt Handler based on status of Response-Queue.
+           *   (as this callback will be always called
+           *    irrespective of slave gives ACK/NACK.)
+           */
+          break;
+
+        case I3C_DMA_RX_PERIPH_REQ:
+          /* For DMA RX,
+           *  Success decision will be taken here(DMA RX Callback).
+           *  Error decision will be taken by Interrupt Handler
+           *   based on status of Response-Queue.
+           */
+
+           /* clear transfer status. */
+           i3c->xfer.status = I3C_XFER_STATUS_NONE;
+
+           /* clear busy flag. */
+           i3c->status.busy = 0;
+
+           /* Mark event as success and call the user callback */
+           i3c->cb_event(ARM_I3C_EVENT_TRANSFER_DONE);
+           break;
+
+        default:
+           break;
+        }
+    }
+
+    /* Abort Occurred */
+    if(event & ARM_DMA_EVENT_ABORT)
+    {
+
+    }
+}
+#endif /* RTE_I3C_DMA_ENABLE */
+
+
 /* I3C Driver Instance */
 #if (RTE_I3C)
+
+#if RTE_I3C_DMA_ENABLE
+static void I3C_DMACallback(uint32_t event, int8_t peri_num);
+static I3C_DMA_HW_CONFIG I3Cx_DMA_HW_CONFIG =
+{
+    .dma_rx =
+    {
+        .dma_drv        = &ARM_Driver_DMA_(I3C_DMA),
+        .dma_periph_req = I3C_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I3C_DMA,
+             .group    = I3C_DMA_GROUP,
+             .channel  = I3C_DMA_RX_PERIPH_REQ,
+             .enable_handshake = I3C_DMA_HANDSHAKE_ENABLE,
+        },
+    },
+    .dma_tx =
+    {
+        .dma_drv        = &ARM_Driver_DMA_(I3C_DMA),
+        .dma_periph_req = I3C_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = I3C_DMA,
+             .group    = I3C_DMA_GROUP,
+             .channel  = I3C_DMA_TX_PERIPH_REQ,
+             .enable_handshake = I3C_DMA_HANDSHAKE_ENABLE,
+        },
+
+    },
+};
+#endif /* RTE_I3C_DMA_ENABLE */
 
 /* I3C Device Resources */
 static I3C_RESOURCES i3c =
@@ -679,7 +1180,27 @@ static I3C_RESOURCES i3c =
   .state        = {0},
   .irq          = (IRQn_Type) I3C_IRQ_IRQn,
   .irq_priority = RTE_I3C_IRQ_PRI,
+
+#if RTE_I3C_DMA_ENABLE
+  .dma_cb            = I3C_DMACallback,
+  .dma_cfg           = &I3Cx_DMA_HW_CONFIG,
+  .dma_irq_priority  = RTE_I3C_DMA_IRQ_PRI,
+#endif
+
 };
+
+#if RTE_I3C_DMA_ENABLE
+/**
+  \fn          static void  I3C_DMACallback (uint32_t event, int8_t peri_num)
+  \param[in]   event     Event from DMA
+  \param[in]   peri_num  Peripheral number
+  \brief       Callback function from DMA for I3C
+*/
+static void I3C_DMACallback(uint32_t event, int8_t peri_num)
+{
+    I3Cx_DMACallback(event, peri_num, &i3c);
+}
+#endif /* RTE_I3C_DMA_ENABLE */
 
 void I3C_IRQHandler(void)
 {
@@ -688,50 +1209,70 @@ void I3C_IRQHandler(void)
 
   i3c_irq_handler(i3c.regs, xfer);
 
-  if(xfer->status == I3C_XFER_STATUS_DONE)
+  /* check status: Transfer Error? */
+  if(xfer->status & I3C_XFER_STATUS_ERROR)
   {
-    /* mark event as Transfer done. */
-    event = ARM_I3C_EVENT_TRANSFER_DONE;
-  }
-
-  if(xfer->status == I3C_XFER_STATUS_ERROR)
-  {
-    /* error: Resume i3c controller and clear error status. */
+    /* error: Resume i3c controller and
+     *        clear error status. */
     i3c_resume(i3c.regs);
     i3c_clear_xfer_error(i3c.regs);
 
+#if RTE_I3C_DMA_ENABLE
+    /* Stop DMA TX transfer */
+    if(xfer->status & I3C_XFER_STATUS_ERROR_TX)
+    {
+      I3C_DMA_Stop(&i3c.dma_cfg->dma_tx);
+    }
+
+    /* Stop DMA RX transfer */
+    if(xfer->status & I3C_XFER_STATUS_ERROR_RX)
+    {
+      I3C_DMA_Stop(&i3c.dma_cfg->dma_rx);
+    }
+#endif /* RTE_I3C_DMA_ENABLE */
+
     /* mark event as Transfer Error. */
     event = ARM_I3C_EVENT_TRANSFER_ERROR;
-  }
+  } /* if I3C_XFER_STATUS_ERROR */
 
-  if(xfer->status == I3C_XFER_STATUS_MST_TX_DONE)
+  /* check status: Transfer Success? */
+  else if(xfer->status & I3C_XFER_STATUS_DONE)
   {
-    /* mark event as Master TX Transfer done. */
-    event = ARM_I3C_EVENT_MST_TX_DONE;
-  }
+    /* mark event as Transfer done. */
+    event = ARM_I3C_EVENT_TRANSFER_DONE;
 
-  if(xfer->status == I3C_XFER_STATUS_MST_RX_DONE)
-  {
-    /* mark event as Master RX Transfer done. */
-    event = ARM_I3C_EVENT_MST_RX_DONE;
-  }
+#if RTE_I3C_DMA_ENABLE
+    /* DMA TX,
+     *  Success/Error decision will be taken by
+     *   Interrupt Handler based on status of Response-Queue.
+     *
+     * DMA RX,
+     *   Success decision will be taken in DMA_RX callback.
+     *   Error decision will be taken by Interrupt Handler
+     *    based on status of Response-Queue.
+     */
+    if( (xfer->status & I3C_XFER_STATUS_MST_RX_DONE) ||
+        (xfer->status & I3C_XFER_STATUS_SLV_RX_DONE) ||
+        (xfer->status & I3C_XFER_STATUS_CCC_GET_DONE) )
+    {
+        /* for DMA RX Success, mark event as 0. */
+        event = 0;
 
-  if(xfer->status == I3C_XFER_STATUS_SLV_TX_DONE)
-  {
-    /* mark event as Slave TX Transfer done. */
-    event = ARM_I3C_EVENT_SLV_TX_DONE;
-  }
+        /* clear transfer status. */
+        xfer->status = I3C_XFER_STATUS_NONE;
+    }
+#endif /* RTE_I3C_DMA_ENABLE */
+  }/* else if I3C_XFER_STATUS_DONE*/
 
-  if(xfer->status == I3C_XFER_STATUS_SLV_RX_DONE)
-  {
-    /* mark event as Slave RX Transfer done. */
-    event = ARM_I3C_EVENT_SLV_RX_DONE;
-  }
-
-  if(xfer->status == I3C_XFER_STATUS_SLV_DYN_ADDR_ASSGN)
+  /* check status: Slave dynamic address assign? (only for Slave mode) */
+  else if(xfer->status & I3C_XFER_STATUS_SLV_DYN_ADDR_ASSGN)
   {
     /* mark event as Slave dynamic address assignment done. */
     event = ARM_I3C_EVENT_SLV_DYN_ADDR_ASSGN;
+  }
+  else
+  {
+    /* control should not come here. */
   }
 
   if(event)

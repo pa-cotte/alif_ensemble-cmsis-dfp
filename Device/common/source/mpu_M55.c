@@ -51,7 +51,6 @@ void MPU_Load_Regions(void)
 #define MEMATTRIDX_DEVICE_nGnRE              1
 #define MEMATTRIDX_NORMAL_WB_RA_WA           2
 #define MEMATTRIDX_NORMAL_WT_RA              3
-#define MEMATTRIDX_NORMAL_NON_CACHEABLE      4
 
     static const ARM_MPU_Region_t mpu_table[] __STARTUP_RO_DATA_ATTRIBUTE =
     {
@@ -63,9 +62,9 @@ void MPU_Load_Regions(void)
             .RBAR = ARM_MPU_RBAR(0x08000000, ARM_MPU_SH_NON, 0, 1, 0),
             .RLAR = ARM_MPU_RLAR(0x0827FFFF, MEMATTRIDX_NORMAL_WB_RA_WA)
         },
-        {   /* AON Expansion - 64KB : RO-0, NP-1, XN-1 */
-            .RBAR = ARM_MPU_RBAR(0x1A600000, ARM_MPU_SH_NON, 0, 1, 1),
-            .RLAR = ARM_MPU_RLAR(0x1A60FFFF, MEMATTRIDX_DEVICE_nGnRE)
+        {   /* Host Peripherals - 16MB : RO-0, NP-1, XN-1 */
+            .RBAR = ARM_MPU_RBAR(0x1A000000, ARM_MPU_SH_NON, 0, 1, 1),
+            .RLAR = ARM_MPU_RLAR(0x1AFFFFFF, MEMATTRIDX_DEVICE_nGnRE)
         },
 #if defined (M55_HP)
         {   /* RTSS HE ITCM - 256K(SRAM4) : RO-0, NP-1, XN-0  */
@@ -100,59 +99,54 @@ void MPU_Load_Regions(void)
         },
         {   /* OSPI1 XIP(eg:flash) - 512MB : RO-1, NP-1, XN-0  */
             .RBAR = ARM_MPU_RBAR(0xC0000000, ARM_MPU_SH_NON, 1, 1, 0),
-            .RLAR = ARM_MPU_RLAR(0xDFFFFFFF, MEMATTRIDX_NORMAL_NON_CACHEABLE)
+            .RLAR = ARM_MPU_RLAR(0xDFFFFFFF, MEMATTRIDX_NORMAL_WT_RA)
         },
     };
 
-    uint64_t mair = 0;
-                                    /* NT=0, WB=0, RA=1, WA=0 */
-    mair |= (uint64_t) ARM_MPU_ATTR(ARM_MPU_ATTR_MEMORY_(0,0,1,0),
-                                    ARM_MPU_ATTR_MEMORY_(0,0,1,0)) << (MEMATTRIDX_NORMAL_WT_RA_TRANSIENT * 8);
+    /* Mem Attribute for 0th index */
+    ARM_MPU_SetMemAttr(MEMATTRIDX_NORMAL_WT_RA_TRANSIENT, ARM_MPU_ATTR(
+                                         /* NT=0, WB=0, RA=1, WA=0 */
+                                         ARM_MPU_ATTR_MEMORY_(0,0,1,0),
+                                         ARM_MPU_ATTR_MEMORY_(0,0,1,0)));
 
-                                    /* Device Memory */
-    mair |= (uint64_t) ARM_MPU_ATTR(ARM_MPU_ATTR_DEVICE,
-                                    ARM_MPU_ATTR_DEVICE_nGnRE) << (MEMATTRIDX_DEVICE_nGnRE * 8);
+    /* Mem Attribute for 1st index */
+    ARM_MPU_SetMemAttr(MEMATTRIDX_DEVICE_nGnRE, ARM_MPU_ATTR(
+                                         /* Device Memory */
+                                         ARM_MPU_ATTR_DEVICE,
+                                         ARM_MPU_ATTR_DEVICE_nGnRE));
 
-                                    /* NT=1, WB=1, RA=1, WA=1 */
-    mair |= (uint64_t) ARM_MPU_ATTR(ARM_MPU_ATTR_MEMORY_(1,1,1,1),
-                                    ARM_MPU_ATTR_MEMORY_(1,1,1,1)) << (MEMATTRIDX_NORMAL_WB_RA_WA * 8);
+    /* Mem Attribute for 2nd index */
+    ARM_MPU_SetMemAttr(MEMATTRIDX_NORMAL_WB_RA_WA, ARM_MPU_ATTR(
+                                         /* NT=1, WB=1, RA=1, WA=1 */
+                                         ARM_MPU_ATTR_MEMORY_(1,1,1,1),
+                                         ARM_MPU_ATTR_MEMORY_(1,1,1,1)));
 
-                                    /* NT=1, WB=0, RA=1, WA=0 */
-    mair |= (uint64_t) ARM_MPU_ATTR(ARM_MPU_ATTR_MEMORY_(1,0,1,0),
-                                    ARM_MPU_ATTR_MEMORY_(1,0,1,0)) << (MEMATTRIDX_NORMAL_WT_RA * 8);
-
-    MPU->MAIR0 = (uint32_t) mair;
-    MPU->MAIR1 = (uint32_t) (mair >> 32);
-
-    /* Mem Attribute for the 4th index */
-    ARM_MPU_SetMemAttr(MEMATTRIDX_NORMAL_NON_CACHEABLE, ARM_MPU_ATTR(
-                                         ARM_MPU_ATTR_NON_CACHEABLE,
-                                         ARM_MPU_ATTR_NON_CACHEABLE));
+    /* Mem Attribute for 3th index */
+    ARM_MPU_SetMemAttr(MEMATTRIDX_NORMAL_WT_RA, ARM_MPU_ATTR(
+                                         /* NT=1, WB=0, RA=1, WA=0 */
+                                         ARM_MPU_ATTR_MEMORY_(1,0,1,0),
+                                         ARM_MPU_ATTR_MEMORY_(1,0,1,0)));
 
     /* Load the regions from the table */
     ARM_MPU_Load(0, mpu_table, sizeof(mpu_table)/sizeof(ARM_MPU_Region_t));
 }
 
 /**
- * @brief  Clear all the MPU regions
- * @note   This deactivates all user MPU regions.
+ * @brief  Clear all the MPU registers
+ * @note   This function disables the MPU and clear
+ *         all the existing regions.
  * @param  None
  * @retval None
  */
 void MPU_Clear_All_Regions(void)
 {
+    MPU_Type* mpu = MPU;
     /* Retrieve the number of regions */
-    uint32_t num_regions = _FLD2VAL(MPU_TYPE_DREGION, MPU->TYPE);
+    uint32_t num_regions = (mpu->TYPE >> 8);
     uint32_t cnt;
 
-    for(cnt = 0U; cnt < num_regions; cnt += 4)
-    {
-        MPU->RNR = cnt;
-        MPU->RLAR = 0;
-        MPU->RLAR_A1 = 0;
-        MPU->RLAR_A2 = 0;
-        MPU->RLAR_A3 = 0;
-    }
+    for(cnt = 0U; cnt < num_regions; cnt++)
+            ARM_MPU_ClrRegion(cnt);
 }
 
 /**

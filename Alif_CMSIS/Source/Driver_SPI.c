@@ -29,7 +29,7 @@
 #include "SPI_MultiSlave_Config.h"
 #endif
 
-#if !((RTE_SPI0) || (RTE_SPI1) || (RTE_SPI2) || (RTE_SPI3))
+#if !((RTE_SPI0) || (RTE_SPI1) || (RTE_SPI2) || (RTE_SPI3) || (RTE_LPSPI))
 #error "SPI is not enabled in the RTE_Device.h"
 #endif
 
@@ -47,10 +47,11 @@ static const ARM_DRIVER_VERSION DriverVersion = {
 
 /* Driver Capabilities */
 static const ARM_SPI_CAPABILITIES DriverCapabilities = {
-    1, /* Simplex Mode (Master and Slave) */
+    0, /* Reserved (must be zero) */
     1, /* TI Synchronous Serial Interface */
     1, /* Microwire Interface */
-    0  /* Signal Mode Fault event: \ref ARM_SPI_EVENT_MODE_FAULT */
+    0, /* Signal Mode Fault event: \ref ARM_SPI_EVENT_MODE_FAULT */
+    0  /* Reserved (must be zero) */
 };
 
 /**
@@ -76,6 +77,187 @@ __STATIC_INLINE ARM_SPI_CAPABILITIES ARM_SPI_GetCapabilities(void)
 {
     return DriverCapabilities;
 }
+
+#if SPI_DMA_ENABLE
+/**
+  \fn          int32_t SPI_DMA_Initialize(DMA_PERIPHERAL_CONFIG *dma_periph)
+  \brief       Initialize DMA for SPI
+  \param[in]   dma_periph   Pointer to DMA resources
+  \return      \ref         execution_status
+*/
+static inline int32_t SPI_DMA_Initialize(DMA_PERIPHERAL_CONFIG *dma_periph)
+{
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* Initializes DMA interface */
+    status = dma_drv->Initialize();
+    if (status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    return ARM_DRIVER_OK;
+}
+
+/**
+  \fn          int32_t SPI_DMA_PowerControl(DMA_PERIPHERAL_CONFIG *dma_periph, ARM_POWER_STATE state)
+  \brief       PowerControl DMA for SPI
+  \param[in]   state  Power state
+  \param[in]   dma_periph     Pointer to DMA resources
+  \return      \ref execution_status
+*/
+static inline int32_t SPI_DMA_PowerControl(DMA_PERIPHERAL_CONFIG *dma_periph, ARM_POWER_STATE state)
+{
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* Initializes DMA interface */
+    status = dma_drv->PowerControl(state);
+    if (status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    return ARM_DRIVER_OK;
+}
+
+/**
+  \fn          int32_t SPI_DMA_Allocate(DMA_PERIPHERAL_CONFIG *dma_periph)
+  \brief       Allocate a channel for SPI
+  \param[in]   dma_periph  Pointer to DMA resources
+  \return      \ref        execution_status
+*/
+static inline int32_t SPI_DMA_Allocate(DMA_PERIPHERAL_CONFIG *dma_periph)
+{
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* Allocate handle for peripheral */
+    status = dma_drv->Allocate(&dma_periph->dma_handle);
+    if (status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    /* Enable the channel in the Event Router */
+    if (dma_periph->evtrtr_cfg.instance == 0)
+    {
+        evtrtr0_enable_dma_channel(dma_periph->evtrtr_cfg.channel,
+                                   dma_periph->evtrtr_cfg.group,
+                                   DMA_ACK_COMPLETION_PERIPHERAL);
+        evtrtr0_enable_dma_handshake(dma_periph->evtrtr_cfg.channel,
+                                     dma_periph->evtrtr_cfg.group);
+    }
+    else
+    {
+        evtrtrlocal_enable_dma_channel(dma_periph->evtrtr_cfg.channel,
+                                       DMA_ACK_COMPLETION_PERIPHERAL);
+    }
+
+    return ARM_DRIVER_OK;
+}
+
+/**
+  \fn          int32_t SPI_DMA_DeAllocate(DMA_PERIPHERAL_CONFIG *dma_periph)
+  \brief       De-allocate channel of SPI
+  \param[in]   dma_periph  Pointer to DMA resources
+  \return      \ref        execution_status
+*/
+static inline int32_t SPI_DMA_DeAllocate(DMA_PERIPHERAL_CONFIG *dma_periph)
+{
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* De-Allocate handle  */
+    status = dma_drv->DeAllocate(&dma_periph->dma_handle);
+    if (status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    /* Disable the channel in the Event Router */
+    if (dma_periph->evtrtr_cfg.instance == 0)
+    {
+        evtrtr0_disable_dma_channel(dma_periph->evtrtr_cfg.channel);
+        evtrtr0_disable_dma_handshake(dma_periph->evtrtr_cfg.channel,
+                                      dma_periph->evtrtr_cfg.group);
+    }
+    else
+    {
+        evtrtrlocal_disable_dma_channel(dma_periph->evtrtr_cfg.channel);
+    }
+
+
+    return ARM_DRIVER_OK;
+}
+
+/**
+  \fn          int32_t SPI_DMA_Start(DMA_PERIPHERAL_CONFIG *dma_periph,
+                                     ARM_DMA_PARAMS *dma_params)
+  \brief       Start SPI DMA transfer
+  \param[in]   dma_periph     Pointer to DMA resources
+  \param[in]   dma_params     Pointer to DMA parameters
+  \return      \ref           execution_status
+*/
+static inline int32_t SPI_DMA_Start(DMA_PERIPHERAL_CONFIG *dma_periph, ARM_DMA_PARAMS *dma_params)
+{
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* Start transfer */
+    status = dma_drv->Start(&dma_periph->dma_handle, dma_params);
+    if (status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    return ARM_DRIVER_OK;
+}
+
+/**
+  \fn          int32_t SPI_DMA_Stop(DMA_PERIPHERAL_CONFIG *dma_periph)
+  \brief       Stop SPI DMA transfer
+  \param[in]   dma_periph   Pointer to DMA resources
+  \return      \ref         execution_status
+*/
+static inline int32_t SPI_DMA_Stop(DMA_PERIPHERAL_CONFIG *dma_periph)
+{
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* Stop transfer */
+    status = dma_drv->Stop(&dma_periph->dma_handle);
+    if (status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    return ARM_DRIVER_OK;
+}
+
+/**
+  \fn          int32_t SPI_DMA_GetStatus(DMA_PERIPHERAL_CONFIG *dma_periph, uint32_t *count)
+  \brief       Status of SPI DMA transfer
+  \param[in]   dma_periph   Pointer to DMA resources
+  \param[in]   count        Current transfer count
+  \return      \ref         execution_status
+*/
+static inline int32_t SPI_DMA_GetStatus(DMA_PERIPHERAL_CONFIG *dma_periph, uint32_t *count)
+{
+    int32_t        status;
+    ARM_DRIVER_DMA *dma_drv = dma_periph->dma_drv;
+
+    /* Stop transfer */
+    status = dma_drv->GetStatus(&dma_periph->dma_handle, count);
+    if (status)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    return ARM_DRIVER_OK;
+}
+#endif /* SPI_DMA_ENABLE */
 
 /**
  * @fn      int32_t ARM_SPI_Initialize(SPI_RESOURCES *SPI, ARM_SPI_SignalEvent_t cb_event).
@@ -121,6 +303,26 @@ static int32_t ARM_SPI_Initialize(SPI_RESOURCES *SPI, ARM_SPI_SignalEvent_t cb_e
 
     SPI->cb_event = cb_event;
 
+#if SPI_DMA_ENABLE
+    if (SPI->dma_enable)
+    {
+        SPI->dma_cfg->dma_rx.dma_handle = -1;
+        SPI->dma_cfg->dma_tx.dma_handle = -1;
+
+        /* Initialize DMA for SPI-Tx */
+        if (SPI_DMA_Initialize(&SPI->dma_cfg->dma_tx) != ARM_DRIVER_OK)
+        {
+            return ARM_DRIVER_ERROR;
+        }
+
+        /* Initialize DMA for SPI-Rx */
+        if (SPI_DMA_Initialize(&SPI->dma_cfg->dma_rx) != ARM_DRIVER_OK)
+        {
+            return ARM_DRIVER_ERROR;
+        }
+    }
+#endif
+
     SPI->state.initialized = 1;
 
     return ARM_DRIVER_OK;
@@ -144,6 +346,14 @@ static int32_t ARM_SPI_Uninitialize(SPI_RESOURCES *SPI)
     {
         return ARM_DRIVER_ERROR;
     }
+
+#if SPI_DMA_ENABLE
+    if (SPI->dma_enable)
+    {
+        SPI->dma_cfg->dma_rx.dma_handle = -1;
+        SPI->dma_cfg->dma_tx.dma_handle = -1;
+    }
+#endif
 
     SPI->cb_event                   = NULL;
 
@@ -171,6 +381,10 @@ static int32_t ARM_SPI_Uninitialize(SPI_RESOURCES *SPI)
  */
 static int32_t ARM_SPI_PowerControl(SPI_RESOURCES *SPI, ARM_POWER_STATE state)
 {
+#if SPI_USE_MASTER_SS_SW
+    int32_t ret = ARM_DRIVER_OK;
+#endif
+
     if (SPI->state.initialized == 0)
     {
         return ARM_DRIVER_ERROR;
@@ -184,6 +398,52 @@ static int32_t ARM_SPI_PowerControl(SPI_RESOURCES *SPI, ARM_POWER_STATE state)
             {
                 return ARM_DRIVER_OK;
             }
+
+            if (spi_busy(SPI->regs))
+            {
+                return ARM_DRIVER_ERROR_BUSY;
+            }
+
+#if SPI_DMA_ENABLE
+    if (SPI->dma_enable)
+    {
+        /* Disable the TX & RX DMA interface of SPI */
+        spi_disable_tx_dma(SPI->regs);
+        spi_disable_rx_dma(SPI->regs);
+
+        /* DeAllocate DMA for SPI-Tx */
+        if (SPI_DMA_DeAllocate(&SPI->dma_cfg->dma_tx) != ARM_DRIVER_OK)
+        {
+            return ARM_DRIVER_ERROR;
+        }
+        /* DeAllocate DMA for SPI-Rx */
+        if (SPI_DMA_DeAllocate(&SPI->dma_cfg->dma_rx) != ARM_DRIVER_OK)
+        {
+            return ARM_DRIVER_ERROR;
+        }
+
+        /* Power Control DMA for SPI-Tx */
+        if (SPI_DMA_PowerControl(&SPI->dma_cfg->dma_tx, state) != ARM_DRIVER_OK)
+        {
+            return ARM_DRIVER_ERROR;
+        }
+        /* Power Control DMA for SPI-Rx */
+        if (SPI_DMA_PowerControl(&SPI->dma_cfg->dma_rx, state) != ARM_DRIVER_OK)
+        {
+            return ARM_DRIVER_ERROR;
+        }
+    }
+#endif
+
+#if SPI_USE_MASTER_SS_SW
+            if (SPI->master_ss_control == SPI_SS_SW_CONTROL)
+            {
+                ret = SPI->sw_config.drvGPIO->PowerControl(SPI->sw_config.ss_pin, ARM_POWER_OFF);
+                if(ret != ARM_DRIVER_OK)            {    return ret;    }
+                ret = SPI->sw_config.drvGPIO->Uninitialize(SPI->sw_config.ss_pin);
+                if(ret != ARM_DRIVER_OK)            {    return ret;    }
+            }
+#endif
 
             NVIC_ClearPendingIRQ(SPI->irq);
             NVIC_DisableIRQ(SPI->irq);
@@ -205,7 +465,7 @@ static int32_t ARM_SPI_PowerControl(SPI_RESOURCES *SPI, ARM_POWER_STATE state)
 
         case ARM_POWER_FULL:
         {
-            if( SPI->state.powered == 1)
+            if (SPI->state.powered == 1)
             {
                 return ARM_DRIVER_OK;
             }
@@ -227,7 +487,37 @@ static int32_t ARM_SPI_PowerControl(SPI_RESOURCES *SPI, ARM_POWER_STATE state)
             if (SPI->drv_instance != LPSPI_INSTANCE)
             {
                 spi_set_tx_fifo_start_level(SPI->regs, SPI->tx_fifo_start_level);
+                spi_set_rx_sample_delay(SPI->regs, SPI->rx_sample_delay);
             }
+
+#if SPI_DMA_ENABLE
+    if (SPI->dma_enable)
+    {
+        /* Power Control DMA for SPI-Tx */
+        if (SPI_DMA_PowerControl(&SPI->dma_cfg->dma_tx, state) != ARM_DRIVER_OK)
+        {
+            return ARM_DRIVER_ERROR;
+        }
+        /* Power Control DMA for SPI-Rx */
+        if (SPI_DMA_PowerControl(&SPI->dma_cfg->dma_rx, state) != ARM_DRIVER_OK)
+        {
+            return ARM_DRIVER_ERROR;
+        }
+
+        spi_set_dma_tx_level(SPI->regs, SPI->tx_fifo_threshold);
+        spi_set_dma_rx_level(SPI->regs, SPI->rx_fifo_threshold);
+
+        /* Try to allocate a DMA channel */
+        if (SPI_DMA_Allocate(&SPI->dma_cfg->dma_rx))
+        {
+            return ARM_DRIVER_ERROR;
+        }
+        if (SPI_DMA_Allocate(&SPI->dma_cfg->dma_tx))
+        {
+            return ARM_DRIVER_ERROR;
+        }
+    }
+#endif
 
             SPI->state.powered = 1;
 
@@ -235,10 +525,12 @@ static int32_t ARM_SPI_PowerControl(SPI_RESOURCES *SPI, ARM_POWER_STATE state)
         }
 
         case ARM_POWER_LOW:
+        default:
         {
             return ARM_DRIVER_ERROR_UNSUPPORTED;
         }
     }
+
     return ARM_DRIVER_OK;
 }
 
@@ -268,7 +560,7 @@ static int32_t ARM_SPI_Send(SPI_RESOURCES *SPI, const void *data, uint32_t num)
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    if (SPI->status.busy)
+    if (spi_busy(SPI->regs))
     {
         return ARM_DRIVER_ERROR_BUSY;
     }
@@ -281,13 +573,73 @@ static int32_t ARM_SPI_Send(SPI_RESOURCES *SPI, const void *data, uint32_t num)
     SPI->transfer.status         = SPI_TRANSFER_STATUS_NONE;
     SPI->transfer.mode           = SPI_TMOD_TX;
 
-    if (SPI->drv_instance == LPSPI_INSTANCE)
+    /* If the Frame size is more than 16, check if it is aligned to 4 bytes */
+    if ((SPI->transfer.frame_size > 16) && ((uint32_t)data & 0x3U) != 0U)
     {
-        lpspi_send(SPI->regs);
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
+    /* If the Frame size is more than 8 and less than 16, check if it is aligned to 2 bytes */
+    if ((SPI->transfer.frame_size > 8) && ((uint32_t)data & 0x1U) != 0U)
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
+
+#if SPI_DMA_ENABLE
+    /* Check if DMA is enabled */
+    if (SPI->dma_enable)
+    {
+        ARM_DMA_PARAMS dma_params;
+
+        if (SPI->drv_instance == LPSPI_INSTANCE)
+        {
+            lpspi_dma_send(SPI->regs);
+        }
+        else
+        {
+            spi_dma_send(SPI->regs);
+        }
+
+        /* Start the DMA engine for sending the data to SPI */
+        dma_params.peri_reqno    = (int8_t)SPI->dma_cfg->dma_tx.dma_periph_req;
+        dma_params.dir           = ARM_DMA_MEM_TO_DEV;
+        dma_params.cb_event      = SPI->dma_cb;
+        dma_params.src_addr      = data;
+        dma_params.dst_addr      = (void*)spi_get_data_addr(SPI->regs);
+        dma_params.irq_priority  = SPI->dma_irq_priority;
+        dma_params.burst_len     = SPI_TX_FIFO_DEPTH - SPI->tx_fifo_threshold;
+
+        if (SPI->transfer.frame_size > 16)
+        {
+            dma_params.num_bytes = SPI->transfer.total_cnt * sizeof(uint32_t);
+            dma_params.burst_size = BS_BYTE_4;
+        }
+        else if (SPI->transfer.frame_size > 8)
+        {
+            dma_params.num_bytes = SPI->transfer.total_cnt * sizeof(uint16_t);
+            dma_params.burst_size = BS_BYTE_2;
+        }
+        else
+        {
+            dma_params.num_bytes = SPI->transfer.total_cnt * sizeof(uint8_t);
+            dma_params.burst_size = BS_BYTE_1;
+        }
+
+        if (SPI_DMA_Start(&SPI->dma_cfg->dma_tx, &dma_params) != ARM_DRIVER_OK)
+        {
+            return ARM_DRIVER_ERROR;
+        }
     }
     else
+#endif
     {
-        spi_send(SPI->regs);
+        if (SPI->drv_instance == LPSPI_INSTANCE)
+        {
+            lpspi_send(SPI->regs);
+        }
+        else
+        {
+            spi_send(SPI->regs);
+        }
     }
 
     return ARM_DRIVER_OK;
@@ -314,7 +666,7 @@ static int32_t ARM_SPI_Receive(SPI_RESOURCES *SPI, void *data, uint32_t num)
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    if (SPI->status.busy)
+    if (spi_busy(SPI->regs))
     {
         return ARM_DRIVER_ERROR_BUSY;
     }
@@ -327,13 +679,110 @@ static int32_t ARM_SPI_Receive(SPI_RESOURCES *SPI, void *data, uint32_t num)
     SPI->transfer.status          = SPI_TRANSFER_STATUS_NONE;
     SPI->transfer.mode            = SPI_TMOD_RX;
 
-    if (SPI->drv_instance == LPSPI_INSTANCE)
+    /* If the Frame size is more than 16, check if it is aligned to 4 bytes */
+    if ((SPI->transfer.frame_size > 16) && ((uint32_t)data & 0x3U) != 0U)
     {
-        lpspi_receive(SPI->regs, SPI->transfer.total_cnt);
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
+    /* If the Frame size is more than 8 and less than 16, check if it is aligned to 2 bytes */
+    if ((SPI->transfer.frame_size > 8) && ((uint32_t)data & 0x1U) != 0U)
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
+
+#if SPI_DMA_ENABLE
+    ARM_DMA_PARAMS rx_dma_params;
+
+    /* Check if DMA is enabled for this */
+    if (SPI->dma_enable)
+    {
+        if (SPI->drv_instance == LPSPI_INSTANCE)
+        {
+            lpspi_dma_receive(SPI->regs, &SPI->transfer);
+        }
+        else
+        {
+            spi_dma_receive(SPI->regs, &SPI->transfer);
+        }
+
+        /* Start the DMA engine for receive the data to SPI */
+        rx_dma_params.peri_reqno    = (int8_t)SPI->dma_cfg->dma_rx.dma_periph_req;
+        rx_dma_params.dir           = ARM_DMA_DEV_TO_MEM;
+        rx_dma_params.cb_event      = SPI->dma_cb;
+        rx_dma_params.src_addr      = (void*)spi_get_data_addr(SPI->regs);
+        rx_dma_params.dst_addr      = data;
+        rx_dma_params.irq_priority  = SPI->dma_irq_priority;
+        rx_dma_params.burst_len     = SPI->rx_fifo_threshold + 1;
+
+        if (SPI->transfer.frame_size > 16)
+        {
+            rx_dma_params.num_bytes = SPI->transfer.total_cnt * sizeof(uint32_t);
+            rx_dma_params.burst_size = BS_BYTE_4;
+        }
+        else if (SPI->transfer.frame_size > 8)
+        {
+            rx_dma_params.num_bytes = SPI->transfer.total_cnt * sizeof(uint16_t);
+            rx_dma_params.burst_size = BS_BYTE_2;
+        }
+        else
+        {
+            rx_dma_params.num_bytes = SPI->transfer.total_cnt;
+            rx_dma_params.burst_size = BS_BYTE_1;
+        }
+
+        /* spi master: feeding one dummy data to spi to start clock */
+        if (SPI->transfer.is_master)
+        {
+            uint32_t dummy_data = 0x0;
+            ARM_DMA_PARAMS tx_dma_params;
+
+            if (SPI->transfer.frame_size > 16)
+            {
+                tx_dma_params.num_bytes = sizeof(uint32_t);
+                tx_dma_params.burst_size = BS_BYTE_4;
+            }
+            else if (SPI->transfer.frame_size > 8)
+            {
+                tx_dma_params.num_bytes = sizeof(uint16_t);
+                tx_dma_params.burst_size = BS_BYTE_2;
+            }
+            else
+            {
+                tx_dma_params.num_bytes = sizeof(uint8_t);
+                tx_dma_params.burst_size = BS_BYTE_1;
+            }
+
+            /* Start the DMA engine to feed one dummy data to SPI */
+            tx_dma_params.peri_reqno    = (int8_t)SPI->dma_cfg->dma_tx.dma_periph_req;
+            tx_dma_params.dir           = ARM_DMA_MEM_TO_DEV;
+            tx_dma_params.cb_event      = SPI->dma_cb;
+            tx_dma_params.src_addr      = &dummy_data;
+            tx_dma_params.dst_addr      = (void*)spi_get_data_addr(SPI->regs);
+            tx_dma_params.irq_priority  = SPI->dma_irq_priority;
+            tx_dma_params.burst_len     = SPI_TX_FIFO_DEPTH - SPI->tx_fifo_threshold;
+
+            if (SPI_DMA_Start(&SPI->dma_cfg->dma_tx, &tx_dma_params) != ARM_DRIVER_OK)
+            {
+                return ARM_DRIVER_ERROR;
+            }
+        }
+
+        if (SPI_DMA_Start(&SPI->dma_cfg->dma_rx, &rx_dma_params) != ARM_DRIVER_OK)
+        {
+            return ARM_DRIVER_ERROR;
+        }
     }
     else
+#endif
     {
-        spi_receive(SPI->regs, SPI->transfer.total_cnt);
+        if (SPI->drv_instance == LPSPI_INSTANCE)
+        {
+            lpspi_receive(SPI->regs, SPI->transfer.total_cnt);
+        }
+        else
+        {
+            spi_receive(SPI->regs, &SPI->transfer);
+        }
     }
 
     return ARM_DRIVER_OK;
@@ -366,7 +815,7 @@ static int32_t ARM_SPI_Transfer(SPI_RESOURCES *SPI, const void *data_out, void *
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    if (SPI->status.busy)
+    if (spi_busy(SPI->regs))
     {
         return ARM_DRIVER_ERROR_BUSY;
     }
@@ -381,13 +830,93 @@ static int32_t ARM_SPI_Transfer(SPI_RESOURCES *SPI, const void *data_out, void *
     SPI->transfer.status         = SPI_TRANSFER_STATUS_NONE;
     SPI->transfer.mode           = SPI_TMOD_TX_AND_RX;
 
-    if (SPI->drv_instance == LPSPI_INSTANCE)
+    /* If the Frame size is more than 16, check if it is aligned to 4 bytes */
+    if ((SPI->transfer.frame_size > 16) && ((((uint32_t)data_in & 0x3U) != 0U) && (((uint32_t)data_out & 0x3U) != 0U)))
     {
-        lpspi_transfer(SPI->regs, SPI->transfer.total_cnt);
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
+    /* If the Frame size is more than 8 and less than 16, check if it is aligned to 2 bytes */
+    if ((SPI->transfer.frame_size > 8) && ((((uint32_t)data_in & 0x1U) != 0U) && (((uint32_t)data_out & 0x1U) != 0U)))
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
+
+#if SPI_DMA_ENABLE
+    ARM_DMA_PARAMS tx_dma_params, rx_dma_params;
+
+    /* Check if DMA is enabled for this */
+    if (SPI->dma_enable)
+    {
+        if (SPI->drv_instance == LPSPI_INSTANCE)
+        {
+            lpspi_dma_transfer(SPI->regs, SPI->transfer.total_cnt);
+        }
+        else
+        {
+            spi_dma_transfer(SPI->regs, SPI->transfer.total_cnt);
+        }
+
+        /* Start the DMA engine for sending the data to SPI */
+        tx_dma_params.peri_reqno    = (int8_t)SPI->dma_cfg->dma_tx.dma_periph_req;
+        tx_dma_params.dir           = ARM_DMA_MEM_TO_DEV;
+        tx_dma_params.cb_event      = SPI->dma_cb;
+        tx_dma_params.src_addr      = data_out;
+        tx_dma_params.dst_addr      = (void*)spi_get_data_addr(SPI->regs);
+        tx_dma_params.irq_priority  = SPI->dma_irq_priority;
+        tx_dma_params.burst_len     = SPI_TX_FIFO_DEPTH - SPI->tx_fifo_threshold;
+
+        /* Start the DMA engine for receive the data to SPI */
+        rx_dma_params.peri_reqno    = (int8_t)SPI->dma_cfg->dma_rx.dma_periph_req;
+        rx_dma_params.dir           = ARM_DMA_DEV_TO_MEM;
+        rx_dma_params.cb_event      = SPI->dma_cb;
+        rx_dma_params.src_addr      = (void*)spi_get_data_addr(SPI->regs);
+        rx_dma_params.dst_addr      = data_in;
+        rx_dma_params.irq_priority  = SPI->dma_irq_priority;
+        rx_dma_params.burst_len     = SPI->rx_fifo_threshold + 1;
+
+        if (SPI->transfer.frame_size > 16)
+        {
+            tx_dma_params.num_bytes  = SPI->transfer.total_cnt * sizeof(uint32_t);
+            rx_dma_params.num_bytes  = SPI->transfer.total_cnt * sizeof(uint32_t);
+            tx_dma_params.burst_size = BS_BYTE_4;
+            rx_dma_params.burst_size = BS_BYTE_4;
+        }
+        else if (SPI->transfer.frame_size > 8)
+        {
+            tx_dma_params.num_bytes  = SPI->transfer.total_cnt * sizeof(uint16_t);
+            rx_dma_params.num_bytes  = SPI->transfer.total_cnt * sizeof(uint16_t);
+            tx_dma_params.burst_size = BS_BYTE_2;
+            rx_dma_params.burst_size = BS_BYTE_2;
+        }
+        else
+        {
+            tx_dma_params.src_addr   = (const uint8_t *)data_out;
+            tx_dma_params.num_bytes  = SPI->transfer.total_cnt * sizeof(uint8_t);
+            rx_dma_params.num_bytes  = SPI->transfer.total_cnt * sizeof(uint8_t);
+            tx_dma_params.burst_size = BS_BYTE_1;
+            rx_dma_params.burst_size = BS_BYTE_1;
+        }
+
+        if (SPI_DMA_Start(&SPI->dma_cfg->dma_rx, &rx_dma_params) != ARM_DRIVER_OK)
+        {
+            return ARM_DRIVER_ERROR;
+        }
+        if (SPI_DMA_Start(&SPI->dma_cfg->dma_tx, &tx_dma_params) != ARM_DRIVER_OK)
+        {
+            return ARM_DRIVER_ERROR;
+        }
     }
     else
+#endif
     {
-        spi_transfer(SPI->regs, SPI->transfer.total_cnt);
+        if (SPI->drv_instance == LPSPI_INSTANCE)
+        {
+            lpspi_transfer(SPI->regs, SPI->transfer.total_cnt);
+        }
+        else
+        {
+            spi_transfer(SPI->regs, SPI->transfer.total_cnt);
+        }
     }
 
     return ARM_DRIVER_OK;
@@ -450,11 +979,16 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
         return ARM_DRIVER_ERROR;
     }
 
+    if (spi_busy(SPI->regs))
+    {
+        return ARM_DRIVER_ERROR_BUSY;
+    }
+
     switch (control & ARM_SPI_CONTROL_Msk)
     {
         case ARM_SPI_MODE_INACTIVE:
         {
-            if(control == 0)
+            if (control == 0)
             {
                 spi_disable(SPI->regs);
             }
@@ -464,14 +998,17 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
         /* SPI Master (Output on MOSI, Input on MISO); arg = Bus Speed in bps */
         case ARM_SPI_MODE_MASTER:
         {
-            if (!(SPI->drv_instance == LPSPI_INSTANCE))
+            if (SPI->drv_instance != LPSPI_INSTANCE)
             {
                 ctrl_ss_in(SPI->drv_instance, SS_IN_SS_IN_VAL);
 
                 spi_mode_master(SPI->regs);
-                clk = getSpiCoreClock(SPI->drv_instance);
-                spi_set_bus_speed(SPI->regs, arg, clk);
             }
+
+            clk = getSpiCoreClock(SPI->drv_instance);
+            spi_set_bus_speed(SPI->regs, arg, clk);
+
+            SPI->transfer.is_master = 1;
 
             break;
         }
@@ -486,13 +1023,9 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
             else
             {
                 spi_mode_slave(SPI->regs);
+
+                SPI->transfer.is_master = 0;
             }
-            break;
-        }
-        /* SPI Master (Output/Input on MOSI); arg = Bus Speed in bps */
-        case ARM_SPI_MODE_MASTER_SIMPLEX:
-        {
-            //TODO: Implementation is pending
             break;
         }
 
@@ -522,17 +1055,39 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
         /* Control the Slave Select signal */
         case ARM_SPI_CONTROL_SS:
         {
-            if (arg == 1)
+            if (SPI->master_ss_control == SPI_SS_HW_CONTROL)
             {
-                spi_control_ss(SPI->regs, SPI->slave_select, SPI_SS_STATE_ENABLE);
+                if (arg == 1)
+                {
+                    spi_control_ss(SPI->regs, SPI->slave_select, SPI_SS_STATE_ENABLE);
+                }
+                else if (arg == 0)
+                {
+                    spi_control_ss(SPI->regs, SPI->slave_select, SPI_SS_STATE_DISABLE);
+                }
+                else
+                {
+                    return ARM_DRIVER_ERROR_PARAMETER;
+                }
             }
-            else if (arg == 0)
+            else if (SPI->master_ss_control == SPI_SS_SW_CONTROL)
             {
-                spi_control_ss(SPI->regs, SPI->slave_select, SPI_SS_STATE_DISABLE);
-            }
-            else
-            {
-                return ARM_DRIVER_ERROR_PARAMETER;
+#if SPI_USE_MASTER_SS_SW
+                if (arg == 1)
+                {
+                    ret = SPI->sw_config.drvGPIO->SetValue(SPI->sw_config.ss_pin, SPI->sw_config.active_polarity);
+                    if(ret != ARM_DRIVER_OK)            {    return ret;    }
+                }
+                else if (arg == 0)
+                {
+                    ret = SPI->sw_config.drvGPIO->SetValue(SPI->sw_config.ss_pin, !(SPI->sw_config.active_polarity));
+                    if(ret != ARM_DRIVER_OK)            {    return ret;    }
+                }
+                else
+                {
+                    return ARM_DRIVER_ERROR_PARAMETER;
+                }
+#endif
             }
             return ARM_DRIVER_OK;
         }
@@ -540,6 +1095,51 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
         /* Abort the current data transfer */
         case ARM_SPI_ABORT_TRANSFER:
         {
+#if SPI_DMA_ENABLE
+    if (SPI->dma_enable)
+    {
+        /* SEND ONLY mode */
+        if (SPI->transfer.mode == SPI_TMOD_TX)
+        {
+            if (SPI_DMA_Stop(&SPI->dma_cfg->dma_tx) != ARM_DRIVER_OK)
+            {
+                return ARM_DRIVER_ERROR;
+            }
+        }
+
+        /* RECEIVE ONLY mode */
+        if (SPI->transfer.mode == SPI_TMOD_RX)
+        {
+            if (SPI_DMA_Stop(&SPI->dma_cfg->dma_rx) != ARM_DRIVER_OK)
+            {
+                return ARM_DRIVER_ERROR;
+            }
+
+            if (SPI->transfer.is_master)
+            {
+                if (SPI_DMA_Stop(&SPI->dma_cfg->dma_tx) != ARM_DRIVER_OK)
+                {
+                    return ARM_DRIVER_ERROR;
+                }
+            }
+
+        }
+
+        /* TRANSFER mode */
+        if (SPI->transfer.mode == SPI_TMOD_TX_AND_RX)
+        {
+            if (SPI_DMA_Stop(&SPI->dma_cfg->dma_tx) != ARM_DRIVER_OK)
+            {
+                return ARM_DRIVER_ERROR;
+            }
+            if (SPI_DMA_Stop(&SPI->dma_cfg->dma_rx) != ARM_DRIVER_OK)
+            {
+                return ARM_DRIVER_ERROR;
+            }
+        }
+    }
+#endif
+
             spi_mask_interrupts(SPI->regs);
 
             SPI->transfer.tx_buff            = NULL;
@@ -679,50 +1279,59 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
         }
     }
 
-    switch (control & ARM_SPI_SS_MASTER_MODE_Msk)
+    if (SPI->transfer.is_master)
     {
-        /* SPI Slave Select when Master: Not used (default) */
-        case ARM_SPI_SS_MASTER_UNUSED:
+        switch (control & ARM_SPI_SS_MASTER_MODE_Msk)
         {
-            break;
-        }
-
-        /* SPI Slave Select when Master: Software controlled */
-        case ARM_SPI_SS_MASTER_SW:
-        {
-            if((control & ARM_SPI_CONTROL_Msk) == ARM_SPI_MODE_MASTER )
+            /* SPI Slave Select when Master: Not used (default) */
+            case ARM_SPI_SS_MASTER_UNUSED:
             {
-                SPI->sw_slave_select = 1;
+                break;
             }
-            break;
-        }
 
-        /* SPI Slave Select when Master: Hardware controlled Output */
-        case ARM_SPI_SS_MASTER_HW_OUTPUT:
-        {
-            /* This is the default state in the IP, No need to configure */
-            break;
-        }
+            /* SPI Slave Select when Master: Software controlled */
+            case ARM_SPI_SS_MASTER_SW:
+            {
+#if SPI_USE_MASTER_SS_SW
+                /* GPIO setup */
+                ret = SPI->sw_config.drvGPIO->Initialize(SPI->sw_config.ss_pin, NULL);
+                if(ret != ARM_DRIVER_OK)            {    return ret;    }
+                ret = SPI->sw_config.drvGPIO->PowerControl(SPI->sw_config.ss_pin, ARM_POWER_FULL);
+                if(ret != ARM_DRIVER_OK)            {    return ret;    }
+                ret = SPI->sw_config.drvGPIO->SetDirection(SPI->sw_config.ss_pin, GPIO_PIN_DIRECTION_OUTPUT);
+                if(ret != ARM_DRIVER_OK)            {    return ret;    }
+                ret = SPI->sw_config.drvGPIO->SetValue(SPI->sw_config.ss_pin, !(SPI->sw_config.active_polarity));
+                if(ret != ARM_DRIVER_OK)            {    return ret;    }
 
-        /* SPI Slave Select when Master: Hardware monitored Input */
-        case ARM_SPI_SS_MASTER_HW_INPUT:
-        {
-            //TODO: Need to Implement
-            break;
+                SPI->master_ss_control = SPI_SS_SW_CONTROL;
+#endif
+                break;
+            }
+
+            /* SPI Slave Select when Master: Hardware controlled Output */
+            case ARM_SPI_SS_MASTER_HW_OUTPUT:
+            {
+                SPI->master_ss_control = SPI_SS_HW_CONTROL;
+                break;
+            }
+
+            /* SPI Slave Select when Master: Hardware monitored Input */
+            case ARM_SPI_SS_MASTER_HW_INPUT:
+            {
+                //TODO: Need to Implement
+                break;
+            }
         }
     }
 
-    switch (control & ARM_SPI_SS_SLAVE_MODE_Msk)
+    if (!(SPI->transfer.is_master))
     {
-        if (SPI->drv_instance == LPSPI_INSTANCE)
-        {
-            return ARM_DRIVER_ERROR_UNSUPPORTED;
-        }
-        else
+        switch (control & ARM_SPI_SS_SLAVE_MODE_Msk)
         {
             /* SPI Slave Select when Slave: Hardware monitored (default) */
             case ARM_SPI_SS_SLAVE_HW:
             {
+                /* No need to configure anything */
                 break;
             }
 
@@ -735,6 +1344,93 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
     }
     return ret;
 }
+
+/**
+ * @fn      void SPI_IRQ_Handler(SPI_RESOURCES *SPI, spi_transfer_t *transfer).
+ * @brief   SPI IRQ handler.
+ * @note    none.
+ * @param   SPI : Pointer to spi resources structure.
+ * @param   transfer : transfer structure pointer for the SPI instance
+ * @retval  none
+ */
+static void SPI_IRQ_Handler(SPI_RESOURCES *SPI)
+{
+    spi_irq_handler(SPI->regs, &(SPI->transfer));
+
+    if (SPI->transfer.status == SPI_TRANSFER_STATUS_COMPLETE)
+    {
+        SPI->transfer.status = SPI_TRANSFER_STATUS_NONE;
+        SPI->status.busy = 0;
+        SPI->cb_event(ARM_SPI_EVENT_TRANSFER_COMPLETE);
+    }
+
+    if (SPI->transfer.status == SPI_TRANSFER_STATUS_OVERFLOW)
+    {
+        SPI->transfer.status = SPI_TRANSFER_STATUS_NONE;
+        SPI->status.data_lost = 1;
+        SPI->status.busy = 0;
+        SPI->cb_event(ARM_SPI_EVENT_DATA_LOST);
+    }
+}
+
+#if SPI_DMA_ENABLE
+/**
+ * @fn      void SPI_DMACallback(SPI_RESOURCES *SPI, uint32_t event, int8_t peri_num)
+ * @brief   DMA Callback function for SPI.
+ * @note    none.
+ * @param   SPI : Pointer to spi resources structure.
+ * @param   event : Event from DMA
+ * @param   peri_num : peripheral request number
+ * @retval  none
+ */
+static void SPI_DMACallback(SPI_RESOURCES *SPI, uint32_t event, int8_t peri_num)
+{
+    if (!SPI->cb_event)
+    {
+        return;
+    }
+
+    /* Transfer Completed */
+    if (event & ARM_DMA_EVENT_COMPLETE)
+    {
+        switch(peri_num)
+        {
+            case SPI0_DMA_TX_PERIPH_REQ:
+            case SPI1_DMA_TX_PERIPH_REQ:
+            case SPI2_DMA_TX_PERIPH_REQ:
+            case SPI3_DMA_TX_PERIPH_REQ:
+#if defined (M55_HE)
+            case LPSPI_DMA_TX_PERIPH_REQ:
+#endif
+                if (SPI->transfer.mode == SPI_TMOD_TX)
+                {
+                    SPI->status.busy = 0;
+                    SPI->cb_event(ARM_SPI_EVENT_TRANSFER_COMPLETE);
+                }
+                break;
+            case SPI0_DMA_RX_PERIPH_REQ:
+            case SPI1_DMA_RX_PERIPH_REQ:
+            case SPI2_DMA_RX_PERIPH_REQ:
+            case SPI3_DMA_RX_PERIPH_REQ:
+#if defined (M55_HE)
+            case LPSPI_DMA_RX_PERIPH_REQ:
+#endif
+                SPI->status.busy = 0;
+                SPI->cb_event(ARM_SPI_EVENT_TRANSFER_COMPLETE);
+                break;
+            default:
+                break;
+        }
+    }
+
+    /* Abort Occurred */
+    if (event & ARM_DMA_EVENT_ABORT)
+    {
+        SPI->status.busy = 0;
+        SPI->cb_event(ARM_SPI_EVENT_DATA_LOST);
+    }
+}
+#endif
 
 /**
  * @fn      int32_t ARM_SPI_Control_SlaveSelect(SPI_RESOURCES *SPI, uint32_t device, uint32_t ss_state).
@@ -780,42 +1476,86 @@ __STATIC_INLINE ARM_SPI_STATUS ARM_SPI_GetStatus(SPI_RESOURCES *SPI)
     return SPI->status;
 }
 
+
 /* SPI0 driver instance */
 #if RTE_SPI0
+
+#if RTE_SPI0_DMA_ENABLE
+static void SPI0_DMACallback(uint32_t event, int8_t peri_num);
+static SPI_DMA_HW_CONFIG SPI0_DMA_HW_CONFIG = {
+    .dma_rx =
+    {
+        .dma_drv        = &ARM_Driver_DMA_(SPI0_DMA),
+        .dma_periph_req = SPI0_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = SPI0_DMA,
+             .group    = SPI0_DMA_GROUP,
+             .channel  = SPI0_DMA_RX_PERIPH_REQ,
+             .enable_handshake = SPI0_DMA_HANDSHAKE_ENABLE,
+        },
+    },
+    .dma_tx =
+    {
+        .dma_drv        = &ARM_Driver_DMA_(SPI0_DMA),
+        .dma_periph_req = SPI0_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = SPI0_DMA,
+             .group    = SPI0_DMA_GROUP,
+             .channel  = SPI0_DMA_TX_PERIPH_REQ,
+             .enable_handshake = SPI0_DMA_HANDSHAKE_ENABLE,
+        },
+
+    },
+};
+#endif
+
+#if RTE_SPI0_USE_MASTER_SS_SW
+/* GPIO driver Instance for SPI0 SW controlled slave select */
+extern ARM_DRIVER_GPIO ARM_Driver_GPIO_(RTE_SPI0_SW_SPI_PORT);
+#endif
+
 static SPI_RESOURCES SPI0_RES = {
     .regs                   = (SPI_Type*) SPI0_BASE,
     .cb_event               = NULL,
     .irq_priority           = RTE_SPI0_IRQ_PRIORITY,
     .drv_instance           = SPI_INSTANCE_0,
     .slave_select           = RTE_SPI0_CHIP_SELECTION_PIN,
-    .spi_frf                = RTE_SPI0_SPI_FRAME_FORMAT,
     .tx_fifo_threshold      = RTE_SPI0_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_SPI0_TX_FIFO_LEVEL_TO_START_TRANSFER,
     .rx_fifo_threshold      = RTE_SPI0_RX_FIFO_THRESHOLD,
-    .irq                    = SPI0_IRQ_IRQn
+    .rx_sample_delay        = RTE_SPI0_RX_SAMPLE_DELAY,
+    .irq                    = SPI0_IRQ_IRQn,
+#if RTE_SPI0_DMA_ENABLE
+    .dma_enable             = RTE_SPI0_DMA_ENABLE,
+    .dma_irq_priority       = RTE_SPI0_DMA_IRQ_PRI,
+    .dma_cb                 = SPI0_DMACallback,
+    .dma_cfg                = &SPI0_DMA_HW_CONFIG,
+#endif
+#if RTE_SPI0_USE_MASTER_SS_SW
+    .sw_config =
+    {
+        .ss_port            = RTE_SPI0_SW_SPI_PORT,
+        .ss_pin             = RTE_SPI0_SW_SPI_PIN,
+        .active_polarity    = RTE_SPI0_SW_SPI_SS_POLARITY,
+        .drvGPIO            = (ARM_DRIVER_GPIO*) &ARM_Driver_GPIO_(RTE_SPI0_SW_SPI_PORT)
+    }
+#endif
 };
 
+extern void SPI0_IRQHandler(void);
 void SPI0_IRQHandler(void)
 {
-    spi_transfer_t *transfer = &(SPI0_RES.transfer);
-
-    spi_irq_handler(SPI0_RES.regs, transfer);
-
-    if (transfer->status == SPI_TRANSFER_STATUS_COMPLETE)
-    {
-        transfer->status = SPI_TRANSFER_STATUS_NONE;
-        SPI0_RES.status.busy = 0;
-        SPI0_RES.cb_event(ARM_SPI_EVENT_TRANSFER_COMPLETE);
-    }
-
-    if (transfer->status == SPI_TRANSFER_STATUS_OVERFLOW)
-    {
-        transfer->status = SPI_TRANSFER_STATUS_NONE;
-        SPI0_RES.status.data_lost = 1;
-        SPI0_RES.status.busy = 0;
-        SPI0_RES.cb_event(ARM_SPI_EVENT_DATA_LOST);
-    }
+    SPI_IRQ_Handler(&SPI0_RES);
 }
+
+#if RTE_SPI0_DMA_ENABLE
+void SPI0_DMACallback(uint32_t event, int8_t peri_num)
+{
+    SPI_DMACallback(&SPI0_RES, event, peri_num);
+}
+#endif
 
 static int32_t ARM_SPI0_Initialize(ARM_SPI_SignalEvent_t cb_event)
 {
@@ -889,39 +1629,83 @@ ARM_DRIVER_SPI Driver_SPI0 = {
 
 /* SPI1 driver instance */
 #if RTE_SPI1
+
+#if RTE_SPI1_DMA_ENABLE
+static void SPI1_DMACallback(uint32_t event, int8_t peri_num);
+static SPI_DMA_HW_CONFIG SPI1_DMA_HW_CONFIG = {
+    .dma_rx =
+    {
+        .dma_drv        = &ARM_Driver_DMA_(SPI1_DMA),
+        .dma_periph_req = SPI1_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = SPI1_DMA,
+             .group    = SPI1_DMA_GROUP,
+             .channel  = SPI1_DMA_RX_PERIPH_REQ,
+             .enable_handshake = SPI1_DMA_HANDSHAKE_ENABLE,
+        },
+    },
+    .dma_tx =
+    {
+        .dma_drv        = &ARM_Driver_DMA_(SPI1_DMA),
+        .dma_periph_req = SPI1_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = SPI1_DMA,
+             .group    = SPI1_DMA_GROUP,
+             .channel  = SPI1_DMA_TX_PERIPH_REQ,
+             .enable_handshake = SPI1_DMA_HANDSHAKE_ENABLE,
+        },
+
+    },
+};
+#endif
+
+#if RTE_SPI1_USE_MASTER_SS_SW
+/* GPIO driver Instance for SPI1 SW controlled slave select */
+extern ARM_DRIVER_GPIO ARM_Driver_GPIO_(RTE_SPI1_SW_SPI_PORT);
+#endif
+
 static SPI_RESOURCES SPI1_RES = {
     .regs                   = (SPI_Type*) SPI1_BASE,
     .cb_event               = NULL,
     .irq_priority           = RTE_SPI1_IRQ_PRIORITY,
     .drv_instance           = SPI_INSTANCE_1,
     .slave_select           = RTE_SPI1_CHIP_SELECTION_PIN,
-    .spi_frf                = RTE_SPI1_SPI_FRAME_FORMAT,
     .tx_fifo_threshold      = RTE_SPI1_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_SPI1_TX_FIFO_LEVEL_TO_START_TRANSFER,
     .rx_fifo_threshold      = RTE_SPI1_RX_FIFO_THRESHOLD,
-    .irq                    = SPI1_IRQ_IRQn
+    .rx_sample_delay        = RTE_SPI1_RX_SAMPLE_DELAY,
+    .irq                    = SPI1_IRQ_IRQn,
+#if RTE_SPI1_DMA_ENABLE
+    .dma_enable             = RTE_SPI1_DMA_ENABLE,
+    .dma_irq_priority       = RTE_SPI1_DMA_IRQ_PRI,
+    .dma_cb                 = SPI1_DMACallback,
+    .dma_cfg                = &SPI1_DMA_HW_CONFIG,
+#endif
+#if RTE_SPI1_USE_MASTER_SS_SW
+    .sw_config =
+    {
+        .ss_port            = RTE_SPI1_SW_SPI_PORT,
+        .ss_pin             = RTE_SPI1_SW_SPI_PIN,
+        .active_polarity    = RTE_SPI1_SW_SPI_SS_POLARITY,
+        .drvGPIO            = (ARM_DRIVER_GPIO*) &ARM_Driver_GPIO_(RTE_SPI1_SW_SPI_PORT)
+    }
+#endif
 };
 
+extern void SPI1_IRQHandler(void);
 void SPI1_IRQHandler(void)
 {
-    spi_transfer_t *transfer = &(SPI1_RES.transfer);
-
-    spi_irq_handler(SPI1_RES.regs, transfer);
-
-    if (transfer->status == SPI_TRANSFER_STATUS_COMPLETE)
-    {
-        transfer->status = SPI_TRANSFER_STATUS_NONE;
-        SPI1_RES.status.busy = 0;
-        SPI1_RES.cb_event(ARM_SPI_EVENT_TRANSFER_COMPLETE);
-    }
-
-    if (transfer->status == SPI_TRANSFER_STATUS_OVERFLOW)
-    {
-        transfer->status = SPI_TRANSFER_STATUS_NONE;
-        SPI1_RES.status.data_lost = 1;
-        SPI1_RES.cb_event(ARM_SPI_EVENT_DATA_LOST);
-    }
+    SPI_IRQ_Handler(&SPI1_RES);
 }
+
+#if RTE_SPI1_DMA_ENABLE
+void SPI1_DMACallback(uint32_t event, int8_t peri_num)
+{
+    SPI_DMACallback(&SPI1_RES, event, peri_num);
+}
+#endif
 
 static int32_t ARM_SPI1_Initialize(ARM_SPI_SignalEvent_t cb_event)
 {
@@ -995,39 +1779,83 @@ ARM_DRIVER_SPI Driver_SPI1 = {
 
 /* SPI2 driver instance */
 #if RTE_SPI2
+
+#if RTE_SPI2_DMA_ENABLE
+static void SPI2_DMACallback(uint32_t event, int8_t peri_num);
+static SPI_DMA_HW_CONFIG SPI2_DMA_HW_CONFIG = {
+    .dma_rx =
+    {
+        .dma_drv        = &ARM_Driver_DMA_(SPI2_DMA),
+        .dma_periph_req = SPI2_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = SPI2_DMA,
+             .group    = SPI2_DMA_GROUP,
+             .channel  = SPI2_DMA_RX_PERIPH_REQ,
+             .enable_handshake = SPI2_DMA_HANDSHAKE_ENABLE,
+        },
+    },
+    .dma_tx =
+    {
+        .dma_drv        = &ARM_Driver_DMA_(SPI2_DMA),
+        .dma_periph_req = SPI2_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = SPI2_DMA,
+             .group    = SPI2_DMA_GROUP,
+             .channel  = SPI2_DMA_TX_PERIPH_REQ,
+             .enable_handshake = SPI2_DMA_HANDSHAKE_ENABLE,
+        },
+
+    },
+};
+#endif
+
+#if RTE_SPI2_USE_MASTER_SS_SW
+/* GPIO driver Instance for SPI2 SW controlled slave select */
+extern ARM_DRIVER_GPIO ARM_Driver_GPIO_(RTE_SPI2_SW_SPI_PORT);
+#endif
+
 static SPI_RESOURCES SPI2_RES = {
     .regs                   = (SPI_Type*) SPI2_BASE,
     .cb_event               = NULL,
     .irq_priority           = RTE_SPI2_IRQ_PRIORITY,
     .drv_instance           = SPI_INSTANCE_2,
     .slave_select           = RTE_SPI2_CHIP_SELECTION_PIN,
-    .spi_frf                = RTE_SPI2_SPI_FRAME_FORMAT,
     .tx_fifo_threshold      = RTE_SPI2_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_SPI2_TX_FIFO_LEVEL_TO_START_TRANSFER,
     .rx_fifo_threshold      = RTE_SPI2_RX_FIFO_THRESHOLD,
-    .irq                    = SPI2_IRQ_IRQn
+    .rx_sample_delay        = RTE_SPI2_RX_SAMPLE_DELAY,
+    .irq                    = SPI2_IRQ_IRQn,
+#if RTE_SPI2_DMA_ENABLE
+    .dma_enable             = RTE_SPI2_DMA_ENABLE,
+    .dma_irq_priority       = RTE_SPI2_DMA_IRQ_PRI,
+    .dma_cb                 = SPI2_DMACallback,
+    .dma_cfg                = &SPI2_DMA_HW_CONFIG
+#endif
+#if RTE_SPI2_USE_MASTER_SS_SW
+    .sw_config =
+    {
+        .ss_port            = RTE_SPI2_SW_SPI_PORT,
+        .ss_pin             = RTE_SPI2_SW_SPI_PIN,
+        .active_polarity    = RTE_SPI2_SW_SPI_SS_POLARITY,
+        .drvGPIO            = (ARM_DRIVER_GPIO*) &ARM_Driver_GPIO_(RTE_SPI2_SW_SPI_PORT)
+    }
+#endif
 };
 
+extern void SPI2_IRQHandler(void);
 void SPI2_IRQHandler(void)
 {
-    spi_transfer_t *transfer = &(SPI2_RES.transfer);
-
-    spi_irq_handler(SPI2_RES.regs, transfer);
-
-    if (transfer->status == SPI_TRANSFER_STATUS_COMPLETE)
-    {
-        transfer->status = SPI_TRANSFER_STATUS_NONE;
-        SPI2_RES.status.busy = 0;
-        SPI2_RES.cb_event(ARM_SPI_EVENT_TRANSFER_COMPLETE);
-    }
-
-    if (transfer->status == SPI_TRANSFER_STATUS_OVERFLOW)
-    {
-        transfer->status = SPI_TRANSFER_STATUS_NONE;
-        SPI2_RES.status.data_lost = 1;
-        SPI2_RES.cb_event(ARM_SPI_EVENT_DATA_LOST);
-    }
+    SPI_IRQ_Handler(&SPI2_RES);
 }
+
+#if RTE_SPI2_DMA_ENABLE
+void SPI2_DMACallback(uint32_t event, int8_t peri_num)
+{
+    SPI_DMACallback(&SPI2_RES, event, peri_num);
+}
+#endif
 
 static int32_t ARM_SPI2_Initialize(ARM_SPI_SignalEvent_t cb_event)
 {
@@ -1101,39 +1929,82 @@ ARM_DRIVER_SPI Driver_SPI2 = {
 
 /* SPI3 driver instance */
 #if RTE_SPI3
+
+#if RTE_SPI3_DMA_ENABLE
+static void SPI3_DMACallback(uint32_t event, int8_t peri_num);
+static SPI_DMA_HW_CONFIG SPI3_DMA_HW_CONFIG = {
+    .dma_rx =
+    {
+        .dma_drv        = &ARM_Driver_DMA_(SPI3_DMA),
+        .dma_periph_req = SPI3_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = SPI3_DMA,
+             .group    = SPI3_DMA_GROUP,
+             .channel  = SPI3_DMA_RX_PERIPH_REQ,
+             .enable_handshake = SPI3_DMA_HANDSHAKE_ENABLE,
+        },
+    },
+    .dma_tx =
+    {
+        .dma_drv        = &ARM_Driver_DMA_(SPI3_DMA),
+        .dma_periph_req = SPI3_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = SPI3_DMA,
+             .group    = SPI3_DMA_GROUP,
+             .channel  = SPI3_DMA_TX_PERIPH_REQ,
+             .enable_handshake = SPI3_DMA_HANDSHAKE_ENABLE,
+        },
+    },
+};
+#endif
+
+#if RTE_SPI3_USE_MASTER_SS_SW
+/* GPIO driver Instance for SPI3 SW controlled slave select */
+extern ARM_DRIVER_GPIO ARM_Driver_GPIO_(RTE_SPI3_SW_SPI_PORT);
+#endif
+
 static SPI_RESOURCES SPI3_RES = {
     .regs                   = (SPI_Type*) SPI3_BASE,
     .cb_event               = NULL,
     .irq_priority           = RTE_SPI3_IRQ_PRIORITY,
     .drv_instance           = SPI_INSTANCE_3,
     .slave_select           = RTE_SPI3_CHIP_SELECTION_PIN,
-    .spi_frf                = RTE_SPI3_SPI_FRAME_FORMAT,
     .tx_fifo_threshold      = RTE_SPI3_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_SPI3_TX_FIFO_LEVEL_TO_START_TRANSFER,
     .rx_fifo_threshold      = RTE_SPI3_RX_FIFO_THRESHOLD,
-    .irq                    = SPI3_IRQ_IRQn
+    .rx_sample_delay        = RTE_SPI3_RX_SAMPLE_DELAY,
+    .irq                    = SPI3_IRQ_IRQn,
+#if RTE_SPI3_DMA_ENABLE
+    .dma_enable             = RTE_SPI3_DMA_ENABLE,
+    .dma_irq_priority       = RTE_SPI3_DMA_IRQ_PRI,
+    .dma_cb                 = SPI3_DMACallback,
+    .dma_cfg                = &SPI3_DMA_HW_CONFIG,
+#endif
+#if RTE_SPI3_USE_MASTER_SS_SW
+    .sw_config =
+    {
+        .ss_port            = RTE_SPI3_SW_SPI_PORT,
+        .ss_pin             = RTE_SPI3_SW_SPI_PIN,
+        .active_polarity    = RTE_SPI3_SW_SPI_SS_POLARITY,
+        .drvGPIO            = (ARM_DRIVER_GPIO*) &ARM_Driver_GPIO_(RTE_SPI3_SW_SPI_PORT)
+    }
+#endif
 };
 
+extern void SPI3_IRQHandler(void);
 void SPI3_IRQHandler(void)
 {
-    spi_transfer_t *transfer = &(SPI3_RES.transfer);
-
-    spi_irq_handler(SPI3_RES.regs, transfer);
-
-    if (transfer->status == SPI_TRANSFER_STATUS_COMPLETE)
-    {
-        transfer->status = SPI_TRANSFER_STATUS_NONE;
-        SPI3_RES.status.busy = 0;
-        SPI3_RES.cb_event(ARM_SPI_EVENT_TRANSFER_COMPLETE);
-    }
-
-    if (transfer->status == SPI_TRANSFER_STATUS_OVERFLOW)
-    {
-        transfer->status = SPI_TRANSFER_STATUS_NONE;
-        SPI3_RES.status.data_lost = 1;
-        SPI3_RES.cb_event(ARM_SPI_EVENT_DATA_LOST);
-    }
+    SPI_IRQ_Handler(&SPI3_RES);
 }
+
+#if RTE_SPI3_DMA_ENABLE
+void SPI3_DMACallback(uint32_t event, int8_t peri_num)
+{
+    SPI_DMACallback(&SPI3_RES, event, peri_num);
+}
+#endif
 
 static int32_t ARM_SPI3_Initialize(ARM_SPI_SignalEvent_t cb_event)
 {
@@ -1222,41 +2093,81 @@ void SPI_Control_SlaveSelect(uint32_t device, uint32_t ss_state)
 
 /* LPSPI driver instance */
 #if RTE_LPSPI
+
+#if RTE_LPSPI_DMA_ENABLE
+static void LPSPI_DMACallback(uint32_t event, int8_t peri_num);
+static SPI_DMA_HW_CONFIG LPSPI_DMA_HW_CONFIG = {
+    .dma_rx =
+    {
+        .dma_drv        = &ARM_Driver_DMA_(LPSPI_DMA),
+        .dma_periph_req = LPSPI_DMA_RX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = LPSPI_DMA,
+             .group    = LPSPI_DMA_GROUP,
+             .channel  = LPSPI_DMA_RX_PERIPH_REQ,
+             .enable_handshake = LPSPI_DMA_HANDSHAKE_ENABLE,
+        },
+    },
+    .dma_tx =
+    {
+        .dma_drv        = &ARM_Driver_DMA_(LPSPI_DMA),
+        .dma_periph_req = LPSPI_DMA_TX_PERIPH_REQ,
+        .evtrtr_cfg =
+        {
+             .instance = LPSPI_DMA,
+             .group    = LPSPI_DMA_GROUP,
+             .channel  = LPSPI_DMA_TX_PERIPH_REQ,
+             .enable_handshake = LPSPI_DMA_HANDSHAKE_ENABLE,
+        },
+    },
+};
+#endif
+
+#if RTE_LPSPI_USE_MASTER_SS_SW
+/* GPIO driver Instance for LPSPI SW controlled slave select */
+extern ARM_DRIVER_GPIO ARM_Driver_GPIO_(RTE_LPSPI_SW_SPI_PORT);
+#endif
+
 static SPI_RESOURCES LPSPI_RES = {
     .regs                   = (SPI_Type*) LPSPI_BASE,
     .cb_event               = NULL,
     .irq_priority           = RTE_LPSPI_IRQ_PRIORITY,
     .drv_instance           = LPSPI_INSTANCE,
     .slave_select           = RTE_LPSPI_CHIP_SELECTION_PIN,
-    .spi_frf                = RTE_LPSPI_SPI_FRAME_FORMAT,
     .tx_fifo_threshold      = RTE_LPSPI_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_LPSPI_TX_FIFO_LEVEL_TO_START_TRANSFER,
     .rx_fifo_threshold      = RTE_LPSPI_RX_FIFO_THRESHOLD,
-    .irq                    = LPSPI_IRQ_IRQn
+    .irq                    = LPSPI_IRQ_IRQn,
+#if RTE_LPSPI_DMA_ENABLE
+    .dma_enable             = RTE_LPSPI_DMA_ENABLE,
+    .dma_irq_priority       = RTE_LPSPI_DMA_IRQ_PRI,
+    .dma_cb                 = LPSPI_DMACallback,
+    .dma_cfg                = &LPSPI_DMA_HW_CONFIG
+#endif
+#if RTE_LPSPI_USE_MASTER_SS_SW
+    .sw_config =
+    {
+        .ss_port            = RTE_LPSPI_SW_SPI_PORT,
+        .ss_pin             = RTE_LPSPI_SW_SPI_PIN,
+        .active_polarity    = RTE_LPSPI_SW_SPI_SS_POLARITY,
+        .drvGPIO            = (ARM_DRIVER_GPIO*) &ARM_Driver_GPIO_(RTE_LPSPI_SW_SPI_PORT)
+    }
+#endif
 };
 
 extern void LPSPI_IRQHandler(void);
 void LPSPI_IRQHandler(void)
 {
-    spi_transfer_t *transfer = &(LPSPI_RES.transfer);
-
-    spi_irq_handler(LPSPI_RES.regs, transfer);
-
-    if (transfer->status == SPI_TRANSFER_STATUS_COMPLETE)
-    {
-        transfer->status = SPI_TRANSFER_STATUS_NONE;
-        LPSPI_RES.status.busy = 0;
-        LPSPI_RES.cb_event(ARM_SPI_EVENT_TRANSFER_COMPLETE);
-    }
-
-    if (transfer->status == SPI_TRANSFER_STATUS_OVERFLOW)
-    {
-        transfer->status = SPI_TRANSFER_STATUS_NONE;
-        LPSPI_RES.status.data_lost = 1;
-        LPSPI_RES.status.busy = 0;
-        LPSPI_RES.cb_event(ARM_SPI_EVENT_DATA_LOST);
-    }
+    SPI_IRQ_Handler(&LPSPI_RES);
 }
+
+#if RTE_LPSPI_DMA_ENABLE
+void LPSPI_DMACallback(uint32_t event, int8_t peri_num)
+{
+    SPI_DMACallback(&LPSPI_RES, event, peri_num);
+}
+#endif
 
 static int32_t ARM_LPSPI_Initialize(ARM_SPI_SignalEvent_t cb_event)
 {

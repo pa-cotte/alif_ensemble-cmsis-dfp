@@ -8,19 +8,16 @@
  *
  */
 
-#include <cmp.h>
+#include "cmp.h"
 
 /**
   @fn          void cmp_irq_handler(CMP_Type *cmp)
-  @brief       - First toggle the polarity bit
-               - Clear the interrupt source in comparator
+  @brief       Clear the interrupt status
   @param[in]   cmp    Pointer to the CMP register map
   @return      none
 */
-void cmp_irq_handler(CMP0_Type *cmp)
+void cmp_irq_handler(CMP_Type *cmp)
 {
-    cmp->CMP_POLARITY_CTRL ^= 1;
-
     /* clear the interrupt before re-starting */
     if(cmp->CMP_INTERRUPT_STATUS == 1)
         cmp->CMP_INTERRUPT_STATUS = CMP_INTERRUPT_CLEAR;

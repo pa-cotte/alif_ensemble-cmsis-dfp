@@ -298,6 +298,7 @@ static int32_t WDT_Control(uint32_t      control,
                            uint32_t      arg,
                            WDT_RESOURCES *wdt)
 {
+    ARG_UNUSED(arg);
     int ret = ARM_DRIVER_OK;
 
     if( !(wdt->flags & WATCHDOG_POWERED ) )

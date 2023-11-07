@@ -32,9 +32,23 @@
 #include "Driver_USART.h"
 #include "pinconf.h"
 
+
 /*RTOS Includes*/
 #include "RTE_Components.h"
 #include CMSIS_device_header
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
+#include "RTE_Device.h"
+/*
+ * UART2 CLK SOURCE: Defines UART2 clock source.
+ *    <0=> CLK_38.4MHz (CLKEN_HFOSC)
+ *    <1=> CLK_100MHz
+ */
+#if (RTE_UART2_CLK_SOURCE == 0) /* CLK_38.4MHz */
+#include "se_services_port.h"
+#endif
 
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
@@ -52,26 +66,6 @@ StaticTask_t TimerTcb;
 
 /* UART Driver instance */
 #define UART      2
-
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
-
-#ifdef DISABLE_PRINTF
-#define printf(fmt, ...) (0)
-/* Also Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-__asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
-
-void _sys_exit(int return_code)
-{
-   while (1);
-}
-#endif
 
 /* UART Driver */
 extern ARM_DRIVER_USART ARM_Driver_USART_(UART);
@@ -181,6 +175,22 @@ void Uart_Thread(void *pvParameters)
    uint32_t ret = 0;
    uint32_t events = 0;
    ARM_DRIVER_VERSION version;
+
+#if (RTE_UART2_CLK_SOURCE == 0) /* CLK_38.4MHz */
+    uint32_t service_error_code;
+    uint32_t error_code = SERVICES_REQ_SUCCESS;
+
+    /* Initialize the SE services */
+    se_services_port_init();
+
+    /* enable the HFOSC clock */
+    error_code = SERVICES_clocks_enable_clock(se_services_s_handle,
+                           /*clock_enable_t*/ CLKEN_HFOSC,
+                           /*bool enable   */ true,
+                                              &service_error_code);
+    if(error_code)
+        printf("SE: clk enable = %d\n", error_code);
+#endif /* CLK_38.4MHz */
 
    printf("\r\n >>> UART testApp starting up!!!...<<< \r\n");
 
@@ -292,6 +302,16 @@ error_uninitialize:
       printf("\r\n Error in UART Uninitialize.\r\n");
    }
 
+#if (RTE_UART2_CLK_SOURCE == 0) /* CLK_38.4MHz */
+    /* disable the HFOSC clock */
+    error_code = SERVICES_clocks_enable_clock(se_services_s_handle,
+                       /*clock_enable_t*/ CLKEN_HFOSC,
+                       /*bool enable   */ false,
+                                          &service_error_code);
+    if(error_code)
+        printf("SE: clk enable = %d\n", error_code);
+#endif
+
    /* thread delete */
    vTaskDelete( NULL );
 }
@@ -301,6 +321,17 @@ error_uninitialize:
  *---------------------------------------------------------------------------*/
 int main(void)
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
    /* System Initialization */
    SystemCoreClockUpdate();
 

@@ -27,19 +27,18 @@ extern "C"
 
 #include <stdint.h>
 
-typedef struct {                                /*!< (@ 0x42000000) LPRTC Structure                                            */
-    volatile uint32_t  LPRTC_CCVR;              /*!< (@ 0x00000000) Current Counter Value Register                             */
-    volatile uint32_t  LPRTC_CMR;               /*!< (@ 0x00000004) Counter Match Register                                     */
-    volatile uint32_t  LPRTC_CLR;               /*!< (@ 0x00000008) Counter Load Register                                      */
-    volatile uint32_t  LPRTC_CCR;               /*!< (@ 0x0000000C) Counter Control Register                                   */
-    volatile uint32_t  LPRTC_STAT;              /*!< (@ 0x00000010) Interrupt Status Register                                  */
-    volatile uint32_t  LPRTC_RSTAT;             /*!< (@ 0x00000014) Interrupt Raw Status Register                              */
-    volatile uint32_t  LPRTC_EOI;               /*!< (@ 0x00000018) End of Interrupt Register                                  */
-    volatile uint32_t  LPRTC_COMP_VERSION;      /*!< (@ 0x0000001C) Reserved                                                   */
-    volatile uint32_t  LPRTC_CPSR;              /*!< (@ 0x00000020) Counter Prescaler Register                                 */
-    volatile uint32_t  LPRTC_CPCVR;             /*!< (@ 0x00000024) Current Prescaler Counter Value Register                   */
-} LPRTC_Type;                                   /*!< Size = 40 (0x28)                                                          */
-
+typedef struct {
+    volatile const uint32_t LPRTC_CCVR;           /*!< (@ 0x00000000) Current Counter Value Register                             */
+    volatile uint32_t       LPRTC_CMR;            /*!< (@ 0x00000004) Counter Match Register                                     */
+    volatile uint32_t       LPRTC_CLR;            /*!< (@ 0x00000008) Counter Load Register                                      */
+    volatile uint32_t       LPRTC_CCR;            /*!< (@ 0x0000000C) Counter Control Register                                   */
+    volatile const uint32_t LPRTC_STAT;           /*!< (@ 0x00000010) Interrupt Status Register                                  */
+    volatile const uint32_t LPRTC_RSTAT;          /*!< (@ 0x00000014) Interrupt Raw Status Register                              */
+    volatile const uint32_t LPRTC_EOI;            /*!< (@ 0x00000018) End-of-Interrupt Register                                  */
+    volatile const uint32_t LPRTC_COMP_VERSION;   /*!< (@ 0x0000001C) Component Version Register                                 */
+    volatile uint32_t       LPRTC_CPSR;           /*!< (@ 0x00000020) Counter Prescaler Register                                 */
+    volatile const uint32_t LPRTC_CPCVR;          /*!< (@ 0x00000024) Current Prescaler Counter Value Register                   */
+} LPRTC_Type;                                     /*!< Size = 40 (0x28)                                                          */
 
 /* CCR register fields */
 #define CCR_LPRTC_PSCLR_EN        (1U << 4U)       /* Enable prescaler  */

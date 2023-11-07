@@ -19,28 +19,15 @@
  * @bug      None.
  * @Note     None.
  ******************************************************************************/
+
 #include <stdio.h>
 #include "Driver_SPI.h"
 #include "pinconf.h"
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
-
-#ifdef DISABLE_PRINTF
-#define printf(fmt, ...) (0)
-/* Also Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-__asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
-
-void _sys_exit(int return_code) {
-   while (1);
-}
-#endif
 
 /* Use below macro to specify transfer type
  * 1 - Uses SPI Transfer function
@@ -176,8 +163,8 @@ static void spi0_spi1_transfer(void)
      * H/W connections on devkit:
      * short SPI0 MISO (P5_0 -> J12-13 pin) and SPI1 MISO (P8_3 -> J14-15 pin).
      * short SPI0 MOSI (P5_1 -> J12-15 pin) and SPI1 MOSI (P8_4 -> J14-17 pin).
-     * short SPI0 SCLK (P5_3 -> J12-5 pin) and SPI1 SCLK (P8_5 -> J14-19 pin).
-     * short SPI0 SS (P5_2 -> J12-17 pin) and SPI1 SS (P6_4 -> J12-2 pin).
+     * short SPI0 SCLK (P5_3 -> J14-5 pin) and SPI1 SCLK (P8_5 -> J14-19 pin).
+     * short SPI0 SS (P5_2 -> J12-17 pin) and SPI1 SS (P6_4 -> J12-22 pin).
      * */
 
     printf("*** Demo app using SPI0 & SPI1 is starting ***\n");
@@ -332,5 +319,15 @@ error_spi0_uninitialize :
 
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
     spi0_spi1_transfer();
 }

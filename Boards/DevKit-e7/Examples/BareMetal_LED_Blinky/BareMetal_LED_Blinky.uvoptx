@@ -120,7 +120,7 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>UL2V8M</Key>
-          <Name>UL2V8M(-S0 -C0 -P0 -FD00000000 -FC20000 -FN1 -FF0Ensemble -FS080000000 -FL0580000 -FP0($$Device:AE722F80F55D5AE$Flash\algorithms\Ensemble.FLM))</Name>
+          <Name>UL2V8M(-S0 -C0 -P0 -FD00000000 -FC20000 -FN1 -FF0Ensemble -FS080000000 -FL0580000 -FP0($$Device:AE722F80F55D5AS$Flash\algorithms\Ensemble.FLM))</Name>
         </SetRegEntry>
       </TargetDriverDllRegistry>
       <Breakpoint/>
@@ -170,7 +170,7 @@
         <Enable>1</Enable>
         <EnableFlashSeq>1</EnableFlashSeq>
         <EnableLog>0</EnableLog>
-        <Protocol>2</Protocol>
+        <Protocol>1</Protocol>
         <DbgClock>10000000</DbgClock>
       </DebugDescription>
     </TargetOption>
@@ -205,8 +205,16 @@
   </Group>
 
   <Group>
+    <GroupName>::CMSIS-Compiler</GroupName>
+    <tvExp>0</tvExp>
+    <tvExpOptDlg>0</tvExpOptDlg>
+    <cbSel>0</cbSel>
+    <RteFlg>1</RteFlg>
+  </Group>
+
+  <Group>
     <GroupName>::Device</GroupName>
-    <tvExp>1</tvExp>
+    <tvExp>0</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>1</RteFlg>

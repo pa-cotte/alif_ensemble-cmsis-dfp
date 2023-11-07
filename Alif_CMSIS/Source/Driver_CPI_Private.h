@@ -63,7 +63,6 @@ typedef struct _CPI_FIFO_CONFIG {
 typedef struct _CPI_CONFIG {
     CPI_FRAME_CONFIG                     frame;           /**< Frame Configuration                                */
     uint32_t                             framebuff_saddr; /**< Frame Buffer Start Address Configuration           */
-    uint8_t                              color;           /**< Color Mode Configuration                           */
     CPI_FIFO_CONFIG                      *fifo;           /**< FIFO Configuration                                 */
 }CPI_CONFIG;
 
@@ -78,12 +77,11 @@ typedef struct CPI_DRIVER_STATE {
 /** \brief CPI Device Resource Structure */
 typedef struct _CPI_RESOURCES {
     ARM_CPI_SignalEvent_t                 cb_event;       /**< CPI Application Event Callback                     */
-    LPCPI_Type                            *regs;          /**< CPI Register Base Address                          */
+    CPI_Type                              *regs;          /**< CPI Register Base Address                          */
     CPI_INSTANCE                          drv_instance;   /**< CPI driver instances                               */
     CPI_DRIVER_STATE                      status;         /**< CPI Status                                         */
     uint8_t                               irq_priority;   /**< CPI Interrupt Priority                             */
     IRQn_Type                             irq_num;        /**< CPI Interrupt Vector Number                        */
-    CPI_CSI_IPI_HALT_FN                   halt_en;        /**< CPI CSI halt                                       */
     CPI_ROW_ROUNDUP                       row_roundup;    /**< CPI row roundup                                    */
     CPI_MODE_SELECT                       capture_mode;   /**< CPI capture mode                                   */
     CPI_CONFIG                            *cnfg;          /**< CPI Configurations                                 */

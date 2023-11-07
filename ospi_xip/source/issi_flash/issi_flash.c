@@ -17,13 +17,13 @@
  ******************************************************************************/
 
 #include "issi_flash_private.h"
-#include "ospi.h"
+#include "ospi_drv.h"
 #include "ospi_xip_user.h"
 
 static ospi_flash_cfg_t ospi_flash_config;
 
 /**
-  \fn         static void ospi_flash_reset(ospi_flash_cfg_t *ospi_cfg)
+  \fn         static void issi_flash_reset(ospi_flash_cfg_t *ospi_cfg)
   \brief      This function resets the ISSI NOR Flash to the default state
   \param[in]  ospi_cfg : OSPI configuration structure
   \return     none
@@ -31,8 +31,8 @@ static ospi_flash_cfg_t ospi_flash_config;
 static void issi_flash_reset(ospi_flash_cfg_t *ospi_cfg)
 {
     ospi_setup_write(ospi_cfg, ADDR_LENGTH_0_BITS);
-    ospi_send(ospi_cfg, ISSI_RESET_ENABLE);
-    ospi_send(ospi_cfg, ISSI_RESET_MEMORY);
+    ospi_send_blocking(ospi_cfg, ISSI_RESET_ENABLE);
+    ospi_send_blocking(ospi_cfg, ISSI_RESET_MEMORY);
 }
 
 /**
@@ -45,7 +45,7 @@ static void issi_write_enable(ospi_flash_cfg_t *ospi_cfg)
 {
     /* Write WEL bit in OctalSPI mode */
     ospi_setup_write(ospi_cfg, ADDR_LENGTH_0_BITS);
-    ospi_send(ospi_cfg, ISSI_WRITE_ENABLE);
+    ospi_send_blocking(ospi_cfg, ISSI_WRITE_ENABLE);
 }
 
 /**
@@ -79,7 +79,7 @@ static uint8_t issi_decode_id(ospi_flash_cfg_t *ospi_cfg, uint8_t *buffer)
 }
 
 /**
-  \fn         static uint8_t opsi_flash_ReadID_DDR(ospi_flash_cfg_t *ospi_cfg)
+  \fn         static uint8_t issi_flash_ReadID_DDR(ospi_flash_cfg_t *ospi_cfg)
   \brief      This function reads the Device ID , if the ISSI NOR Flash boots up in DDR mode
   \param[in]  ospi_cfg : OSPI configuration structure
   \return     Device ID of NOR Flash
@@ -90,7 +90,7 @@ static uint8_t issi_flash_ReadID_DDR(ospi_flash_cfg_t *ospi_cfg)
     ospi_cfg->ddr_en = 1;
 
     ospi_setup_read(ospi_cfg, ADDR_LENGTH_0_BITS, 1, 8);
-    ospi_recv(ospi_cfg, ISSI_READ_ID, &buffer);
+    ospi_recv_blocking(ospi_cfg, ISSI_READ_ID, &buffer);
 
     return buffer;
 }
@@ -106,7 +106,7 @@ static uint8_t issi_flash_ReadID(ospi_flash_cfg_t *ospi_cfg)
     uint8_t buffer[8];
 
     ospi_setup_read(ospi_cfg, ADDR_LENGTH_0_BITS, 8, 0);
-    ospi_recv(ospi_cfg, ISSI_READ_ID, buffer);
+    ospi_recv_blocking(ospi_cfg, ISSI_READ_ID, buffer);
 
     return issi_decode_id(ospi_cfg, buffer);
 }
@@ -128,7 +128,7 @@ static void issi_flash_set_configuration_register_SDR(ospi_flash_cfg_t *ospi_cfg
     ospi_push(ospi_cfg, 0x00);
     ospi_push(ospi_cfg, 0x00);
     ospi_push(ospi_cfg, address);
-    ospi_send(ospi_cfg, value);
+    ospi_send_blocking(ospi_cfg, value);
 }
 
 /**
@@ -147,7 +147,7 @@ static void issi_flash_set_configuration_register_DDR(ospi_flash_cfg_t *ospi_cfg
     ospi_push(ospi_cfg, cmd);
     ospi_push(ospi_cfg, address);
     ospi_push(ospi_cfg, value);
-    ospi_send(ospi_cfg, value);
+    ospi_send_blocking(ospi_cfg, value);
 }
 
 /**
@@ -173,14 +173,14 @@ static uint32_t issi_flash_read_configuration_register_ddr(ospi_flash_cfg_t *osp
         ospi_push(ospi_cfg, ISSI_READ_NONVOLATILE_CONFIG_REG);
     }
 
-    ospi_recv(ospi_cfg, address, &val);
+    ospi_recv_blocking(ospi_cfg, address, &val);
 
     return val ;
 }
 
 /**
-  \fn      static int issi_flash_mode (ospi_flash_cfg_t * ospi_cfg)
-  \brief   This function checks if the flash is in SDR/ DDR
+  \fn      static int issi_flash_probe (ospi_flash_cfg_t * ospi_cfg)
+  \brief   Probe for an ISSI Flash device connected on the specified OSPI instance
   \param[in]  ospi_cfg : OSPI Flash Configuration
   \return     Success or Fail
  */
@@ -189,22 +189,13 @@ static int issi_flash_probe (ospi_flash_cfg_t *ospi_cfg)
     /* Initialize SPI in Single mode 1-1-1 and read Flash ID */
     if (issi_flash_ReadID(ospi_cfg) == DEVICE_ID_ISSI_FLASH_IS25WX256)
     {
+        /* Set wrap configuration to 32 bytes */
+        issi_flash_set_configuration_register_SDR(ospi_cfg, ISSI_WRITE_VOLATILE_CONFIG_REG, 0x07, WRAP_32_BYTE);
+
+        /* Switch the flash to Octal DDR mode */
+        issi_flash_set_configuration_register_SDR(ospi_cfg, ISSI_WRITE_VOLATILE_CONFIG_REG, 0x00, OCTAL_DDR_DQS);
+
         return 0;
-    }
-    /* Initialize SPI in Octal mode 8-8-8 and read Flash ID */
-    else if (issi_flash_ReadID_DDR(ospi_cfg) == DEVICE_ID_ISSI_FLASH_IS25WX256)
-    {
-        ospi_cfg->dev_type = DEVICE_ID_ISSI_FLASH_IS25WX256;
-        return 0;
-    }
-    else
-    {
-        ospi_xip_exit(ospi_cfg, ISSI_4BYTE_OCTAL_IO_FAST_READ, ISSI_4BYTE_OCTAL_IO_FAST_READ);
-        if(issi_flash_ReadID_DDR(ospi_cfg) == DEVICE_ID_ISSI_FLASH_IS25WX256)
-        {
-            ospi_cfg->dev_type = DEVICE_ID_ISSI_FLASH_IS25WX256;
-            return 0;
-        }
     }
 
     return -1;
@@ -256,7 +247,6 @@ int setup_flash_xip(void)
     }
 
     ospi_cfg->ddr_en = 1;
-    ospi_cfg->dev_type = DEVICE_MODE_OCTAL;
 
     if (flash_xip_init(ospi_cfg))
     {

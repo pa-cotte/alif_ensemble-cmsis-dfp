@@ -26,26 +26,10 @@
 #include "ospi_xip_user.h"
 #include "pinconf.h"
 #include "Driver_GPIO.h"
-
-#ifndef OSPI0_XIP_BASE
-#define OSPI0_XIP_BASE                                  0xA0000000UL
-#endif
-#ifndef OSPI1_XIP_BASE
-#define OSPI1_XIP_BASE                                  0xC0000000UL
-#endif
-#ifndef OSPI0_SIZE
-#define OSPI0_SIZE                                      0x20000000UL
-#endif
-#ifndef OSPI1_SIZE
-#define OSPI1_SIZE                                      0x20000000UL
-#endif
-
-#if OSPI_XIP_INSTANCE == OSPI0
-#define XIP_IMAGE_ADDRESS    OSPI0_XIP_BASE
-#define XIP_IMAGE_MAX_SIZE   OSPI0_SIZE
-#else
-#define XIP_IMAGE_ADDRESS    OSPI1_XIP_BASE
-#define XIP_IMAGE_MAX_SIZE   OSPI1_SIZE
+#if OSPI_XIP_ENABLE_AES_DECRYPTION
+#include "se_services_port.h"
+#include "services_lib_api.h"
+#include "ospi_xip_aes_key.h"
 #endif
 
 #define OSPI_RESET_PORT 15
@@ -114,67 +98,67 @@ static int32_t setup_pinmux(void)
         return -1;
 #else
     ret = pinconf_set(OSPI1_D0_PORT, OSPI1_D0_PIN, OSPI1_D0_PIN_FUNCTION,
-                        PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+                        PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(OSPI1_D1_PORT, OSPI1_D1_PIN, OSPI1_D1_PIN_FUNCTION,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(OSPI1_D2_PORT, OSPI1_D2_PIN, OSPI1_D2_PIN_FUNCTION,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST |  PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST |  PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(OSPI1_D3_PORT, OSPI1_D3_PIN, OSPI1_D3_PIN_FUNCTION,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(OSPI1_D4_PORT, OSPI1_D4_PIN, OSPI1_D4_PIN_FUNCTION,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(OSPI1_D5_PORT, OSPI1_D5_PIN, OSPI1_D5_PIN_FUNCTION,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(OSPI1_D6_PORT, OSPI1_D6_PIN, OSPI1_D6_PIN_FUNCTION,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(OSPI1_D7_PORT, OSPI1_D7_PIN, OSPI1_D7_PIN_FUNCTION,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST |  PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST |  PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(OSPI1_RXDS_PORT, OSPI1_RXDS_PIN, OSPI1_RXDS_PIN_FUNCTION,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(OSPI1_SCLK_PORT, OSPI1_SCLK_PIN, OSPI1_SCLK_PIN_FUNCTION,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST);
     if (ret)
         return -1;
 
-    ret = pinconf_set(OSPI1_CS_PORT, OSPI1_CS_PIN, OSPI1_CS_PIN_FUNCTION, PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS);
+    ret = pinconf_set(OSPI1_CS_PORT, OSPI1_CS_PIN, OSPI1_CS_PIN_FUNCTION, PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA);
     if (ret)
         return -1;
 
     /* P5_6 is needed to support proper alt function selection of P10_7 */
     ret = pinconf_set(PORT_5, PIN_6, OSPI1_RXDS_PIN_FUNCTION,
-                    PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+                    PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(OSPI1_SCLKN_PORT, OSPI1_SCLKN_PIN, OSPI1_SCLKN_PIN_FUNCTION,
-                    PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS);
+                    PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA);
     if (ret)
         return -1;
 #endif
@@ -219,6 +203,33 @@ int main ()
         while(1);
     }
 
+#if OSPI_XIP_ENABLE_AES_DECRYPTION
+    uint32_t se_ret = SERVICES_REQ_SUCCESS, error_code, command;
+    uint8_t key[AES_128_KEY_SIZE];
+
+    /* Initialize the SE services */
+    se_services_port_init();
+
+    /* Prepare the user provided key for SE service request */
+    for (int i = 0; i < AES_128_KEY_SIZE; i++)
+    {
+        key[i] = ospi_aes_user_key[AES_128_KEY_SIZE - 1 - i];
+    }
+
+#if OSPI_XIP_INSTANCE == OSPI0
+    command = OSPI_WRITE_EXTERNAL_KEY_OSPI0;
+#else
+    command = OSPI_WRITE_EXTERNAL_KEY_OSPI1;
+#endif
+
+    se_ret = SERVICES_application_ospi_write_key(se_services_s_handle, command, key, &error_code);
+
+    if (se_ret != SERVICES_REQ_SUCCESS || error_code != 0)
+    {
+        while(1);
+    }
+#endif
+
     ret = setup_flash_xip();
 
     if (ret)
@@ -227,7 +238,7 @@ int main ()
     }
 
     /* Read the Reset_Handler address from the vector table of the image in OSPI */
-    EntryPoint = (pfun)(*(__IO uint32_t *)(XIP_IMAGE_ADDRESS + 4));
+    EntryPoint = (pfun)(*(__IO uint32_t *)(OSPI_XIP_IMAGE_ADDRESS + 4));
 
     /* Jump to the Reset_Handler */
     EntryPoint();

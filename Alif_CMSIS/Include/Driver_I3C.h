@@ -37,11 +37,7 @@ extern "C"
 /****** I3C Event *****/
 #define ARM_I3C_EVENT_TRANSFER_DONE                     (1UL << 0)  /* Event Success                            */
 #define ARM_I3C_EVENT_TRANSFER_ERROR                    (1UL << 1)  /* Master and slave Transmit/Receive Error  */
-#define ARM_I3C_EVENT_MST_TX_DONE                       (1UL << 2)  /* Master Transmit Done                     */
-#define ARM_I3C_EVENT_MST_RX_DONE                       (1UL << 3)  /* Master Receive Done                      */
-#define ARM_I3C_EVENT_SLV_TX_DONE                       (1UL << 4)  /* Slave Transmit Done                      */
-#define ARM_I3C_EVENT_SLV_RX_DONE                       (1UL << 5)  /* Slave receive  Done                      */
-#define ARM_I3C_EVENT_SLV_DYN_ADDR_ASSGN                (1UL << 6)  /* Dynamic Address Assigned                 */
+#define ARM_I3C_EVENT_SLV_DYN_ADDR_ASSGN                (1UL << 2)  /* Slave Dynamic Address Assigned(only for Slave mode) */
 
 /* I3C CCC (Common Command Codes) related definitions */
 #define I3C_CCC_DIRECT                                  BIT(7)

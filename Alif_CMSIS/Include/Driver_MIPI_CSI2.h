@@ -47,11 +47,9 @@
   \brief       Get MIPI CSI2 driver capabilities.
   \return      \ref ARM_MIPI_DPHY_CAPABILITIES
 
-  \fn          int32_t  MIPI_CSI2_Initialize (ARM_MIPI_CSI2_SignalEvent_t cb_event,
-                                              uint32_t frequency)
+  \fn          int32_t  MIPI_CSI2_Initialize (ARM_MIPI_CSI2_SignalEvent_t cb_event)
   \brief       Initialize MIPI CSI2 Interface.
   \param[in]   cb_event Pointer to ARM_MIPI_CSI2_SignalEvent_t
-  \param[in]   frequency frequency to configure DPHY PLL.
   \return      \ref execution_status
 
   \fn          int32_t MIPI_CSI2_Uninitialize (void)
@@ -105,7 +103,7 @@ typedef struct {
 typedef struct {
     ARM_DRIVER_VERSION                  (*GetVersion)      (void);                                                     ///< Pointer to \ref MIPI_CSI2_GetVersion : Get driver version.
     ARM_MIPI_CSI2_CAPABILITIES          (*GetCapabilities) (void);                                                     ///< Pointer to \ref MIPI_CSI2_GetCapabilities : Get MIPI CSI2 driver capabilities.
-    int32_t                             (*Initialize)      (ARM_MIPI_CSI2_SignalEvent_t cb_event, uint32_t frequency); ///< Pointer to \ref MIPI_CSI2_Initialize : Initialize MIPI CSI2 Interface.
+    int32_t                             (*Initialize)      (ARM_MIPI_CSI2_SignalEvent_t cb_event);                     ///< Pointer to \ref MIPI_CSI2_Initialize : Initialize MIPI CSI2 Interface.
     int32_t                             (*Uninitialize)    (void);                                                     ///< Pointer to \ref MIPI_CSI2_Uninitialize : Uninitialize MIPI CSI2 Interface.
     int32_t                             (*PowerControl)    (ARM_POWER_STATE state);                                    ///< Pointer to \ref MIPI_CSI2_PowerControl : Control CSI2 Interface Power.
     int32_t                             (*ConfigureHost)   (uint32_t int_event);                                       ///< Pointer to \ref MIPI_CSI2_ConfigureHost : Configure CSI2 Host Interface.

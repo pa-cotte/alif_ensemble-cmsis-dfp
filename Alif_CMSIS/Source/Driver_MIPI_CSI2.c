@@ -30,6 +30,7 @@
 #include "DPHY_init.h"
 #include "sys_ctrl_csi.h"
 #include "Driver_CSI_Private.h"
+#include "Camera_Sensor.h"
 
 #if !(RTE_MIPI_CSI2)
 #error "MIPI CSI2 is not enabled in the RTE_Device.h"
@@ -56,6 +57,26 @@ static const ARM_MIPI_CSI2_CAPABILITIES DriverCapabilities =
     0  /* reserved (must be zero) */
 };
 
+/* CSI, CPI related Data mode settings table */
+static const CSI_CPI_DATA_MODE_SETTINGS cpi_data_mode_settings[] =
+{
+    {CSI_DT_RAW6, CSI_IPI_COLOR_COM_TYPE_COLOR16, CPI_COLOR_MODE_CONFIG_IPI16_RAW6, CPI_DATA_MODE_BIT_8, 8},
+    {CSI_DT_RAW7, CSI_IPI_COLOR_COM_TYPE_COLOR16, CPI_COLOR_MODE_CONFIG_IPI16_RAW7, CPI_DATA_MODE_BIT_8, 8},
+    {CSI_DT_RAW8, CSI_IPI_COLOR_COM_TYPE_COLOR16, CPI_COLOR_MODE_CONFIG_IPI16_RAW8, CPI_DATA_MODE_BIT_8, 8},
+    {CSI_DT_RAW10, CSI_IPI_COLOR_COM_TYPE_COLOR16, CPI_COLOR_MODE_CONFIG_IPI16_RAW10, CPI_DATA_MODE_BIT_16, 10},
+    {CSI_DT_RAW12, CSI_IPI_COLOR_COM_TYPE_COLOR16, CPI_COLOR_MODE_CONFIG_IPI16_RAW12, CPI_DATA_MODE_BIT_16, 12},
+    {CSI_DT_RAW14, CSI_IPI_COLOR_COM_TYPE_COLOR16, CPI_COLOR_MODE_CONFIG_IPI16_RAW14, CPI_DATA_MODE_BIT_16, 14},
+    {CSI_DT_RAW16, CSI_IPI_COLOR_COM_TYPE_COLOR16, CPI_COLOR_MODE_CONFIG_IPI16_RAW16, CPI_DATA_MODE_BIT_16, 16},
+    {CSI_DT_RGB444, CSI_IPI_COLOR_COM_TYPE_COLOR48, CPI_COLOR_MODE_CONFIG_IPI48_RGB444, CPI_DATA_MODE_BIT_16, 16},
+    {CSI_DT_RGB555, CSI_IPI_COLOR_COM_TYPE_COLOR48, CPI_COLOR_MODE_CONFIG_IPI48_RGB555, CPI_DATA_MODE_BIT_16, 16},
+    {CSI_DT_RGB565, CSI_IPI_COLOR_COM_TYPE_COLOR48, CPI_COLOR_MODE_CONFIG_IPI48_RGB565, CPI_DATA_MODE_BIT_16, 16},
+    {CSI_DT_RGB666, CSI_IPI_COLOR_COM_TYPE_COLOR48, CPI_COLOR_MODE_CONFIG_IPI48_RGB666, CPI_DATA_MODE_BIT_32, 18},
+    {CSI_DT_RGB888, CSI_IPI_COLOR_COM_TYPE_COLOR48, CPI_COLOR_MODE_CONFIG_IPI48_XRGB888, CPI_DATA_MODE_BIT_32, 24},
+};
+
+/* CSI, CPI config informations */
+static CPI_INFO cpi_info;
+
 /**
   \fn          ARM_DRIVER_VERSION MIPI_CSI2_GetVersion (void)
   \brief       Get MIPI CSI2 driver version.
@@ -78,19 +99,22 @@ static ARM_MIPI_CSI2_CAPABILITIES MIPI_CSI2_GetCapabilities (void)
 
 /**
   \fn          int32_t CSI2_Initialize (ARM_MIPI_CSI2_SignalEvent_t cb_event,
-                                        uint32_t frequency,
                                         CSI_RESOURCES *CSI2)
   \brief       Initialize MIPI CSI2 Interface.
   \param[in]   cb_event Pointer to ARM_MIPI_CSI2_SignalEvent_t
-  \param[in]   frequency to configure DPHY PLL.
   \param[in]   CSI2 Pointer to CSI resources
   \return      \ref execution_status
 */
 static int32_t CSI2_Initialize (ARM_MIPI_CSI2_SignalEvent_t cb_event,
-                                uint32_t frequency,
                                 CSI_RESOURCES *CSI2)
 {
     int32_t ret = ARM_DRIVER_OK;
+    CAMERA_SENSOR_DEVICE *camera_sensor;
+    CSI_IPI_INFO *ipi_info = CSI2->ipi_info;
+    CSI_FRAME_INFO *frame_info = ipi_info->frame_info;
+    CSI_INFO *csi_info;
+    unsigned int index;
+    float pixclock;
 
     if(CSI2->status.initialized == 1)
     {
@@ -103,10 +127,105 @@ static int32_t CSI2_Initialize (ARM_MIPI_CSI2_SignalEvent_t cb_event,
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
+    camera_sensor = Get_Camera_Sensor();
+
+    if (!(camera_sensor && camera_sensor->csi_info))
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
+
+    csi_info = camera_sensor->csi_info;
+
+    /* Get Data type related informations */
+    for( index = 0; index < ARRAY_SIZE(cpi_data_mode_settings) &&
+         (cpi_data_mode_settings[index].data_type != csi_info->dt);
+         index++);
+
+    if(cpi_data_mode_settings[index].data_type != csi_info->dt)
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
+
+    /* When camera hline is greater than or equal to IPI hline period
+     * (camera throughput is slower), all the data is transferred
+     * before a new line arrives, RAM needs to store one line*/
+    if(!((camera_sensor->width * cpi_data_mode_settings[index].bpp / CSI2_HOST_IPI_DWIDTH) <= CSI_IPI_FIFO_DEPTH))
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
+
+    CSI2->pixel_data_type  = csi_info->dt;
+    CSI2->n_lanes = csi_info->n_lanes;
+    CSI2->vc_id = csi_info->vc_id;
+    ipi_info->ipi_color_com = cpi_data_mode_settings[index].ipi_color_com;
+
+    /* Balancing bandwidth by making output bandwidth is 20% greater then input bandwidth
+     * pixel clock = (mipi_clk_freq * number_of_lane * 2 "DDR" * 1.2f "percentage" ) / (bits_per_pixel) */
+    pixclock = (csi_info->frequency *
+                csi_info->n_lanes * 2 * 1.2f) / cpi_data_mode_settings[index].bpp;
+
+    /* Pixel clock divider */
+    CSI2->csi_pixclk_div = (int)(((RTE_CSI2_PIX_CLK_SEL ? (float)PLL_CLK3 : (float)(PLL_CLK1/2))/pixclock) + 0.5f);
+
+    /* Timing calculation for Camera mode */
+    if(ipi_info->ipi_mode == CSI_IPI_MODE_CAM_TIMIMG)
+    {
+        /* The rising edge of VSYNC comes at least 3 data clock cycles prior to DATA_EN (alias to HSYNC), So we adding 3 for HSA */
+        frame_info->hsa_time = 3;
+        frame_info->hbp_time = 0;
+        /* The last transmitted pixel is already needs to be available in memory to avoid underflow. For this,
+         * the time to transmit the last pixel in PPI must be lesser than the time to transmit the
+         * last pixel in IPI. So increasing IPI hline timing 20% then camera active line timing by adjusting
+         * IPI hsd timing.
+         * (Time to transmit last pixel in IPI) = (Time to transmit last pixel in PPI) * 1.2
+         * ((ipi_hsa_time + ipi_hbp_time + ipi_hsd_time + Cycles_to_transmit_data) * Pixel_clk_per)
+         *                       = ((Bytes_to_transmit / Number_of_lanes) * Rxbyteclk_per) * 1.2
+         */
+        frame_info->hsd_time = (uint32_t)(((cpi_data_mode_settings[index].bpp *
+                                            camera_sensor->width * 4 * pixclock * 1.2f) /
+                                            (8 * csi_info->frequency)) - (camera_sensor->width + frame_info->hsa_time));
+
+        frame_info->hactive_time = camera_sensor->width;
+        frame_info->vsa_line = 0;
+        frame_info->vbp_line = 0;
+        frame_info->vfp_line = 0;
+        frame_info->vactive_line = 0;
+    }
+
+    /* Overwrite the CSI color mode on CPI */
+    if(csi_info->cpi_cfg.override)
+    {
+        for(index = 0; index < ARRAY_SIZE(cpi_data_mode_settings) &&
+            (cpi_data_mode_settings[index].cpi_color_mode != csi_info->cpi_cfg.cpi_color_mode); index++);
+
+        if(cpi_data_mode_settings[index].cpi_color_mode != csi_info->cpi_cfg.cpi_color_mode)
+        {
+            return ARM_DRIVER_ERROR_PARAMETER;
+        }
+    }
+
+    /* CPI config information */
+    cpi_info.interface = CPI_INTERFACE_MIPI_CSI;
+    cpi_info.vsync_wait = CPI_WAIT_VSYNC_ENABLE;
+    cpi_info.vsync_mode = CPI_CAPTURE_DATA_ENABLE_IF_HSYNC_HIGH;
+    cpi_info.pixelclk_pol = CPI_SIG_POLARITY_INVERT_DISABLE;
+    cpi_info.hsync_pol = CPI_SIG_POLARITY_INVERT_DISABLE;
+    cpi_info.vsync_pol = CPI_SIG_POLARITY_INVERT_DISABLE;
+    cpi_info.data_mode = cpi_data_mode_settings[index].cpi_data_mode;
+    cpi_info.data_endianness = CPI_DATA_ENDIANNESS_LSB_FIRST;
+    cpi_info.code10on8 = CPI_CODE10ON8_CODING_DISABLE;
+    cpi_info.data_mask = CPI_DATA_MASK_BIT_16;
+    cpi_info.csi_mode = cpi_data_mode_settings[index].cpi_color_mode;
+
+    /* Registering CPI Info related to CSI */
+    camera_sensor->cpi_info = &cpi_info;
+
     CSI2->cb_event = cb_event;
 
     /*DPHY initialization*/
-    ret  = CSI2_DPHY_Initialize(frequency);
+    ret  = CSI2_DPHY_Initialize(csi_info->frequency,
+                                csi_info->n_lanes,
+                                (DPHY_CLK_MODE) csi_info->clk_mode);
     if(ret != ARM_DRIVER_OK)
     {
         return ret;
@@ -215,7 +334,7 @@ static int32_t CSI2_PowerControl (ARM_POWER_STATE state, CSI_RESOURCES *CSI2)
             NVIC_SetPriority (CSI2->irq, CSI2->irq_priority);
             NVIC_EnableIRQ (CSI2->irq);
 
-            set_csi_pixel_clk(CSI_PIX_CLKSEL_400MZ, CSI2->csi_pixclk_div);
+            set_csi_pixel_clk(RTE_CSI2_PIX_CLK_SEL, CSI2->csi_pixclk_div);
 
             CSI2->status.powered = 1;
 
@@ -408,7 +527,7 @@ static void MIPI_CSI2_ISR (CSI_RESOURCES *CSI2)
 */
 static int32_t CSI2_ConfigureIPI (CSI_RESOURCES *CSI2)
 {
-    uint32_t packet_config;
+    uint32_t packet_config = 0;
     uint16_t hline_time;
 
     if(CSI2->status.powered != 1)
@@ -418,7 +537,7 @@ static int32_t CSI2_ConfigureIPI (CSI_RESOURCES *CSI2)
 
     csi_set_ipi_mode(CSI2->regs, CSI2->ipi_info->ipi_mode);
 
-    csi_set_ipi_color_cop(CSI2->regs, CSI2->ipi_info->ipi_color_cop);
+    csi_set_ipi_color_cop(CSI2->regs, CSI2->ipi_info->ipi_color_com);
 
     if(CSI2->ipi_info->ipi_memflush == ENABLE)
     {
@@ -562,7 +681,6 @@ CSI_IPI_ADV_INFO CSI_IPI_ADV_FEATURES_CFG =
 CSI_IPI_INFO CSI_IPI_CFG =
 {
     .ipi_mode           = RTE_MIPI_CSI2_IPI_MODE,
-    .ipi_color_cop      = RTE_MIPI_CSI2_COLOR_COP,
     .ipi_memflush       = RTE_MIPI_CSI2_MEMFLUSH,
     .frame_info         = &CSI_FRAME_CFG,
     .adv_features       = &CSI_IPI_ADV_FEATURES_CFG,
@@ -573,19 +691,14 @@ CSI_RESOURCES CSI2 =
 {
     .regs               = (CSI_Type *)CSI_BASE,
     .cb_event           = NULL,
-    .csi_pixclk_div     = RTE_MIPI_CSI2_PIXCLK_DIV,
-    .n_lanes            = RTE_MIPI_CSI2_N_LANES,
-    .vc_id              = RTE_MIPI_CSI2_VC_ID,
-    .pixel_data_type    = RTE_MIPI_CSI2_DATA_TYPE,
     .ipi_info           = &CSI_IPI_CFG,
     .irq                = (IRQn_Type)CSI_IRQ_IRQn,
     .irq_priority       = RTE_MIPI_CSI2_IRQ_PRI,
 };
 
-static int32_t MIPI_CSI2_Initialize (ARM_MIPI_CSI2_SignalEvent_t cb_event,
-                                     uint32_t frequency)
+static int32_t MIPI_CSI2_Initialize (ARM_MIPI_CSI2_SignalEvent_t cb_event)
 {
-    return CSI2_Initialize(cb_event, frequency, &CSI2);
+    return CSI2_Initialize(cb_event, &CSI2);
 }
 
 static int32_t MIPI_CSI2_Uninitialize (void)

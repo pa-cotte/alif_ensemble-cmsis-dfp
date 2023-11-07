@@ -24,8 +24,10 @@
 
 #if defined (M55_HP)
   #include "M55_HP.h"
+  #include "M55_HP_Config.h"
 #elif defined (M55_HE)
   #include "M55_HE.h"
+  #include "M55_HE_Config.h"
 #else
   #error device not specified!
 #endif
@@ -91,6 +93,23 @@ extern "C" {
 // Function documentation
 
 /**
+  \fn          void sys_busy_loop_init(void)
+  \brief       Initialize the S32K Counter Module to use as busy loop
+  \return      none
+*/
+void sys_busy_loop_init(void);
+
+/**
+  \fn          int32_t sys_busy_loop_us(uint32_t delay_us)
+  \brief       Using S32K counter for delay.
+               Minimum delay = 30.51us
+               Maximum delay = 100ms
+  \param[in]   delay_us delay in micro seconds.
+  \return      0 for Success -1 for Overflow error.
+*/
+int32_t sys_busy_loop_us(uint32_t delay_us);
+
+/**
   \fn          bool RTSS_Is_DCache_Dirty(void)
   \brief       Check whether the Data Cache line is dirty
   \return      bool True: if cache is dirty, false otherwise
@@ -121,8 +140,8 @@ bool RTSS_Is_TCM_Addr(const volatile void *local_addr)
 {
     uint32_t addr = (uint32_t)local_addr;
 
-    return ((addr < (ITCM_BASE + ITCM_SIZE)) || \
-            ((addr > DTCM_BASE) && (addr < (DTCM_BASE + DTCM_SIZE))));
+    return ((addr < (ITCM_BASE + ITCM_REGION_SIZE)) || \
+            ((addr > DTCM_BASE) && (addr < (DTCM_BASE + DTCM_REGION_SIZE))));
 }
 
 /**
@@ -141,18 +160,18 @@ uint32_t LocalToGlobal(const volatile void *local_addr)
     uint32_t addr = (uint32_t)local_addr;
 
     if((addr >= DTCM_BASE) && (addr < (DTCM_BASE + DTCM_REGION_SIZE)))
-        return (addr & (DTCM_ALIAS_BIT-1)) + DTCM_GLOBAL_BASE;
-    else if((addr < (ITCM_BASE + DTCM_REGION_SIZE)))
-        return (addr & (ITCM_ALIAS_BIT-1)) + ITCM_GLOBAL_BASE;
+        return (addr & (DTCM_ALIAS_BIT - 1)) + DTCM_GLOBAL_BASE;
+    else if((addr < (ITCM_BASE + ITCM_REGION_SIZE)))
+        return (addr & (ITCM_ALIAS_BIT - 1)) + ITCM_GLOBAL_BASE;
     else
         return (addr);
 }
 
 /**
   \fn          void* GlobalToLocal(uint32_t global_addr)
-  \brief       Return the corresponding local address
+  \brief       Return the corresponding local memory alias address
   \param[in]   global_addr  address to convert
-  \return      void* local address
+  \return      void* local memory alias address
 */
 __STATIC_INLINE
 void* GlobalToLocal(uint32_t global_addr)
@@ -163,24 +182,22 @@ void* GlobalToLocal(uint32_t global_addr)
      */
     uint32_t addr = global_addr;
 
+#if CONFIG_MAP_GLOBAL_TO_LOCAL_TCM_ALIAS
+    if((addr >= DTCM_GLOBAL_BASE) && (addr < (DTCM_GLOBAL_BASE + DTCM_REGION_SIZE)))
+        return (void*)(addr - DTCM_GLOBAL_BASE + (DTCM_BASE | DTCM_ALIAS_BIT));
+    else if((addr >= ITCM_GLOBAL_BASE) && (addr < (ITCM_GLOBAL_BASE + ITCM_REGION_SIZE)))
+        return (void*)(addr - ITCM_GLOBAL_BASE + (ITCM_BASE | ITCM_ALIAS_BIT));
+    else
+        return ((void*)addr);
+#else
     if((addr >= DTCM_GLOBAL_BASE) && (addr < (DTCM_GLOBAL_BASE + DTCM_SIZE)))
         return (void*)(addr - DTCM_GLOBAL_BASE + DTCM_BASE);
-    else if((addr >= ITCM_GLOBAL_BASE) && (addr < (ITCM_GLOBAL_BASE+ ITCM_SIZE)))
+    else if((addr >= ITCM_GLOBAL_BASE) && (addr < (ITCM_GLOBAL_BASE + ITCM_SIZE)))
         return (void*)(addr - ITCM_GLOBAL_BASE + ITCM_BASE);
     else
         return ((void*)addr);
+#endif /* CONFIG_MAP_GLOBAL_TO_LOCAL_TCM_ALIAS */
 }
-
-/**
-  \fn          void PMU_delay_loop_us(unsigned int delay_us)
-  \brief       Using PMU cycle counter for delay. User need to
-               take care of disabling the preemption before
-               calling this PMU_delay_loop_us function. Maximum
-               delay supported (2^32/(SystemCoreClock/1000000))
-               micro seconds.
-  \param[in]   delay_us delay in micro seconds.
-*/
-void PMU_delay_loop_us(unsigned int delay_us);
 
 /**
   \fn          void RTSS_IsGlobalCacheClean_Required (void)

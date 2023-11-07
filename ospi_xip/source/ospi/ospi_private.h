@@ -207,6 +207,11 @@ typedef struct {
 #define TRANS_TYPE_STANDARD                             0U
 #define TRANS_TYPE_FRF_DEFINED                          2U
 
+/* AES_CONTROL fields */
+#define AES_CONTROL_LD_KEY                              (1U << 7)
+#define AES_CONTROL_XIP_EN                              (1U << 4)
+#define AES_CONTROL_DECRYPT_EN                          (1U << 0)
+
 #define ospi_readl(a, r)                (a->regs->r)
 #define ospi_writel(a, r, v)            a->regs->r = (v)
 

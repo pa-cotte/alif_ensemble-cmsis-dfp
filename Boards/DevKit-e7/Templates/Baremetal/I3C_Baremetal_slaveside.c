@@ -14,9 +14,9 @@
  * @version  V1.0.0
  * @date     27-May-2023
  * @brief    Baremetal to verify slave side loop back test
- *           - 1 byte of data transmitted from master and slave receive 1 byte and
- *             same 1 byte of data received by slave is transmitted through slave
- *             transmit and master receive 1byte.
+ *
+ *           Slave receives n-bytes of data from Master
+ *            and sends back received data again to Master.
  *
  *           I3C slave configuration.
  *           - In control API parameter:
@@ -25,11 +25,13 @@
  *                       of slave
  *
  *           Hardware Setup:
- *           Connecting two flat board i3c pin as there is one instance of i3c
- *           on the board. connect Below pins on both the boards
- *           SDA P1_2 -> P1_2
- *           SCL P1_3 -> P1_3
- *           GND -> GND of both the boards
+ *            Required two boards one for Master and one for Slave
+ *             (as there is only one i3c instance is available on ASIC).
+ *
+ *           Connect SDA to SDA and SCL to SCL and GND to GND.
+ *            - SDA P7_6 -> SDA P7_6
+ *            - SCL P7_7 -> SCL P7_7
+ *            - GND      -> GND
  * @bug      None.
  * @Note     None.
  ******************************************************************************/
@@ -44,25 +46,13 @@
 
 /* PINMUX Driver */
 #include "pinconf.h"
+#include "Driver_GPIO.h"
 
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
-#ifdef DISABLE_PRINTF
-    #define printf(fmt, ...) (0)
-    /* Also Disable Semihosting */
-    #if __ARMCC_VERSION >= 6000000
-            __asm(".global __use_no_semihosting");
-    #elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
-
-    void _sys_exit(int return_code) {
-            while (1);
-    }
-#endif
 
 /* i3c Driver instance 0 */
 extern ARM_DRIVER_I3C Driver_I3C;
@@ -72,25 +62,24 @@ static ARM_DRIVER_I3C *I3Cdrv = &Driver_I3C;
 #define I3C_SLAVE_ADDRESS             (0X48)
 
 /* receive data from i3c */
-uint8_t rx_data[1] = {0x00};
+uint8_t rx_data[4] = {0x00};
 
+uint32_t tx_cnt = 0;
+uint32_t rx_cnt = 0;
+
+/* flag for callback event. */
 volatile uint32_t cb_event;
 
 void i3c_slave_loopback_demo(void);
 
 /* i3c callback events */
 typedef enum _I3C_CB_EVENT{
-    I3C_CB_EVENT_SUCCESS        = (1 << 0),
-    I3C_CB_EVENT_ERROR          = (1 << 1),
-    I3C_CB_EVENT_MST_TX_DONE    = (1 << 2),
-    I3C_CB_EVENT_MST_RX_DONE    = (1 << 3),
-    I3C_CB_EVENT_SLV_TX_DONE    = (1 << 4),
-    I3C_CB_EVENT_SLV_RX_DONE    = (1 << 5),
-    I3C_CB_EVENT_DYN_ADDR_ASSGN = (1 << 6)
+    I3C_CB_EVENT_SUCCESS            = (1 << 0),
+    I3C_CB_EVENT_ERROR              = (1 << 1)
 }I3C_CB_EVENT;
 
 /**
-  \fn          INT hardware_init(void)
+  \fn          int32_t hardware_init(void)
   \brief       i3c hardware pin initialization:
                 - PIN-MUX configuration
                 - PIN-PAD configuration
@@ -99,15 +88,60 @@ typedef enum _I3C_CB_EVENT{
 */
 int32_t hardware_init(void)
 {
-    /* I3C_SDA_B */
-    pinconf_set(PORT_1, PIN_2, PINMUX_ALTERNATE_FUNCTION_3,
-            PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP | \
-            PADCTRL_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS);
+    /* for I3C_D(PORT_7 PIN_6(SDA)/PIN_7(SCL)) instance,
+     *  for I3C in I3C mode (not required for I3C in I2C mode)
+     *  GPIO voltage level(flex) has to be change to 1.8-V power supply.
+     *
+     *  GPIO_CTRL Register field VOLT:
+     *   Select voltage level for the 1.8-V/3.3-V (flex) I/O pins
+     *    0x0: I/O pin will be used with a 3.3-V power supply
+     *    0x1: I/O pin will be used with a 1.8-V power supply
+     */
 
-    /* I3C_SCL_B */
-    pinconf_set( PORT_1, PIN_3, PINMUX_ALTERNATE_FUNCTION_3,
-            PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP | \
-            PADCTRL_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS);
+    /* Configure GPIO flex I/O pins to 1.8-V:
+     *  P7_6 and P7_7 pins are part of GPIO flex I/O pins,
+     *   so we can use any one of the pin to configure flex I/O.
+     */
+#define GPIO7_PORT          7
+
+    extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(GPIO7_PORT);
+    ARM_DRIVER_GPIO *gpioDrv = &ARM_Driver_GPIO_(GPIO7_PORT);
+
+    int32_t  ret = 0;
+    uint32_t arg = 0;
+
+    ret = gpioDrv->Initialize(PIN_6, NULL);
+    if (ret != ARM_DRIVER_OK)
+    {
+        printf("ERROR: Failed to initialize GPIO \n");
+        return ARM_DRIVER_ERROR;
+    }
+
+    ret = gpioDrv->PowerControl(PIN_6, ARM_POWER_FULL);
+    if (ret != ARM_DRIVER_OK)
+    {
+        printf("ERROR: Failed to powered full GPIO \n");
+        return ARM_DRIVER_ERROR;
+    }
+
+    /* select control argument as flex 1.8-V */
+    arg = ARM_GPIO_FLEXIO_VOLT_1V8;
+    ret = gpioDrv->Control(PIN_6, ARM_GPIO_CONFIG_FLEXIO, &arg);
+    if (ret != ARM_DRIVER_OK)
+    {
+        printf("ERROR: Failed to control GPIO Flex \n");
+        return ARM_DRIVER_ERROR;
+    }
+
+    /* I3C_SDA_D */
+    pinconf_set(PORT_7, PIN_6, PINMUX_ALTERNATE_FUNCTION_6,
+                PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP | \
+                PADCTRL_OUTPUT_DRIVE_STRENGTH_4MA);
+
+    /* I3C_SCL_D */
+    pinconf_set(PORT_7, PIN_7, PINMUX_ALTERNATE_FUNCTION_6,
+                PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP | \
+                PADCTRL_OUTPUT_DRIVE_STRENGTH_4MA);
 
     return ARM_DRIVER_OK;
 }
@@ -127,26 +161,6 @@ static void I3C_callback(uint32_t event)
     if (event & ARM_I3C_EVENT_TRANSFER_ERROR)
     {
         cb_event = I3C_CB_EVENT_ERROR;
-    }
-    if (event & ARM_I3C_EVENT_MST_TX_DONE)
-    {
-        cb_event = I3C_CB_EVENT_MST_TX_DONE;
-    }
-    if (event & ARM_I3C_EVENT_MST_RX_DONE)
-    {
-        cb_event = I3C_CB_EVENT_MST_RX_DONE;
-    }
-    if (event & ARM_I3C_EVENT_SLV_TX_DONE)
-    {
-        cb_event = I3C_CB_EVENT_SLV_TX_DONE;
-    }
-    if (event & ARM_I3C_EVENT_SLV_RX_DONE)
-    {
-        cb_event = I3C_CB_EVENT_SLV_RX_DONE;
-    }
-    if (event & ARM_I3C_EVENT_SLV_DYN_ADDR_ASSGN)
-    {
-        cb_event = I3C_CB_EVENT_DYN_ADDR_ASSGN;
     }
 }
 
@@ -205,19 +219,24 @@ void i3c_slave_loopback_demo(void)
         goto error_uninitialize;
     }
 
-while(1)
-{
-        len = 1;
+
+    while(1)
+    {
+        len = 4;
+
+        /* clear callback event flag. */
+        cb_event = 0;
 
         /* Slave Receive */
-        ret = I3Cdrv->SlaveReceive(&rx_data[0], len);
+        ret = I3Cdrv->SlaveReceive(rx_data, len);
         if(ret != ARM_DRIVER_OK)
         {
             printf("\r\n Error: I3C Slave Receive failed. \r\n");
             goto error_poweroff;
         }
 
-        while(!((cb_event == I3C_CB_EVENT_SLV_RX_DONE) || (cb_event == I3C_CB_EVENT_ERROR)));
+        /* wait for callback event. */
+        while(!((cb_event == I3C_CB_EVENT_SUCCESS) || (cb_event == I3C_CB_EVENT_ERROR)));
 
         if(cb_event == I3C_CB_EVENT_ERROR)
         {
@@ -225,27 +244,25 @@ while(1)
             while(1);
         }
 
+        rx_cnt += 1;
+
+        /* clear callback event flag. */
         cb_event = 0;
 
-        /* Delay */
-        PMU_delay_loop_us(1000);
-
-        /* For loop back test, same rx_data is passed as a parameter in
-         * the slave transmit API.
-         * To make it a loop, Master transmit 1 bytes and slave receive's it
-         * where same byte is transmitted from slave transmit API and master
-         * receive's it
+        /* For loop back test,
+         * Slave will send received data back to Master.
          */
 
         /* Slave Transmit*/
-        ret = I3Cdrv->SlaveTransmit(rx_data, 1);
+        ret = I3Cdrv->SlaveTransmit(rx_data, len);
         if(ret != ARM_DRIVER_OK)
         {
             printf("\r\n Error: I3C slave Transmit failed. \r\n");
             goto error_poweroff;
         }
 
-        while(!((cb_event == I3C_CB_EVENT_MST_TX_DONE) || (cb_event == I3C_CB_EVENT_ERROR)));
+        /* wait for callback event. */
+        while(!((cb_event == I3C_CB_EVENT_SUCCESS) || (cb_event == I3C_CB_EVENT_ERROR)));
 
         if(cb_event == I3C_CB_EVENT_ERROR)
         {
@@ -253,8 +270,8 @@ while(1)
             while(1);
         }
 
-        cb_event = 0;
-}
+        tx_cnt += 1;
+    }
 
 error_poweroff:
 
@@ -280,6 +297,16 @@ error_uninitialize:
 /* Define main entry point.  */
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
     /* Enter the I3C.  */
     i3c_slave_loopback_demo();
 }

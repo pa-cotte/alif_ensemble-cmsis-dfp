@@ -26,7 +26,6 @@ extern "C"
 #endif
 
 #include "Driver_Common.h"
-#include "Camera_Common.h"
 
 #define ARM_CPI_API_VERSION                                        ARM_DRIVER_VERSION_MAJOR_MINOR(1,0)  /* API version */
 
@@ -59,7 +58,6 @@ extern "C"
   \fn          int32_t Initialize (CAMERA_RESOLUTION camera_resolution,
                                    ARM_CPI_SignalEvent_t cb_event)
   \brief       Initialize CPI and Camera Sensor Device Interface.
-  \param[in]   camera_resolution : \ref CAMERA_RESOLUTION from "Camera_Common.h"
   \param[in]   cb_event          : Pointer to \ref ARM_CPI_SignalEvent_t
   \return      \ref execution_status
 
@@ -114,8 +112,7 @@ typedef struct _ARM_CPI_CAPABILITIES {
 typedef struct _ARM_DRIVER_CPI{
   ARM_DRIVER_VERSION                  (*GetVersion)      (void);                                           ///< Pointer to \ref CPI_GetVersion      : Get driver version.
   ARM_CPI_CAPABILITIES                (*GetCapabilities) (void);                                           ///< Pointer to \ref CPI_GetCapabilities : Get driver capabilities.
-  int32_t                             (*Initialize)      (ARM_CAMERA_RESOLUTION camera_resolution,
-                                                          ARM_CPI_SignalEvent_t cb_event);                 ///< Pointer to \ref CPI_Initialize      : Initialize CPI Interface.
+  int32_t                             (*Initialize)      (ARM_CPI_SignalEvent_t cb_event);                 ///< Pointer to \ref CPI_Initialize      : Initialize CPI Interface.
   int32_t                             (*Uninitialize)    (void);                                           ///< Pointer to \ref CPI_Uninitialize    : De-initialize CPI Interface.
   int32_t                             (*PowerControl)    (ARM_POWER_STATE state);                          ///< Pointer to \ref CPI_PowerControl    : Control CPI Interface Power.
   int32_t                             (*CaptureFrame)    (void *framebuffer_startaddr);                    ///< Pointer to \ref CPI_StartSnapshot   : Start CPI Interface in Snapshot mode.

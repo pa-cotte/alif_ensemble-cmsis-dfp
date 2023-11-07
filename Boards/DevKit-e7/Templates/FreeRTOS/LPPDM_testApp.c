@@ -48,24 +48,13 @@
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
 #include "task.h"
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
-
-#ifdef DISABLE_PRINTF
-    #define printf(fmt, ...) (0)
-    /* Also Disable Semihosting */
-    #if __ARMCC_VERSION >= 6000000
-            __asm(".global __use_no_semihosting");
-    #elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
-
-    void _sys_exit(int return_code) {
-            while (1);
-    }
+#if !defined(M55_HE)
+#error "This Demo application works only on RTSS_HE"
 #endif
 
 /* PDM driver instance */
@@ -82,11 +71,8 @@ StaticTask_t IdleTcb;
 StackType_t TimerStack[2 * TIMER_SERVICE_TASK_STACK_SIZE];
 StaticTask_t TimerTcb;
 
-/* To select the PDM channel 0 and channel 1 */
-#define AUDIO_EN_CHANNEL  (ARM_PDM_AUDIO_CHANNEL_0 | ARM_PDM_AUDIO_CHANNEL_1 )
-
 /* Store the number of samples */
-/* For 40000 samples user can hear maximum up to 4 sec of audio
+/* For 30000 samples user can hear maximum up to 4 sec of audio
  * to store maximum samples then change the scatter file and increase the memory */
 #define NUM_SAMPLE  30000
 
@@ -135,7 +121,7 @@ PDM_CH_CONFIG pdm_coef_reg;
 
 /* For Demo purpose use channel 0  and channel 1 */
 /* To store the PCM samples for Channel 0 and channel 1 */
-uint32_t ch_0_1[NUM_SAMPLE];
+uint16_t sample_buf[NUM_SAMPLE];
 
 /* Channel 0 FIR coefficient */
 uint32_t ch0_fir[18] = { 0x00000000,0x000007FF,0x00000000,0x00000004,0x00000004,0x000007FC,0x00000000,0x000007FB,0x000007E4,
@@ -184,7 +170,6 @@ static void PDM_fifo_callback(uint32_t event)
  *               -> Select the Bypass DC blocking IIR filter for reference.
  *               -> Select the PDM channel and use the selected channel
  *                    configuration and status register values.
- *               -> Give the Fifo watermark value
  *               -> Play some audio and start capturing the data.
  *               -> Once all data has stored in the particular buffer ,
  *                  call back event will be set and it will stop capturing
@@ -200,7 +185,7 @@ static void PDM_fifo_callback(uint32_t event)
  */
 void pdm_demo_thread_entry(void *pvParameters)
 {
-    uint32_t  ret = 0;
+    int32_t ret = 0;
     ARM_DRIVER_VERSION version;
     int32_t retval;
     uint32_t ulNotificationValue;
@@ -234,12 +219,20 @@ void pdm_demo_thread_entry(void *pvParameters)
         goto error_uninitialize;
     }
 
-    /* Select Wide band width audio PDM mode */
-    ret = PDMdrv->Control(ARM_PDM_MODE, ARM_PDM_MODE_STANDARD_VOICE_512_CLK_FRQ);
+    /* To select the PDM channel 0 and channel 1 */
+    ret = PDMdrv->Control(ARM_PDM_SELECT_CHANNEL, (ARM_PDM_MASK_CHANNEL_0 | ARM_PDM_MASK_CHANNEL_1));
     if(ret != ARM_DRIVER_OK){
-        printf("\r\n Error: PDM Wide band width audio control failed\n");
+        printf("\r\n Error: PDM channel select control failed\n");
         goto error_poweroff;
     }
+
+    /* Select Standard voice PDM mode */
+    ret = PDMdrv->Control(ARM_PDM_MODE, ARM_PDM_MODE_STANDARD_VOICE_512_CLK_FRQ);
+    if(ret != ARM_DRIVER_OK){
+        printf("\r\n Error: PDM Standard voice control mode failed\n");
+        goto error_poweroff;
+    }
+
 
     /* Select the DC blocking IIR filter */
     ret = PDMdrv->Control(ARM_PDM_BYPASS_IIR_FILTER, ENABLE);
@@ -278,30 +271,12 @@ void pdm_demo_thread_entry(void *pvParameters)
         goto error_uninitialize;
     }
 
-    ret = PDMdrv->Config(&pdm_coef_reg);
-    if(ret != ARM_DRIVER_OK){
-        printf("\r\n Error: PDM Channel_Config failed\n");
-        goto error_uninitialize;
-    }
-
-    /* PDM Capture Configurations */
-    PDM_Capture_CONFIG pdm_cap_cnfg;
-    pdm_cap_cnfg.en_multiple_ch = AUDIO_EN_CHANNEL;
-    pdm_cap_cnfg.ch0_1_addr = ch_0_1;
-        printf("size of ch 0 and 1: %d  and Address of ch 0 and 1: 0x%p\n", sizeof(ch_0_1), ch_0_1);
-
-    /* Store the number of Samples */
-    pdm_cap_cnfg.total_no_samples = NUM_SAMPLE;
-
-    /* Give the fifo watermark value. */
-    pdm_cap_cnfg.fifo_watermark = 0x00000007;
-
     printf("\n------> Start Speaking or Play some Audio!------> \n");
 
-    /* Start capturing the audio samples */
-    ret = PDMdrv->Capture(&pdm_cap_cnfg);
+    /* Receive the audio samples */
+    ret = PDMdrv->Receive((uint16_t*)sample_buf, NUM_SAMPLE);
     if(ret != ARM_DRIVER_OK){
-        printf("\r\n Error: PDM Capture failed\n");
+        printf("\r\n Error: PDM Receive failed\n");
        goto error_capture;
     }
 
@@ -330,6 +305,7 @@ void pdm_demo_thread_entry(void *pvParameters)
     }
 
     printf("\n------> Stop recording ------> \n");
+    printf("\n--> PCM samples will be stored in 0x%p address and size of buffer is %d\n", sample_buf, sizeof(sample_buf));
     printf("\n ---END--- \r\n <<< wait forever >>> \n");
     while(1);
 
@@ -356,6 +332,16 @@ error_uninitialize:
  *---------------------------------------------------------------------------*/
 int main(void)
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
    /* System Initialization */
    SystemCoreClockUpdate();
 

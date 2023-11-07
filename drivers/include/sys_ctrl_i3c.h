@@ -25,4 +25,9 @@ static inline void disable_i3c_clock(void)
     CLKCTL_PER_SLV->I3C_CTRL &= ( ~(1 << 0) );
 }
 
+static inline void select_i3c_dma2(void)
+{
+    CLKCTL_PER_SLV->I3C_CTRL |= (1 << 24);
+}
+
 #endif /* SYS_CTRL_I3C_H */

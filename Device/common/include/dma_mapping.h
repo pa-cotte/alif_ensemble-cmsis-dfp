@@ -233,7 +233,7 @@ extern "C" {
 #define ADC24_DMA_HANDSHAKE_ENABLE     0
 #endif
 
-#if (RTE_LPSPI_SELECT_DMA0 == 1)
+#if (RTE_LPSPI_SELECT_DMA0 && RTE_LPSPI_SELECT_DMA0_GROUP == 1)
 #define LPSPI_DMA                      0
 #define LPSPI_DMA_RX_PERIPH_REQ        12
 #define LPSPI_DMA_TX_PERIPH_REQ        13
@@ -382,7 +382,7 @@ extern "C" {
 #define SPI3_DMA_GROUP                 2
 #define SPI3_DMA_HANDSHAKE_ENABLE      1
 
-#if (RTE_LPSPI_SELECT_DMA0 == 2)
+#if (RTE_LPSPI_SELECT_DMA0 && RTE_LPSPI_SELECT_DMA0_GROUP == 2)
 #define LPSPI_DMA                      0
 #define LPSPI_DMA_RX_PERIPH_REQ        24
 #define LPSPI_DMA_TX_PERIPH_REQ        25
@@ -462,9 +462,6 @@ extern "C" {
 #define GPIO8_DMA_PIN7_PERIPH_REQ      31
 #define GPIO8_DMA_GROUP                3
 #define GPIO8_DMA_HANDSHAKE_ENABLE     0
-
-#define CRC0_DMA 0
-#define CRC1_DMA 0
 
 #if defined (M55_HP)
 /******************************************************************************/
@@ -678,7 +675,7 @@ extern "C" {
 #define ADC24_DMA_HANDSHAKE_ENABLE     0
 #endif
 
-#if (RTE_LPSPI_SELECT_DMA0 == 0)
+#if (!RTE_LPSPI_SELECT_DMA0)
 #define LPSPI_DMA                      2
 #define LPSPI_DMA_RX_PERIPH_REQ        12
 #define LPSPI_DMA_TX_PERIPH_REQ        13

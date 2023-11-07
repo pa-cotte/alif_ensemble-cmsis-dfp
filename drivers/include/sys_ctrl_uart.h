@@ -25,6 +25,19 @@ static inline void disable_lpuart_clock(void)
 	AON->RTSS_HE_LPUART_CKEN &= ( ~ (1 << 0) );
 }
 
+static inline void select_uart_dma1(uint32_t instance)
+{
+	/* select DMA1 only available for UART4-UART7 */
+	if(instance == 4)
+		CLKCTL_PER_SLV->UART_CTRL |= (1 << 24);
+	else if(instance == 5)
+		CLKCTL_PER_SLV->UART_CTRL |= (1 << 25);
+	else if(instance == 6)
+		CLKCTL_PER_SLV->UART_CTRL |= (1 << 26);
+	else if(instance == 7)
+		CLKCTL_PER_SLV->UART_CTRL |= (1 << 27);
+}
+
 static inline void enable_uart_clock(uint32_t instance)
 {
 	/* Enable UART clock for selected instance.

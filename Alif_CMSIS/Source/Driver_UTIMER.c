@@ -355,7 +355,7 @@ static void UTIMER_Interrupt_Disable (UTIMER_RESOURCES *UTIMER_RES, uint8_t chan
  */
 static int32_t ARM_UTIMER_Initialize (UTIMER_RESOURCES *UTIMER_RES, uint8_t channel, ARM_UTIMER_SignalEvent_t cb_unit_event)
 {
-    if(cb_unit_event == NULL)
+    if((cb_unit_event == NULL) && (channel < ARM_UTIMER_CHANNEL12))
     {
         return ARM_DRIVER_ERROR_PARAMETER;
     }
@@ -518,7 +518,7 @@ static int32_t ARM_UTIMER_SetCount (UTIMER_RESOURCES *UTIMER_RES, uint8_t channe
     {
         return ARM_DRIVER_ERROR_PARAMETER;
     }
-    if (counter > UTIMER_COMPARE_B_BUF2)
+    if (counter > (ARM_UTIMER_COUNTER) UTIMER_COMPARE_B_BUF2)
     {
         return ARM_DRIVER_ERROR_PARAMETER;
     }
@@ -1386,624 +1386,520 @@ static void UTIMER_IRQHandler_UnderFlow(uint8_t channel)
     UTIMER_UnderFlow_IRQHandler(&UTIMER0, channel);
 }
 
-extern void QEC0_CMPA_IRQHandler(void);
 void QEC0_CMPA_IRQHandler(void)
 {
     UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL12);
 }
 
-extern void QEC0_CMPB_IRQHandler(void);
 void QEC0_CMPB_IRQHandler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL12);
 }
 
-extern void QEC1_CMPA_IRQHandler(void);
 void QEC1_CMPA_IRQHandler(void)
 {
     UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL13);
 }
 
-extern void QEC1_CMPB_IRQHandler(void);
 void QEC1_CMPB_IRQHandler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL13);
 }
 
-extern void QEC2_CMPA_IRQHandler(void);
 void QEC2_CMPA_IRQHandler(void)
 {
 	UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL14);
 }
 
-extern void QEC2_CMPB_IRQHandler(void);
 void QEC2_CMPB_IRQHandler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL14);
 }
 
-extern void QEC3_CMPA_IRQHandler(void);
 void QEC3_CMPA_IRQHandler(void)
 {
     UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL15);
 }
 
-extern void QEC3_CMPB_IRQHandler(void);
 void QEC3_CMPB_IRQHandler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL15);
 }
 
-extern void UTIMER_IRQ0Handler(void);
 void UTIMER_IRQ0Handler(void)
 {
     UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL0);
 }
 
-extern void UTIMER_IRQ1Handler(void);
 void UTIMER_IRQ1Handler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL0);
 }
 
-extern void UTIMER_IRQ2Handler(void);
 void UTIMER_IRQ2Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf1(ARM_UTIMER_CHANNEL0);
 }
 
-extern void UTIMER_IRQ3Handler(void);
 void UTIMER_IRQ3Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf2(ARM_UTIMER_CHANNEL0);
 }
-extern void UTIMER_IRQ4Handler(void);
 void UTIMER_IRQ4Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf1(ARM_UTIMER_CHANNEL0);
 }
 
-extern void UTIMER_IRQ5Handler(void);
 void UTIMER_IRQ5Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf2(ARM_UTIMER_CHANNEL0);
 }
 
-extern void UTIMER_IRQ6Handler(void);
 void UTIMER_IRQ6Handler(void)
 {
     UTIMER_IRQHandler_UnderFlow(ARM_UTIMER_CHANNEL0);
 }
 
-extern void UTIMER_IRQ7Handler(void);
 void UTIMER_IRQ7Handler(void)
 {
     UTIMER_IRQHandler_OverFlow(ARM_UTIMER_CHANNEL0);
 }
 
-extern void UTIMER_IRQ8Handler(void);
 void UTIMER_IRQ8Handler(void)
 {
     UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL1);
 }
 
-extern void UTIMER_IRQ9Handler(void);
 void UTIMER_IRQ9Handler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL1);
 }
 
-extern void UTIMER_IRQ10Handler(void);
 void UTIMER_IRQ10Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf1(ARM_UTIMER_CHANNEL1);
 }
 
-extern void UTIMER_IRQ11Handler(void);
 void UTIMER_IRQ11Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf2(ARM_UTIMER_CHANNEL1);
 }
 
-extern void UTIMER_IRQ12Handler(void);
 void UTIMER_IRQ12Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf1(ARM_UTIMER_CHANNEL1);
 }
 
-extern void UTIMER_IRQ13Handler(void);
 void UTIMER_IRQ13Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf2(ARM_UTIMER_CHANNEL1);
 }
 
-extern void UTIMER_IRQ14Handler(void);
 void UTIMER_IRQ14Handler(void)
 {
     UTIMER_IRQHandler_UnderFlow(ARM_UTIMER_CHANNEL1);
 }
 
-extern void UTIMER_IRQ15Handler(void);
 void UTIMER_IRQ15Handler(void)
 {
     UTIMER_IRQHandler_OverFlow(ARM_UTIMER_CHANNEL1);
 }
 
-extern void UTIMER_IRQ16Handler(void);
 void UTIMER_IRQ16Handler(void)
 {
     UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL2);
 }
 
-extern void UTIMER_IRQ17Handler(void);
 void UTIMER_IRQ17Handler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL2);
 }
 
-extern void UTIMER_IRQ18Handler(void);
 void UTIMER_IRQ18Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf1(ARM_UTIMER_CHANNEL2);
 }
 
-extern void UTIMER_IRQ19Handler(void);
 void UTIMER_IRQ19Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf2(ARM_UTIMER_CHANNEL2);
 }
 
-extern void UTIMER_IRQ20Handler(void);
 void UTIMER_IRQ20Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf1(ARM_UTIMER_CHANNEL2);
 }
 
-extern void UTIMER_IRQ21Handler(void);
 void UTIMER_IRQ21Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf2(ARM_UTIMER_CHANNEL2);
 }
 
-extern void UTIMER_IRQ22Handler(void);
 void UTIMER_IRQ22Handler(void)
 {
     UTIMER_IRQHandler_UnderFlow(ARM_UTIMER_CHANNEL2);
 }
 
-extern void UTIMER_IRQ23Handler(void);
 void UTIMER_IRQ23Handler(void)
 {
     UTIMER_IRQHandler_OverFlow(ARM_UTIMER_CHANNEL2);
 }
 
-extern void UTIMER_IRQ24Handler(void);
 void UTIMER_IRQ24Handler(void)
 {
     UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL3);
 }
 
-extern void UTIMER_IRQ25Handler(void);
 void UTIMER_IRQ25Handler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL3);
 }
 
-extern void UTIMER_IRQ26Handler(void);
 void UTIMER_IRQ26Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf1(ARM_UTIMER_CHANNEL3);
 }
 
-extern void UTIMER_IRQ27Handler(void);
 void UTIMER_IRQ27Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf2(ARM_UTIMER_CHANNEL3);
 }
 
-extern void UTIMER_IRQ28Handler(void);
 void UTIMER_IRQ28Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf1(ARM_UTIMER_CHANNEL3);
 }
 
-extern void UTIMER_IRQ29Handler(void);
 void UTIMER_IRQ29Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf2(ARM_UTIMER_CHANNEL3);
 }
 
-extern void UTIMER_IRQ30Handler(void);
 void UTIMER_IRQ30Handler(void)
 {
     UTIMER_IRQHandler_UnderFlow(ARM_UTIMER_CHANNEL3);
 }
 
-extern void UTIMER_IRQ31Handler(void);
 void UTIMER_IRQ31Handler(void)
 {
     UTIMER_IRQHandler_OverFlow(ARM_UTIMER_CHANNEL3);
 }
 
-extern void UTIMER_IRQ32Handler(void);
 void UTIMER_IRQ32Handler(void)
 {
     UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL4);
 }
 
-extern void UTIMER_IRQ33Handler(void);
 void UTIMER_IRQ33Handler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL4);
 }
 
-extern void UTIMER_IRQ34Handler(void);
 void UTIMER_IRQ34Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf1(ARM_UTIMER_CHANNEL4);
 }
 
-extern void UTIMER_IRQ35Handler(void);
 void UTIMER_IRQ35Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf2(ARM_UTIMER_CHANNEL4);
 }
 
-extern void UTIMER_IRQ36Handler(void);
 void UTIMER_IRQ36Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf1(ARM_UTIMER_CHANNEL4);
 }
 
-extern void UTIMER_IRQ37Handler(void);
 void UTIMER_IRQ37Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf2(ARM_UTIMER_CHANNEL4);
 }
 
-extern void UTIMER_IRQ38Handler(void);
 void UTIMER_IRQ38Handler(void)
 {
     UTIMER_IRQHandler_UnderFlow(ARM_UTIMER_CHANNEL4);
 }
 
-extern void UTIMER_IRQ39Handler(void);
 void UTIMER_IRQ39Handler(void)
 {
     UTIMER_IRQHandler_OverFlow(ARM_UTIMER_CHANNEL4);
 }
 
-extern void UTIMER_IRQ40Handler(void);
 void UTIMER_IRQ40Handler(void)
 {
     UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL5);
 }
 
-extern void UTIMER_IRQ41Handler(void);
 void UTIMER_IRQ41Handler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL5);
 }
 
-extern void UTIMER_IRQ42Handler(void);
 void UTIMER_IRQ42Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf1(ARM_UTIMER_CHANNEL5);
 }
 
-extern void UTIMER_IRQ43Handler(void);
 void UTIMER_IRQ43Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf2(ARM_UTIMER_CHANNEL5);
 }
 
-extern void UTIMER_IRQ44Handler(void);
 void UTIMER_IRQ44Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf1(ARM_UTIMER_CHANNEL5);
 }
 
-extern void UTIMER_IRQ45Handler(void);
 void UTIMER_IRQ45Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf2(ARM_UTIMER_CHANNEL5);
 }
 
-extern void UTIMER_IRQ46Handler(void);
 void UTIMER_IRQ46Handler(void)
 {
     UTIMER_IRQHandler_UnderFlow(ARM_UTIMER_CHANNEL5);
 }
 
-extern void UTIMER_IRQ47Handler(void);
 void UTIMER_IRQ47Handler(void)
 {
     UTIMER_IRQHandler_OverFlow(ARM_UTIMER_CHANNEL5);
 }
 
-extern void UTIMER_IRQ48Handler(void);
 void UTIMER_IRQ48Handler(void)
 {
     UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL6);
 }
 
-extern void UTIMER_IRQ49Handler(void);
 void UTIMER_IRQ49Handler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL6);
 }
 
-extern void UTIMER_IRQ50Handler(void);
 void UTIMER_IRQ50Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf1(ARM_UTIMER_CHANNEL6);
 }
 
-extern void UTIMER_IRQ51Handler(void);
 void UTIMER_IRQ51Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf2(ARM_UTIMER_CHANNEL6);
 }
 
-extern void UTIMER_IRQ52Handler(void);
 void UTIMER_IRQ52Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf1(ARM_UTIMER_CHANNEL6);
 }
 
-extern void UTIMER_IRQ53Handler(void);
 void UTIMER_IRQ53Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf2(ARM_UTIMER_CHANNEL6);
 }
 
-extern void UTIMER_IRQ54Handler(void);
 void UTIMER_IRQ54Handler(void)
 {
     UTIMER_IRQHandler_UnderFlow(ARM_UTIMER_CHANNEL6);
 }
 
-extern void UTIMER_IRQ55Handler(void);
 void UTIMER_IRQ55Handler(void)
 {
     UTIMER_IRQHandler_OverFlow(ARM_UTIMER_CHANNEL6);
 }
 
-extern void UTIMER_IRQ56Handler(void);
 void UTIMER_IRQ56Handler(void)
 {
     UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL7);
 }
 
-extern void UTIMER_IRQ57Handler(void);
 void UTIMER_IRQ57Handler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL7);
 }
 
-extern void UTIMER_IRQ58Handler(void);
 void UTIMER_IRQ58Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf1(ARM_UTIMER_CHANNEL7);
 }
 
-extern void UTIMER_IRQ59Handler(void);
 void UTIMER_IRQ59Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf2(ARM_UTIMER_CHANNEL7);
 }
 
-extern void UTIMER_IRQ60Handler(void);
 void UTIMER_IRQ60Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf1(ARM_UTIMER_CHANNEL7);
 }
 
-extern void UTIMER_IRQ61Handler(void);
 void UTIMER_IRQ61Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf2(ARM_UTIMER_CHANNEL7);
 }
 
-extern void UTIMER_IRQ62Handler(void);
 void UTIMER_IRQ62Handler(void)
 {
     UTIMER_IRQHandler_UnderFlow(ARM_UTIMER_CHANNEL7);
 }
 
-extern void UTIMER_IRQ63Handler(void);
 void UTIMER_IRQ63Handler(void)
 {
     UTIMER_IRQHandler_OverFlow(ARM_UTIMER_CHANNEL7);
 }
 
-extern void UTIMER_IRQ64Handler(void);
 void UTIMER_IRQ64Handler(void)
 {
     UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL8);
 }
 
-extern void UTIMER_IRQ65Handler(void);
 void UTIMER_IRQ65Handler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL8);
 }
 
-extern void UTIMER_IRQ66Handler(void);
 void UTIMER_IRQ66Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf1(ARM_UTIMER_CHANNEL8);
 }
 
-extern void UTIMER_IRQ67Handler(void);
 void UTIMER_IRQ67Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf2(ARM_UTIMER_CHANNEL8);
 }
 
-extern void UTIMER_IRQ68Handler(void);
 void UTIMER_IRQ68Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf1(ARM_UTIMER_CHANNEL8);
 }
 
-extern void UTIMER_IRQ69Handler(void);
 void UTIMER_IRQ69Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf2(ARM_UTIMER_CHANNEL8);
 }
 
-extern void UTIMER_IRQ70Handler(void);
 void UTIMER_IRQ70Handler(void)
 {
     UTIMER_IRQHandler_UnderFlow(ARM_UTIMER_CHANNEL8);
 }
 
-extern void UTIMER_IRQ71Handler(void);
 void UTIMER_IRQ71Handler(void)
 {
     UTIMER_IRQHandler_OverFlow(ARM_UTIMER_CHANNEL8);
 }
 
-extern void UTIMER_IRQ72Handler(void);
 void UTIMER_IRQ72Handler(void)
 {
     UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL9);
 }
 
-extern void UTIMER_IRQ73Handler(void);
 void UTIMER_IRQ73Handler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL9);
 }
 
-extern void UTIMER_IRQ74Handler(void);
 void UTIMER_IRQ74Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf1(ARM_UTIMER_CHANNEL9);
 }
 
-extern void UTIMER_IRQ75Handler(void);
 void UTIMER_IRQ75Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf2(ARM_UTIMER_CHANNEL9);
 }
 
-extern void UTIMER_IRQ76Handler(void);
 void UTIMER_IRQ76Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf1(ARM_UTIMER_CHANNEL9);
 }
 
-extern void UTIMER_IRQ77Handler(void);
 void UTIMER_IRQ77Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf2(ARM_UTIMER_CHANNEL9);
 }
 
-extern void UTIMER_IRQ78Handler(void);
 void UTIMER_IRQ78Handler(void)
 {
     UTIMER_IRQHandler_UnderFlow(ARM_UTIMER_CHANNEL9);
 }
 
-extern void UTIMER_IRQ79Handler(void);
 void UTIMER_IRQ79Handler(void)
 {
     UTIMER_IRQHandler_OverFlow(ARM_UTIMER_CHANNEL9);
 }
 
-extern void UTIMER_IRQ80Handler(void);
 void UTIMER_IRQ80Handler(void)
 {
     UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL10);
 }
 
-extern void UTIMER_IRQ81Handler(void);
 void UTIMER_IRQ81Handler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL10);
 }
 
-extern void UTIMER_IRQ82Handler(void);
 void UTIMER_IRQ82Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf1(ARM_UTIMER_CHANNEL10);
 }
 
-extern void UTIMER_IRQ83Handler(void);
 void UTIMER_IRQ83Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf2(ARM_UTIMER_CHANNEL10);
 }
 
-extern void UTIMER_IRQ84Handler(void);
 void UTIMER_IRQ84Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf1(ARM_UTIMER_CHANNEL10);
 }
 
-extern void UTIMER_IRQ85Handler(void);
 void UTIMER_IRQ85Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf2(ARM_UTIMER_CHANNEL10);
 }
 
-extern void UTIMER_IRQ86Handler(void);
 void UTIMER_IRQ86Handler(void)
 {
     UTIMER_IRQHandler_UnderFlow(ARM_UTIMER_CHANNEL10);
 }
 
-extern void UTIMER_IRQ87Handler(void);
 void UTIMER_IRQ87Handler(void)
 {
     UTIMER_IRQHandler_OverFlow(ARM_UTIMER_CHANNEL10);
 }
 
-extern void UTIMER_IRQ88Handler(void);
 void UTIMER_IRQ88Handler(void)
 {
     UTIMER_IRQHandler_Capture_A(ARM_UTIMER_CHANNEL11);
 }
 
-extern void UTIMER_IRQ89Handler(void);
 void UTIMER_IRQ89Handler(void)
 {
     UTIMER_IRQHandler_Capture_B(ARM_UTIMER_CHANNEL11);
 }
 
-extern void UTIMER_IRQ90Handler(void);
 void UTIMER_IRQ90Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf1(ARM_UTIMER_CHANNEL11);
 }
 
-extern void UTIMER_IRQ91Handler(void);
 void UTIMER_IRQ91Handler(void)
 {
     UTIMER_IRQHandler_Compare_A_Buf2(ARM_UTIMER_CHANNEL11);
 }
 
-extern void UTIMER_IRQ92Handler(void);
 void UTIMER_IRQ92Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf1(ARM_UTIMER_CHANNEL11);
 }
 
-extern void UTIMER_IRQ93Handler(void);
 void UTIMER_IRQ93Handler(void)
 {
     UTIMER_IRQHandler_Compare_B_Buf2(ARM_UTIMER_CHANNEL11);
 }
 
-extern void UTIMER_IRQ94Handler(void);
 void UTIMER_IRQ94Handler(void)
 {
     UTIMER_IRQHandler_UnderFlow(ARM_UTIMER_CHANNEL11);
 }
 
-extern void UTIMER_IRQ95Handler(void);
 void UTIMER_IRQ95Handler(void)
 {
     UTIMER_IRQHandler_OverFlow(ARM_UTIMER_CHANNEL11);

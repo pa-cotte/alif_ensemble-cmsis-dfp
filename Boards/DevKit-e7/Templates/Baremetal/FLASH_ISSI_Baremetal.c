@@ -25,22 +25,10 @@
 #include "Driver_GPIO.h"
 #include "RTE_Components.h"
 #include CMSIS_device_header
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
-
-#ifdef DISABLE_PRINTF
-  #define printf(fmt, ...) (0)
-  /* Also Disable Semihosting */
-  #if __ARMCC_VERSION >= 6000000
-    __asm(".global __use_no_semihosting");
-  #elif __ARMCC_VERSION >= 5000000
-    #pragma import(__use_no_semihosting)
-  #else
-    #error Unsupported compiler
-  #endif
-  void _sys_exit(int return_code) { while (1); }
-#endif
 
 #define FLASH_NUM 1
 
@@ -69,66 +57,66 @@ static int32_t setup_PinMUX(void)
     int32_t ret;
 
     ret = pinconf_set(PORT_9, PIN_5, PINMUX_ALTERNATE_FUNCTION_1,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(PORT_9, PIN_6, PINMUX_ALTERNATE_FUNCTION_1,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(PORT_9, PIN_7, PINMUX_ALTERNATE_FUNCTION_1,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST |  PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST |  PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(PORT_10, PIN_0, PINMUX_ALTERNATE_FUNCTION_1,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(PORT_10, PIN_1, PINMUX_ALTERNATE_FUNCTION_1,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(PORT_10, PIN_2, PINMUX_ALTERNATE_FUNCTION_1,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(PORT_10, PIN_3, PINMUX_ALTERNATE_FUNCTION_1,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(PORT_10, PIN_4, PINMUX_ALTERNATE_FUNCTION_1,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST |  PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST |  PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(PORT_10, PIN_7, PINMUX_ALTERNATE_FUNCTION_1,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_READ_ENABLE);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_READ_ENABLE);
     if (ret)
         return -1;
 
     ret = pinconf_set(PORT_5, PIN_5, PINMUX_ALTERNATE_FUNCTION_1,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST);
     if (ret)
         return -1;
 
-    ret = pinconf_set(PORT_8, PIN_0, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS);
+    ret = pinconf_set(PORT_8, PIN_0, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA);
     if (ret)
         return -1;
 
     ret = pinconf_set(PORT_5, PIN_6, PINMUX_ALTERNATE_FUNCTION_1,
-                     PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS);
+                     PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA);
     if (ret)
         return -1;
 
     ret = pinconf_set(PORT_5, PIN_7, PINMUX_ALTERNATE_FUNCTION_1,
-                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS | PADCTRL_SLEW_RATE_FAST);
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST);
     if (ret)
         return -1;
 
@@ -156,8 +144,8 @@ static int32_t setup_PinMUX(void)
 }
 
 /* Buffers for reading and writing data */
-uint8_t read_buff[BUFFER_SIZE];
-uint8_t write_buff[BUFFER_SIZE];
+uint16_t read_buff[BUFFER_SIZE];
+uint16_t write_buff[BUFFER_SIZE];
 
 /**
  * @fn      int main ()
@@ -173,13 +161,20 @@ int main ()
     ARM_DRIVER_VERSION version;
     ARM_FLASH_INFO *flash_info;
 
-    /* Prepare the data for writing to flash */
-    while (iter < BUFFER_SIZE)
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
     {
-        for (index = 0; index < 256; index++)
+        while(1)
         {
-            write_buff[iter++] = index;
         }
+    }
+    #endif
+
+    /* Prepare the data for writing to flash */
+    for (index = 0; index < BUFFER_SIZE; index++)
+    {
+        write_buff[index] = index % 65536;
     }
 
     printf("OSPI Flash Initialization\n");
@@ -236,7 +231,7 @@ int main ()
 
     iter = 0;
 
-    /* Read the 1KB data after erase and check if it is erased completely */
+    /* Read 2KB data after erase and check if it is erased completely */
     status = ptrFLASH->ReadData(FLASH_ADDR, read_buff, BUFFER_SIZE);
 
     if (status != BUFFER_SIZE)
@@ -248,7 +243,7 @@ int main ()
     /* Verify the read data */
     while (iter < BUFFER_SIZE)
     {
-        if (read_buff[iter] != flash_info->erased_value)
+        if (read_buff[iter] != (flash_info->erased_value << 8 | flash_info->erased_value))
             count++;
         iter++;
     }
@@ -257,7 +252,7 @@ int main ()
 
     printf("Starting writing\n");
 
-    /* Write 1 KB data to the flash */
+    /* Write 2 KB data to the flash */
     status = ptrFLASH->ProgramData(FLASH_ADDR, write_buff, BUFFER_SIZE);
     if (status != BUFFER_SIZE)
     {
@@ -272,7 +267,7 @@ int main ()
 
     printf("Starting reading after writing\n");
 
-    /* Read the 1KB data after writing to flash */
+    /* Read 2 KB data after writing to flash */
     status = ptrFLASH->ReadData(FLASH_ADDR, read_buff, BUFFER_SIZE);
 
     if (status != BUFFER_SIZE)
@@ -304,7 +299,7 @@ int main ()
 
     printf("starting reading after erasing a sector\n");
 
-    /* Read the 1KB data after erasing a sector */
+    /* Read 2KB data after erasing a sector */
     status = ptrFLASH->ReadData(FLASH_ADDR, read_buff, BUFFER_SIZE);
 
     if (status != BUFFER_SIZE)
@@ -315,7 +310,7 @@ int main ()
 
     while (iter < BUFFER_SIZE)
     {
-        if (read_buff[iter] != flash_info->erased_value)
+        if (read_buff[iter] != (flash_info->erased_value << 8 | flash_info->erased_value))
             count++;
         iter++;
     }

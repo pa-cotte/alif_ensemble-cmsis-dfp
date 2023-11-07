@@ -29,19 +29,20 @@
 extern "C"
 {
 #endif
-static inline void set_aes_rxds_delay(OSPI_INSTANCE instance, uint8_t rxds_delay)
+static inline void aes_set_rxds_delay(AES_Type *aes, uint8_t rxds_delay)
 {
-    switch(instance)
-    {
-    case OSPI_INSTANCE_0:
-        AES0->AES_RXDS_DELAY = rxds_delay;
-        break;
-    case OSPI_INSTANCE_1:
-        AES1->AES_RXDS_DELAY = rxds_delay;
-        break;
-    }
+    aes->AES_RXDS_DELAY = rxds_delay;
 }
 
+static inline void aes_enable_xip(AES_Type *aes)
+{
+    aes->AES_CONTROL |= AES_CONTROL_XIP_EN;
+}
+
+static inline void aes_disable_xip(AES_Type *aes)
+{
+    aes->AES_CONTROL &= ~AES_CONTROL_XIP_EN;
+}
 #ifdef  __cplusplus
 }
 #endif

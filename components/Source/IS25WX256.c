@@ -22,7 +22,17 @@
 #include "Driver_Flash.h"
 #include "Driver_OSPI.h"
 #include "RTE_Device.h"
+#include "RTE_Components.h"
 #include "IS25WX256.h"
+#include CMSIS_device_header
+
+#if !(RTE_ISSI_FLASH)
+#error "ISSI Flash driver is not enabled in RTE_Device.h"
+#endif
+
+#if !(RTE_Drivers_ISSI_FLASH)
+#error "ISSI Flash driver is not enabled in RTE_Components.h"
+#endif
 
 #define ARM_FLASH_DRV_VERSION ARM_DRIVER_VERSION_MAJOR_MINOR(1,0) /* driver version */
 
@@ -32,11 +42,11 @@
 #endif
 
 #ifndef DRIVER_OSPI_NUM
-#define DRIVER_OSPI_NUM                                          1         /* Default SPI driver number */
+#define DRIVER_OSPI_NUM                                          RTE_ISSI_FLASH_OSPI_DRV_NUM
 #endif
 
 #ifndef DRIVER_OSPI_BUS_SPEED
-#define DRIVER_OSPI_BUS_SPEED                                    25000000  /* Default SPI bus speed */
+#define DRIVER_OSPI_BUS_SPEED                                    RTE_ISSI_FLASH_OSPI_BUS_SPEED
 #endif
 
 /* SPI Data Flash Commands */
@@ -102,7 +112,7 @@ const ARM_DRIVER_VERSION DriverVersion = {
 /* Driver Capabilities */
 const ARM_FLASH_CAPABILITIES DriverCapabilities = {
     0U,                                 /* event_ready */
-    0U,                                 /* data_width = 0:8-bit, 1:16-bit, 2:32-bit */
+    1U,                                 /* data_width = 0:8-bit, 1:16-bit, 2:32-bit */
     1U,                                 /* erase_chip */
 #if (ARM_FLASH_API_VERSION > 0x200U)
     0U                                  /* reserved */
@@ -140,6 +150,33 @@ static ARM_FLASH_CAPABILITIES ARM_Flash_GetCapabilities (void)
 }
 
 /**
+  \fn          static int32_t ControlSlaveSelect(bool enable)
+  \brief       Helper function to control the slave select line
+  \param[in]   enable : True/False to enable or disable the SS line
+  \return      \ref execution_status
+*/
+static int32_t ControlSlaveSelect(bool enable)
+{
+    int32_t status;
+    uint32_t arg;
+
+    if (enable)
+    {
+        arg = ARM_OSPI_SS_ACTIVE;
+    }
+    else
+    {
+        arg = ARM_OSPI_SS_INACTIVE;
+    }
+
+    do {
+        status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, arg);
+    } while (status == ARM_DRIVER_ERROR_BUSY);
+
+    return status;
+}
+
+/**
   \fn          int32_t ReadStatusReg (uint32_t command, uint32_t *stat)
   \brief       Read status register to check the status of flash device.
   \param[in]   command : Status register/ Flag Status Register
@@ -150,8 +187,18 @@ static int32_t ReadStatusReg (uint8_t command, uint8_t *stat)
     int32_t status = ARM_DRIVER_OK;
     uint32_t cmd[3];
 
+    status = ptrOSPI->Control(ARM_OSPI_MODE_MASTER |
+                    ARM_OSPI_DATA_BITS(8) |
+                    ARM_OSPI_SS_MASTER_SW,
+                    OSPI_BUS_SPEED);
+
+    if (status != ARM_DRIVER_OK)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
     /* Select Slave */
-    status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_ACTIVE);
+    status = ControlSlaveSelect(true);
     if (status != ARM_DRIVER_OK)
     {
         return ARM_DRIVER_ERROR;
@@ -173,10 +220,14 @@ static int32_t ReadStatusReg (uint8_t command, uint8_t *stat)
         return ARM_DRIVER_ERROR;
     }
 
-    while (!issi_event_flag);
-    if(!(issi_event_flag & ARM_OSPI_EVENT_TRANSFER_COMPLETE))
+    while (!issi_event_flag)
     {
-        ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+         __WFE();
+    }
+
+    if (!(issi_event_flag & ARM_OSPI_EVENT_TRANSFER_COMPLETE))
+    {
+        ControlSlaveSelect(false);
         issi_event_flag = 0;
         return ARM_DRIVER_ERROR;
     }
@@ -184,7 +235,7 @@ static int32_t ReadStatusReg (uint8_t command, uint8_t *stat)
 
     *stat = (uint8_t) cmd[1];
 
-    status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+    status = ControlSlaveSelect(false);
 
     return status;
 }
@@ -201,8 +252,20 @@ static int32_t SetWriteEnable (void)
     uint32_t cmd;
     uint8_t val;
 
+    status = ptrOSPI->Control(ARM_OSPI_MODE_MASTER |
+             ARM_OSPI_DATA_BITS(8) |
+             ARM_OSPI_SS_MASTER_SW,
+             OSPI_BUS_SPEED);
+
+    if (status != ARM_DRIVER_OK)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    issi_event_flag = 0;
+
     /* Select slave */
-    status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_ACTIVE);
+    status = ControlSlaveSelect(true);
     if (status != ARM_DRIVER_OK)
     {
         return ARM_DRIVER_ERROR;
@@ -216,16 +279,20 @@ static int32_t SetWriteEnable (void)
         return ARM_DRIVER_ERROR;
     }
 
-    while (!issi_event_flag);
-    if(!(issi_event_flag & ARM_OSPI_EVENT_TRANSFER_COMPLETE))
+    while (!issi_event_flag)
     {
-        ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+         __WFE();
+    }
+
+    if (!(issi_event_flag & ARM_OSPI_EVENT_TRANSFER_COMPLETE))
+    {
+        ControlSlaveSelect(false);
         issi_event_flag = 0;
         return ARM_DRIVER_ERROR;
     }
     issi_event_flag = 0;
 
-    status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+    status = ControlSlaveSelect(false);
 
     /* Reading status register will work only when FLASH is switched to Octal mode (after PowerControl(ARM_POWER_FULL)) */
     if (ISSI_Flags & FLASH_POWER)
@@ -363,7 +430,7 @@ static int32_t ARM_Flash_PowerControl (ARM_POWER_STATE state)
                     return ARM_DRIVER_ERROR;
                 }
 
-                status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_ACTIVE);
+                status = ControlSlaveSelect(true);
 
                 if (status != ARM_DRIVER_OK)
                 {
@@ -398,18 +465,21 @@ static int32_t ARM_Flash_PowerControl (ARM_POWER_STATE state)
                     return ARM_DRIVER_ERROR;
                 }
 
-                while(!issi_event_flag);
-
-                if(!(issi_event_flag & ARM_OSPI_EVENT_TRANSFER_COMPLETE))
+                while (!issi_event_flag)
                 {
-                    ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+                     __WFE();
+                }
+
+                if (!(issi_event_flag & ARM_OSPI_EVENT_TRANSFER_COMPLETE))
+                {
+                    ControlSlaveSelect(false);
                     issi_event_flag = 0;
                     return ARM_DRIVER_ERROR;
                 }
 
                 issi_event_flag = 0;
 
-                status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+                status = ControlSlaveSelect(false);
 
                 if (status != ARM_DRIVER_OK)
                 {
@@ -449,7 +519,7 @@ static int32_t ARM_Flash_PowerControl (ARM_POWER_STATE state)
                     return ARM_DRIVER_ERROR;
                 }
 
-                status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_ACTIVE);
+                status = ControlSlaveSelect(true);
 
                 if (status != ARM_DRIVER_OK)
                 {
@@ -470,18 +540,21 @@ static int32_t ARM_Flash_PowerControl (ARM_POWER_STATE state)
                     return ARM_DRIVER_ERROR;
                 }
 
-                while(!issi_event_flag);
-
-                if(!(issi_event_flag & ARM_OSPI_EVENT_TRANSFER_COMPLETE))
+                while (!issi_event_flag)
                 {
-                    ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+                     __WFE();
+                }
+
+                if (!(issi_event_flag & ARM_OSPI_EVENT_TRANSFER_COMPLETE))
+                {
+                    ControlSlaveSelect(false);
                     issi_event_flag = 0;
                     return ARM_DRIVER_ERROR;
                 }
 
                 issi_event_flag = 0;
 
-                status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+                status = ControlSlaveSelect(false);
 
                 if (status != ARM_DRIVER_OK)
                 {
@@ -515,7 +588,7 @@ static int32_t ARM_Flash_PowerControl (ARM_POWER_STATE state)
 static int32_t ARM_Flash_ReadData (uint32_t addr, void *data, uint32_t cnt)
 {
     uint32_t cmd[2], data_cnt;
-	uint8_t *data_ptr;
+    uint16_t *data_ptr;
     int32_t  status, num = 0;
 
     if ((addr > (FLASH_ISSI_SECTOR_COUNT * FLASH_ISSI_SECTOR_SIZE)) || (data == NULL) || ((addr + cnt) > (FLASH_ISSI_SECTOR_COUNT * FLASH_ISSI_SECTOR_SIZE)))
@@ -523,7 +596,7 @@ static int32_t ARM_Flash_ReadData (uint32_t addr, void *data, uint32_t cnt)
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    data_ptr = (uint8_t *) data;
+    data_ptr = (uint16_t *) data;
 
     status = ptrOSPI->Control(ARM_OSPI_SET_ADDR_LENGTH_WAIT_CYCLE, (ARM_OSPI_ADDR_LENGTH_0_BITS << ARM_OSPI_ADDR_LENGTH_POS) | (0 << ARM_OSPI_WAIT_CYCLE_POS));
 
@@ -546,9 +619,20 @@ static int32_t ARM_Flash_ReadData (uint32_t addr, void *data, uint32_t cnt)
         return ARM_DRIVER_ERROR;
     }
 
+    /* Switch to 16 bit mode for reading data */
+    status = ptrOSPI->Control(ARM_OSPI_MODE_MASTER |
+                ARM_OSPI_DATA_BITS(16) |
+                ARM_OSPI_SS_MASTER_SW,
+                OSPI_BUS_SPEED);
+
+    if (status != ARM_DRIVER_OK)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
     while(cnt)
     {
-        status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_ACTIVE);
+        status = ControlSlaveSelect(true);
 
         if (status != ARM_DRIVER_OK)
         {
@@ -574,25 +658,29 @@ static int32_t ARM_Flash_ReadData (uint32_t addr, void *data, uint32_t cnt)
             return ARM_DRIVER_ERROR;
         }
 
-        while(!issi_event_flag);
+        while (!issi_event_flag)
+        {
+             __WFE();
+        }
 
         if (!(issi_event_flag & ARM_OSPI_EVENT_TRANSFER_COMPLETE))
         {
-            ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+            ControlSlaveSelect(false);
             issi_event_flag = 0;
             return ARM_DRIVER_ERROR;
         }
 
         issi_event_flag = 0;
 
-        status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+        status = ControlSlaveSelect(false);
 
         if (status != ARM_DRIVER_OK)
         {
             return ARM_DRIVER_ERROR;
         }
 
-        addr += data_cnt;
+        /* For 16 bit frames, update address by data_cnt * 2*/
+        addr += (data_cnt * 2);
         cnt -= data_cnt;
         data_ptr += data_cnt;
         num += data_cnt;
@@ -601,6 +689,9 @@ static int32_t ARM_Flash_ReadData (uint32_t addr, void *data, uint32_t cnt)
     status = num;
     return status;
 }
+
+/* temporary buffer used in ProgramData below */
+static uint32_t cmd[261];
 
 /**
   \fn          int32_t ARM_Flash_ProgramData (uint32_t addr, const void *data, uint32_t cnt)
@@ -612,8 +703,7 @@ static int32_t ARM_Flash_ReadData (uint32_t addr, void *data, uint32_t cnt)
 **/
 static int32_t ARM_Flash_ProgramData (uint32_t addr, const void *data, uint32_t cnt)
 {
-    uint32_t cmd[261];
-    const uint8_t *data_ptr;
+    const uint16_t *data_ptr;
     uint8_t val = 0;
     int32_t status = ARM_DRIVER_OK;
     uint32_t num = 0, data_cnt, index, iter = 0, it = 0;
@@ -644,12 +734,13 @@ static int32_t ARM_Flash_ProgramData (uint32_t addr, const void *data, uint32_t 
             return ARM_DRIVER_ERROR;
         }
 
-        data_cnt = (FLASH_ISSI_PAGE_SIZE - (addr % FLASH_ISSI_PAGE_SIZE));
+        data_cnt = (FLASH_ISSI_PAGE_SIZE - (addr % FLASH_ISSI_PAGE_SIZE)) >> 1;
 
         if (data_cnt > cnt)
         {
             data_cnt = cnt;
         }
+
 
         /* Prepare command with address */
         cmd[0] = CMD_PAGE_PROGRAM;
@@ -669,35 +760,59 @@ static int32_t ARM_Flash_ProgramData (uint32_t addr, const void *data, uint32_t 
             return ARM_DRIVER_ERROR;
         }
 
-        status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_ACTIVE);
+        /* Switch to 16 bit mode for program data */
+        status = ptrOSPI->Control(ARM_OSPI_MODE_MASTER |
+                 ARM_OSPI_DATA_BITS(16) |
+                 ARM_OSPI_SS_MASTER_SW,
+                 OSPI_BUS_SPEED);
 
         if (status != ARM_DRIVER_OK)
         {
             return ARM_DRIVER_ERROR;
         }
 
-        /* Send data along with the command and address bytes (+2) */
-        status = ptrOSPI->Send(cmd, (data_cnt + 2));
+        status = ControlSlaveSelect(true);
 
         if (status != ARM_DRIVER_OK)
         {
             return ARM_DRIVER_ERROR;
         }
 
-        while (!issi_event_flag);
+        do {
+            /* Send data along with the command and address bytes (+2) */
+            status = ptrOSPI->Send(cmd, (data_cnt + 2));
+        } while (status == ARM_DRIVER_ERROR_BUSY);
 
-        if(!(issi_event_flag & ARM_OSPI_EVENT_TRANSFER_COMPLETE))
+        if (status != ARM_DRIVER_OK)
         {
-            ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+            return ARM_DRIVER_ERROR;
+        }
+
+        while (!issi_event_flag)
+        {
+             __WFE();
+        }
+
+        if (!(issi_event_flag & ARM_OSPI_EVENT_TRANSFER_COMPLETE))
+        {
+            ControlSlaveSelect(false);
             issi_event_flag = 0;
             return ARM_DRIVER_ERROR;
         }
 
         issi_event_flag = 0;
 
-        addr += data_cnt;
+        /* For 16 bit data frames, increment the byte address with 2 * data_cnt programmed */
+        addr += (data_cnt * 2);
         num  += data_cnt;
         cnt  -= data_cnt;
+
+        status = ControlSlaveSelect(false);
+
+        if (status != ARM_DRIVER_OK)
+        {
+            return ARM_DRIVER_ERROR;
+        }
 
         /* Read status until device ready */
         do
@@ -727,7 +842,7 @@ static int32_t ARM_Flash_ProgramData (uint32_t addr, const void *data, uint32_t 
         }while ((val & FLAG_STATUS_BUSY) == 0);
     }
 
-    status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+    status = ControlSlaveSelect(false);
     if (status != ARM_DRIVER_OK)
     {
         return ARM_DRIVER_ERROR;
@@ -769,8 +884,18 @@ static int32_t ARM_Flash_EraseSector (uint32_t addr)
         ISSI_FlashStatus.busy  = 1U;
         ISSI_FlashStatus.error = 0U;
 
+        status = ptrOSPI->Control(ARM_OSPI_MODE_MASTER |
+                    ARM_OSPI_DATA_BITS(8) |
+                    ARM_OSPI_SS_MASTER_SW,
+                    OSPI_BUS_SPEED);
+
+        if (status != ARM_DRIVER_OK)
+        {
+            return ARM_DRIVER_ERROR;
+        }
+
         /* Select Slave */
-        status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_ACTIVE);
+        status = ControlSlaveSelect(true);
 
         if (status == ARM_DRIVER_OK)
         {
@@ -793,11 +918,14 @@ static int32_t ARM_Flash_EraseSector (uint32_t addr)
                 return ARM_DRIVER_ERROR;
             }
 
-            while (!issi_event_flag);
-
-            if(!(issi_event_flag & ARM_OSPI_EVENT_TRANSFER_COMPLETE))
+            while (!issi_event_flag)
             {
-                ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+                 __WFE();
+            }
+
+            if (!(issi_event_flag & ARM_OSPI_EVENT_TRANSFER_COMPLETE))
+            {
+                ControlSlaveSelect(false);
                 issi_event_flag = 0;
                 return ARM_DRIVER_ERROR;
             }
@@ -827,10 +955,10 @@ static int32_t ARM_Flash_EraseSector (uint32_t addr)
                 {
                     ISSI_FlashStatus.error = 1U;
                 }
-            }while ((num & FLAG_STATUS_BUSY) == 0);
+            } while ((num & FLAG_STATUS_BUSY) == 0);
         }
 
-        status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+        status = ControlSlaveSelect(false);
     }
     return status;
 }
@@ -862,8 +990,19 @@ static int32_t ARM_Flash_EraseChip (void)
 
     if (status == ARM_DRIVER_OK)
     {
+
+        status = ptrOSPI->Control(ARM_OSPI_MODE_MASTER |
+                    ARM_OSPI_DATA_BITS(8) |
+                    ARM_OSPI_SS_MASTER_SW,
+                    OSPI_BUS_SPEED);
+
+        if (status != ARM_DRIVER_OK)
+        {
+            return ARM_DRIVER_ERROR;
+        }
+
         /* Select Slave */
-        status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_ACTIVE);
+        status = ControlSlaveSelect(true);
 
         if (status == ARM_DRIVER_OK)
         {
@@ -884,11 +1023,14 @@ static int32_t ARM_Flash_EraseChip (void)
                 return ARM_DRIVER_ERROR;
             }
 
-            while (!issi_event_flag);
-
-            if(!(issi_event_flag & ARM_OSPI_EVENT_TRANSFER_COMPLETE))
+            while (!issi_event_flag)
             {
-                ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+                 __WFE();
+            }
+
+            if (!(issi_event_flag & ARM_OSPI_EVENT_TRANSFER_COMPLETE))
+            {
+                ControlSlaveSelect(false);
                 issi_event_flag = 0;
                 return ARM_DRIVER_ERROR;
             }
@@ -918,9 +1060,9 @@ static int32_t ARM_Flash_EraseChip (void)
                 {
                     ISSI_FlashStatus.error = 1U;
                 }
-            }while ((num & FLAG_STATUS_BUSY) == 0);
+            } while ((num & FLAG_STATUS_BUSY) == 0);
         }
-        status = ptrOSPI->Control(ARM_OSPI_CONTROL_SS, ARM_OSPI_SS_INACTIVE);
+        status = ControlSlaveSelect(false);
     }
     return status;
 }
@@ -974,7 +1116,6 @@ static ARM_FLASH_INFO * ARM_Flash_GetInfo (void)
 }
 
 
-#if (RTE_OSPI_ISSI_FLASH)
 static ARM_FLASH_INFO * GetInfo (void)
 {
     return ARM_Flash_GetInfo();
@@ -1046,5 +1187,3 @@ ARM_DRIVER_FLASH ARM_Driver_Flash_(DRIVER_FLASH_NUM) = {
     GetStatus,
     GetInfo
 };
-#endif
-

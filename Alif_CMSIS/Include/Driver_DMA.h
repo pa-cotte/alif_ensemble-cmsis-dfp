@@ -28,7 +28,7 @@ extern "C"
 #define ARM_DMA_CONTROL_Msk             (0xFFUL)
 #define ARM_DMA_USER_PROVIDED_MCODE     (0x01UL)    ///< Use User provided microcode; arg = microcode address in memory
 #define ARM_DMA_I2S_MONO_MODE           (0x02UL)    ///< Support for I2S mono mode;
-#define ARM_DMA_NO_DEV_HANDSHAKE        (0x03UL)    ///< Skip peripheral flush and wait, use regular store instead of store and notify peripheral, used with ARM_DMA_MEM_TO_DEV.
+#define ARM_DMA_CRC_MODE                (0x03UL)    ///< Support for CRC which doesn't require handshaking
 
 /**
 \brief DMA Data Direction

@@ -131,6 +131,7 @@ typedef struct {                                     /*!< (@ 0x49034000) I3C Str
 #define DEVICE_CTRL                       0x0
 #define DEV_CTRL_ENABLE                   BIT(31)
 #define DEV_CTRL_RESUME                   BIT(30)
+#define DEV_CTRL_DMA_ENABLE               BIT(28)
 #define DEV_CTRL_HOT_JOIN_NACK            BIT(8)
 #define DEV_CTRL_I2C_SLAVE_PRESENT        BIT(7)
 
@@ -188,7 +189,8 @@ typedef struct {                                     /*!< (@ 0x49034000) I3C Str
 #define QUEUE_THLD_CTRL_RESP_BUF(x)       (((x) - 1) << 8)
 
 #define DATA_BUFFER_THLD_CTRL             0x20
-#define DATA_BUFFER_THLD_CTRL_RX_BUF      GENMASK(11, 8)
+#define DATA_BUFFER_THLD_CTRL_RX_BUF      GENMASK(10, 8)
+#define DATA_BUFFER_THLD_CTRL_TX_BUF      GENMASK(2, 0)
 
 #define IBI_QUEUE_CTRL                    0x24
 #define IBI_MR_REQ_REJECT                 0x2C
@@ -336,14 +338,20 @@ typedef enum
 */
 typedef enum
 {
-  I3C_XFER_STATUS_NONE                = 0,  /**< Transfer status none                           */
-  I3C_XFER_STATUS_DONE                = 1,  /**< Transfer status done                           */
-  I3C_XFER_STATUS_ERROR               = 2,  /**< Transfer status error                          */
-  I3C_XFER_STATUS_MST_TX_DONE         = 3,  /**< Transfer status master transmit done           */
-  I3C_XFER_STATUS_MST_RX_DONE         = 4,  /**< Transfer status master receive done            */
-  I3C_XFER_STATUS_SLV_TX_DONE         = 5,  /**< Transfer status slave transmit done            */
-  I3C_XFER_STATUS_SLV_RX_DONE         = 6,  /**< Transfer status slave receive done             */
-  I3C_XFER_STATUS_SLV_DYN_ADDR_ASSGN  = 7,  /**< Transfer status slave dynamic address assigned */
+  I3C_XFER_STATUS_NONE                = 0,           /**< Transfer status none                           */
+  I3C_XFER_STATUS_DONE                = (1UL << 0),  /**< Transfer status done                           */
+  I3C_XFER_STATUS_ERROR               = (1UL << 1),  /**< Transfer status error                          */
+  I3C_XFER_STATUS_MST_TX_DONE         = (1UL << 2),  /**< Transfer status master transmit done           */
+  I3C_XFER_STATUS_MST_RX_DONE         = (1UL << 3),  /**< Transfer status master receive done            */
+  I3C_XFER_STATUS_SLV_TX_DONE         = (1UL << 4),  /**< Transfer status slave transmit done            */
+  I3C_XFER_STATUS_SLV_RX_DONE         = (1UL << 5),  /**< Transfer status slave receive done             */
+  I3C_XFER_STATUS_SLV_DYN_ADDR_ASSGN  = (1UL << 6),  /**< Transfer status slave dynamic address assigned */
+  I3C_XFER_STATUS_CCC_SET_DONE        = (1UL << 7),  /**< Transfer status CCC set done                   */
+  I3C_XFER_STATUS_CCC_GET_DONE        = (1UL << 8),  /**< Transfer status CCC get done                   */
+  I3C_XFER_STATUS_ADDR_ASSIGN_DONE    = (1UL << 9),  /**< Transfer status Address Assign done            */
+  I3C_XFER_STATUS_ERROR_TX            = (1UL << 10), /**< Transfer status error  Master/Slave TX and CCC SET */
+  I3C_XFER_STATUS_ERROR_RX            = (1UL << 11), /**< Transfer status error  Master/Slave RX and CCC GET */
+  I3C_XFER_STATUS_ERROR_ADDR_ASSIGN   = (1UL << 12), /**< Transfer status error  Address Assign */
 } I3C_XFER_STATUS;
 
 /**
@@ -361,6 +369,125 @@ typedef struct _I3C_XFER
   volatile uint8_t          error;   /* error if any for this transfer             */
 }I3C_XFER;
 
+/**
+  \fn          void i3c_dma_enable(I3C_Type *i3c)
+  \brief       enable i3c dma
+  \param[in]   i3c   Pointer to i3c register map
+  \return      none
+*/
+static inline void i3c_dma_enable(I3C_Type *i3c)
+{
+  i3c->I3C_DEVICE_CTRL = i3c->I3C_DEVICE_CTRL | DEV_CTRL_DMA_ENABLE;
+}
+
+/**
+  \fn          void i3c_dma_disable(I3C_Type *i3c)
+  \brief       disable i3c dma
+  \param[in]   i3c   Pointer to i3c register map
+  \return      none
+*/
+static inline void i3c_dma_disable(I3C_Type *i3c)
+{
+    i3c->I3C_DEVICE_CTRL = i3c->I3C_DEVICE_CTRL & (~DEV_CTRL_DMA_ENABLE);
+}
+
+/**
+  \fn          void* i3c_get_dma_tx_addr(I3C_Type *i3c)
+  \brief       Return the DMA Tx Address(TX FIFO)
+  \param[in]   i3c   Pointer to i3c register map
+  \return      Return the DMA Tx address
+*/
+static inline void* i3c_get_dma_tx_addr(I3C_Type *i3c)
+{
+  return ((void *)&(i3c->I3C_TX_DATA_PORT));
+}
+
+/**
+  \fn          void* i3c_get_dma_rx_addr(I3C_Type *i3c)
+  \brief       Return the DMA Rx Address(RX FIFO)
+  \param[in]   i3c   Pointer to i3c register map
+  \return      Return the DMA Rx address
+*/
+static inline void* i3c_get_dma_rx_addr(I3C_Type *i3c)
+{
+  return ((void *)&(i3c->I3C_RX_DATA_PORT));
+}
+
+/**
+  \fn          uint8_t i3c_get_tx_empty_buf_thld(I3C_Type *i3c)
+  \brief       Get TX empty buffer thresold value
+  \param[in]   i3c   Pointer to i3c register map
+  \return      TX empty buffer thresold value
+*/
+static inline uint8_t i3c_get_tx_empty_buf_thld(I3C_Type *i3c)
+{
+  uint8_t  tx_thld_val  = 0;
+  uint32_t tx_empty_loc = (i3c->I3C_DATA_BUFFER_THLD_CTRL & \
+                           DATA_BUFFER_THLD_CTRL_TX_BUF);
+
+  /* as per datasheet each location is 4-bytes aligned.*/
+  switch(tx_empty_loc)
+  {
+  case 0:
+    tx_thld_val = 1;
+    break;
+  case 1:
+    tx_thld_val = 4;
+    break;
+  case 2:
+    tx_thld_val = 8;
+    break;
+  case 3:
+    tx_thld_val = 16;
+    break;
+  case 4:
+    tx_thld_val = 32;
+    break;
+  case 5:
+    tx_thld_val = 64;
+    break;
+  }
+
+  return tx_thld_val;
+}
+
+/**
+  \fn          uint8_t i3c_get_rx_buf_thld(I3C_Type *i3c)
+  \brief       Get RX buffer thresold value
+  \param[in]   i3c   Pointer to i3c register map
+  \return      RX buffer thresold value
+*/
+static inline uint8_t i3c_get_rx_buf_thld(I3C_Type *i3c)
+{
+  uint8_t  rx_thld_val  = 0;
+  uint32_t rx_empty_loc = ((i3c->I3C_DATA_BUFFER_THLD_CTRL &  \
+                            DATA_BUFFER_THLD_CTRL_RX_BUF) >> 8);
+
+  /* as per datasheet each location is 4-bytes aligned.*/
+  switch(rx_empty_loc)
+  {
+  case 0:
+    rx_thld_val = 1;
+    break;
+  case 1:
+    rx_thld_val = 4;
+    break;
+  case 2:
+    rx_thld_val = 8;
+    break;
+  case 3:
+    rx_thld_val = 16;
+    break;
+  case 4:
+    rx_thld_val = 32;
+    break;
+  case 5:
+    rx_thld_val = 64;
+    break;
+  }
+
+  return rx_thld_val;
+}
 
 /**
   \fn           void i3c_resume(I3C_Type *i3c)

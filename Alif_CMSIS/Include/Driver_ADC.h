@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -29,14 +29,16 @@ extern "c"
 #define ARM_ADC_API_VERSION ARM_DRIVER_VERSION_MAJOR_MINOR (1,0) /*API VERSION*/
 
 /**********ADC CONTROL CODE************/
-#define ARM_ADC_SHIFT_CONTROL                        (0x01UL)          /* ARM ADC SHIFT CONTROL                  */
+#define ARM_ADC_SHIFT_CTRL                           (0x01UL)          /* ARM ADC SHIFT CONTROL                  */
 #define ARM_ADC_SEQUENCER_CTRL                       (0x02UL)          /* ARM ADC SEQUENCER CONTROL              */
 #define ARM_ADC_SEQUENCER_MSK_CH_CTRL                (0x03UL)          /* ARM ADC SEQUENCER MASK CHANNEL CONTROL */
 #define ARM_ADC_CHANNEL_INIT_VAL                     (0x04UL)          /* ARM ADC CHANNEL INITIAL CONTROL        */
 #define ARM_ADC_COMPARATOR_A                         (0x05UL)          /* ARM ADC COMPARATOR A CONTROL           */
 #define ARM_ADC_COMPARATOR_B                         (0x06UL)          /* ARM ADC COMPARATOR B CONTROL           */
 #define ARM_ADC_THRESHOLD_COMPARISON                 (0X07UL)          /* ARM ADC THRESHOLD COMPARISON CONTROL   */
-#define ARM_ADC_COMPARATOR_CONTROLLER                (0x08UL)          /* ARM ADC COMPARATOR CONTROL             */
+#define ARM_ADC_CONVERSION_MODE_CTRL                 (0x08UL)          /* ARM ADC CONVERSION MODE CONTROL        */
+#define ARM_ADC_EXTERNAL_TRIGGER_ENABLE              (0X09UL)          /* ARM ADC EXTERNAL TRIGGER ENABLE        */
+#define ARM_ADC_EXTERNAL_TRIGGER_DISABLE             (0X10UL)          /* ARM ADC EXTERNAL TRIGGER DISABLE       */
 
 /*********THRESHOLD COMPARSION**********/
 #define ARM_ADC_ABOVE_A_AND_ABOVE_B                  (0X00UL)          /* ARM ADC THRESHOLD ABOVE A AND ABOVE B         */
@@ -52,9 +54,13 @@ extern "c"
 #define ARM_ADC_COMPARATOR_THRESHOLD_BETWEEN_A_B     (1 << 5)          /* ARM ADC COMPARATOR THRESHOLD BETWEEN A_B */
 #define ARM_ADC_COMPARATOR_THRESHOLD_OUTSIDE_A_B     (1 << 6)          /* ARM ADC COMPARATOR THRESHOLD OUTSIDE A_B */
 
+/**********ADC CONVERSION OPERATION**********/
+#define ARM_ADC_CONTINOUS_CH_CONV                    (0X00)            /* ARM ADC CHANNEL CONTINUOUS CONVERSION    */
+#define ARM_ADC_SINGLE_SHOT_CH_CONV                  (0X01)            /* ARM ADC CHANNEL SINGLE CONVERSION        */
+
 /**********ADC SCAN OPERATION**********/
-#define ARM_ADC_CH_CONTINOUS_SCAN                    (0X00)            /* ARM ADC CHANNEL CONTINUOUS SCAN */
-#define ARM_ADC_CH_SINGLE_SCAN                       (0X01)            /* ARM ADC CHANNEL SINGLE SCAN    */
+#define ARM_ADC_MULTIPLE_CH_SCAN                     (0x00)            /* ARM ADC MULTIPLE CHANNEL SCAN MODE */
+#define ARM_ADC_SINGLE_CH_SCAN                       (0x01)            /* ARM ADC SINGLE CHANNEL SCAN MODE   */
 
 /**********ADC CHANNELS******/
 #define ARM_ADC_CHANNEL_0                             (0x00)           /* ARM ADC CHANNEL 0 */
@@ -77,6 +83,14 @@ extern "c"
 #define ARM_ADC_MASK_CHANNEL_6                        (1 << ARM_ADC_CHANNEL_6)           /* ARM ADC MASK CHANNEL 6 */
 #define ARM_ADC_MASK_CHANNEL_7                        (1 << ARM_ADC_CHANNEL_7)           /* ARM ADC MASK CHANNEL 7 */
 #define ARM_ADC_MASK_CHANNEL_8                        (1 << ARM_ADC_CHANNEL_8)           /* ARM ADC MASK CHANNEL 8 */
+
+/* External trigger macros */
+#define ARM_ADC_EXTERNAL_TRIGGER_SRC_0               (1UL << 0)           /* ARM ADC EXTERNAL TRIGGER SOURCE 0 */
+#define ARM_ADC_EXTERNAL_TRIGGER_SRC_1               (1UL << 1)           /* ARM ADC EXTERNAL TRIGGER SOURCE 1 */
+#define ARM_ADC_EXTERNAL_TRIGGER_SRC_2               (1UL << 2)           /* ARM ADC EXTERNAL TRIGGER SOURCE 2 */
+#define ARM_ADC_EXTERNAL_TRIGGER_SRC_3               (1UL << 3)           /* ARM ADC EXTERNAL TRIGGER SOURCE 3 */
+#define ARM_ADC_EXTERNAL_TRIGGER_SRC_4               (1UL << 4)           /* ARM ADC EXTERNAL TRIGGER SOURCE 4 */
+#define ARM_ADC_EXTERNAL_TRIGGER_SRC_5               (1UL << 5)           /* ARM ADC EXTERNAL TRIGGER SOURCE 5 */
 
 // Function documentation
 /**
@@ -119,7 +133,7 @@ extern "c"
     @return       : Execution status
 */
 
-typedef void (*ARM_ADC_SignalEvent_t) (uint32_t event);    /*Pointer to \ref ADC_SignalEvent : Signal ADC Event*/
+typedef void (*ARM_ADC_SignalEvent_t) (uint32_t event, uint8_t channel, uint32_t value);    /*Pointer to \ref ADC_SignalEvent : Signal ADC Event*/
 
 typedef struct _ARM_ADC_CAPABILITIES{
     uint32_t Resolution         :1;     /* Resolution 12 or 20 bits*/
@@ -132,7 +146,7 @@ typedef struct ARM_DRIVER_ADC{
     ARM_ADC_CAPABILITIES    (*GetCapabilities)  (void);                             /* Pointer  to ADC_get_capabilities                               */
     int32_t                 (*Initialize)       (ARM_ADC_SignalEvent_t cb_event);   /* Pointer pointing to \ref ADC_intialize                         */
     int32_t                 (*Uninitialize)     (void);                             /* Pointer pointing to \ref ADC_Unintialize	                      */
-    int32_t                 (*Start)            (uint32_t *data, uint32_t num);     /* Pointer to \ref ADC_Start                                      */
+    int32_t                 (*Start)            (void);                             /* Pointer to \ref ADC_Start                                      */
     int32_t                 (*Stop)             (void);                             /* pointer to \ref ADC_Stop                                       */
     int32_t                 (*PowerControl)     (ARM_POWER_STATE state);            /* Pointer to \ref ADC_PowerControl : Control ADC Interface Power */
     int32_t                 (*Control)          (uint32_t Control, uint32_t arg);   /* Pointer to \ref ADC_Control : Control ADC Interface            */

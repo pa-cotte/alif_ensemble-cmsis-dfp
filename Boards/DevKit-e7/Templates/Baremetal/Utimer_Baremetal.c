@@ -38,6 +38,10 @@
 
 #include "RTE_Components.h"
 #include CMSIS_device_header
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
 
 /* GPIO related definitions */
 #define GPIO3                          3
@@ -62,82 +66,6 @@ static volatile uint32_t cb_compare_a_status = 0;
 static volatile uint32_t cb_compare_a_buf1_status = 0;
 static volatile uint32_t cb_compare_a_buf2_status = 0;
 
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
-
-#ifdef DISABLE_PRINTF
-#define printf(fmt, ...) (0)
-/* Also Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-__asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
-
-void _sys_exit(int return_code) {
-   while (1);
-}
-#endif
-
-/**
- * @function    int pinmux_config(ARM_UTIMER_MODE mode)
- * @brief       UTIMER hardware pin initialization using pinmux driver
- * @note        none
- * @param       mode
- * @retval      execution status
- */
-static int32_t pinmux_config(ARM_UTIMER_MODE mode)
-{
-    int32_t ret;
-
-    /* Trigger mode is configured on UTIMER channel 3, Configure P0_6 as UT3_A and P0_7 as UT3_B */
-    if (mode == ARM_UTIMER_MODE_TRIGGERING)
-    {
-        ret = pinconf_set (PORT_0, PIN_6, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE);
-        if(ret != ARM_DRIVER_OK) {
-            printf("\r\n Error in PINMUX.\r\n");
-            return -1;
-        }
-
-        ret = pinconf_set (PORT_0, PIN_7, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE);
-        if(ret != ARM_DRIVER_OK) {
-            printf("\r\n Error in PINMUX.\r\n");
-            return -1;
-        }
-    }
-    /* Capture mode is configured on UTIMER channel 4. Configure P1_0 as UT4_A and P1_1 as UT4_B */
-    else if (mode == ARM_UTIMER_MODE_CAPTURING)
-    {
-        ret = pinconf_set (PORT_1, PIN_0, PINMUX_ALTERNATE_FUNCTION_4, PADCTRL_READ_ENABLE);
-        if(ret != ARM_DRIVER_OK) {
-            printf("\r\n Error in PINMUX.\r\n");
-            return -1;
-        }
-        ret = pinconf_set (PORT_1, PIN_1, PINMUX_ALTERNATE_FUNCTION_4, PADCTRL_READ_ENABLE);
-        if(ret != ARM_DRIVER_OK) {
-            printf("\r\n Error in PINMUX.\r\n");
-            return -1;
-        }
-    }
-    /* Compare mode is configured on UTIMER channel 5, Configure P1_2 as utimer driver_A output */
-    else if (mode == ARM_UTIMER_MODE_COMPARING)
-    {
-        ret = pinconf_set (PORT_1, PIN_2, PINMUX_ALTERNATE_FUNCTION_4, 0);
-        if(ret != ARM_DRIVER_OK) {
-            printf("\r\n Error in PINMUX.\r\n");
-            return -1;
-        }
-    }
-    else
-    {
-        return -1;
-    }
-
-    return ARM_DRIVER_OK;
-}
-
 /**
  * @function    int gpio_init(ARM_UTIMER_MODE mode)
  * @brief       GPIO initialization using gpio driver
@@ -147,7 +75,7 @@ static int32_t pinmux_config(ARM_UTIMER_MODE mode)
  */
 static int32_t gpio_init(ARM_UTIMER_MODE mode)
 {
-    int32_t ret = ARM_DRIVER_OK;
+    int32_t ret;
 
     if(mode == ARM_UTIMER_MODE_TRIGGERING)
     {
@@ -166,7 +94,7 @@ static int32_t gpio_init(ARM_UTIMER_MODE mode)
 
         ret = ptrDrv->PowerControl(GPIO3_PIN5, ARM_POWER_FULL);
         if (ret != ARM_DRIVER_OK) {
-            printf("ERROR: Failed to Powered the GPIO3_PIN5\n");
+            printf("ERROR: Failed to Power up GPIO3_PIN5\n");
             return -1;
         }
 
@@ -197,7 +125,7 @@ static int32_t gpio_init(ARM_UTIMER_MODE mode)
 
         ret = ptrDrv->PowerControl(GPIO3_PIN6, ARM_POWER_FULL);
         if (ret != ARM_DRIVER_OK) {
-            printf("ERROR: Failed to Powered the GPIO3_PIN6\n");
+            printf("ERROR: Failed to Power up GPIO3_PIN6\n");
             return -1;
         }
 
@@ -231,7 +159,7 @@ static int32_t gpio_init(ARM_UTIMER_MODE mode)
 
         ret = ptrDrv->PowerControl(GPIO3_PIN3, ARM_POWER_FULL);
         if (ret != ARM_DRIVER_OK) {
-            printf("ERROR: Failed to Powered the GPIO3_PIN3\n");
+            printf("ERROR: Failed to Power up GPIO3_PIN3\n");
             return -1;
         }
 
@@ -262,7 +190,7 @@ static int32_t gpio_init(ARM_UTIMER_MODE mode)
 
         ret = ptrDrv->PowerControl(GPIO3_PIN4, ARM_POWER_FULL);
         if (ret != ARM_DRIVER_OK) {
-            printf("ERROR: Failed to Powered the GPIO3_PIN4\n");
+            printf("ERROR: Failed to Power up GPIO3_PIN4\n");
             return -1;
         }
 
@@ -294,7 +222,7 @@ static int32_t gpio_init(ARM_UTIMER_MODE mode)
  * @param       event
  * @retval      none
  */
-static void utimer_basic_mode_cb_func (uint32_t event)
+static void utimer_basic_mode_cb_func (uint8_t event)
 {
     if (event & ARM_UTIMER_EVENT_OVER_FLOW) {
         cb_basic_status++;
@@ -373,7 +301,9 @@ static void utimer_basic_mode_app(void)
         printf("utimer channel '%d': timer started\n", channel);
     }
 
-    PMU_delay_loop_us (500000);
+    for(uint32_t count = 0; count < 5; count++)
+        sys_busy_loop_us(100000);
+
     if (cb_basic_status) {
         cb_basic_status = 0;
         printf("utimer channel %d :500ms timer expired \n", channel);
@@ -412,7 +342,7 @@ error_basic_mode_uninstall:
  * @param       event
  * @retval      none
  */
-static void utimer_buffering_mode_cb_func (uint32_t event)
+static void utimer_buffering_mode_cb_func (uint8_t event)
 {
     if (event & ARM_UTIMER_EVENT_OVER_FLOW) {
         cb_buffer_status ++;
@@ -518,7 +448,9 @@ static void utimer_buffering_mode_app (void)
 
     for (index=1; index<=3; index++)
     {
-        PMU_delay_loop_us (500000 * index);
+        for(uint32_t count = 0; count < (5 * index); count++)
+            sys_busy_loop_us(100000);
+
         if (cb_buffer_status) {
             cb_buffer_status = 0;
             printf("utimer channel %d: %d ms timer expired\n", channel, (500*index));
@@ -558,7 +490,7 @@ error_buffering_mode_uninstall:
  * @param       event
  * @retval      none
  */
-static void utimer_trigger_mode_cb_func (uint32_t event)
+static void utimer_trigger_mode_cb_func (uint8_t event)
 {
     if (event & ARM_UTIMER_EVENT_OVER_FLOW) {
         cb_trigger_status = 1;
@@ -608,13 +540,19 @@ static void utimer_trigger_mode_app(void)
     count_array[0] = 0;            /*< initial counter value >*/
     count_array[1] = 0xBEBC200;    /*< over flow count value >*/
 
-    ret = pinmux_config(ARM_UTIMER_MODE_TRIGGERING);
-    if (ret != ARM_DRIVER_OK) {
-        printf("pinmux failed\n");
+    /* trigger mode pin config */
+    ret = pinconf_set (PORT_0, PIN_6, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE);
+    if(ret != ARM_DRIVER_OK) {
+        printf("\r\n Error in PINMUX.\r\n");
+    }
+
+    ret = pinconf_set (PORT_0, PIN_7, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE);
+    if(ret != ARM_DRIVER_OK) {
+        printf("\r\n Error in PINMUX.\r\n");
     }
 
     ret = gpio_init(ARM_UTIMER_MODE_TRIGGERING);
-    if (ret != ARM_DRIVER_OK) {
+    if (ret) {
         printf("gpio init failed\n");
     }
 
@@ -702,13 +640,13 @@ error_trigger_mode_uninstall:
 }
 
 /**
- * @function    void utimer_capture_mode_cb_funcc(event)
+ * @function    void utimer_capture_mode_cb_func(event)
  * @brief       utimer capture mode callback function
  * @note        none
  * @param       event
  * @retval      none
  */
-static void utimer_capture_mode_cb_func(uint32_t event)
+static void utimer_capture_mode_cb_func(uint8_t event)
 {
     if(event == ARM_UTIMER_EVENT_CAPTURE_A) {
         cb_capture_status++;
@@ -758,15 +696,20 @@ static void utimer_capture_mode_app(void)
     count_array[0] = 0;             /*< initial counter value >*/
     count_array[1] = 0x17D78400;    /*< over flow count value >*/
 
-    /* capture mode pin confg */
-    ret = pinmux_config(ARM_UTIMER_MODE_CAPTURING);
-    if (ret != ARM_DRIVER_OK) {
-        printf("pinmux failed\n");
+    /* capture mode pin config */
+    ret = pinconf_set(PORT_1, PIN_0, PINMUX_ALTERNATE_FUNCTION_4, PADCTRL_READ_ENABLE);
+    if(ret != ARM_DRIVER_OK) {
+        printf("\r\n Error in PINMUX.\r\n");
+    }
+
+    ret = pinconf_set(PORT_1, PIN_1, PINMUX_ALTERNATE_FUNCTION_4, PADCTRL_READ_ENABLE);
+    if(ret != ARM_DRIVER_OK) {
+        printf("\r\n Error in PINMUX.\r\n");
     }
 
     /* GPIO pin confg */
     ret = gpio_init(ARM_UTIMER_MODE_CAPTURING);
-    if (ret != ARM_DRIVER_OK) {
+    if (ret) {
         printf("gpio init failed\n");
     }
 
@@ -820,7 +763,7 @@ static void utimer_capture_mode_app(void)
     for(int index=0; index<3; index++)
     {
         /* Delay of 100 ms */
-        PMU_delay_loop_us (100000);
+        sys_busy_loop_us (100000);
         ret = ptrDrv->SetValue(GPIO3_PIN3, GPIO_PIN_OUTPUT_STATE_HIGH);
         if ((ret != ARM_DRIVER_OK)) {
             printf("ERROR: Failed to configure\n");
@@ -871,7 +814,7 @@ error_capture_mode_uninstall:
  * @param       event
  * @retval      none
  */
-static void utimer_compare_mode_cb_func(uint32_t event)
+static void utimer_compare_mode_cb_func(uint8_t event)
 {
     if (event == ARM_UTIMER_EVENT_COMPARE_A) {
         cb_compare_a_status = 1;
@@ -916,15 +859,15 @@ static void utimer_compare_mode_app(void)
      * DEC = 400000000
      * HEX = 0x17D78400
      *
-     * So count for 250ms = (250*(10^-6)/(0.0025*(10^-6)) = 100000000
+     * So count for 250ms = (250*(10^-3)/(0.0025*(10^-6)) = 100000000
      * DEC = 100000000
      * HEX = 0x5F5E100
      *
-     * So count for 500ms = (500*(10^-6)/(0.0025*(10^-6)) = 200000000
+     * So count for 500ms = (500*(10^-3)/(0.0025*(10^-6)) = 200000000
      * DEC = 200000000
      * HEX = 0xBEBC200
      *
-     * So count for 750ms = (750*(10^-6)/(0.0025*(10^-6)) = 300000000
+     * So count for 750ms = (750*(10^-3)/(0.0025*(10^-6)) = 300000000
      * DEC = 300000000
      * HEX = 0x11E1A300
      */
@@ -935,9 +878,9 @@ static void utimer_compare_mode_app(void)
     count_array[4] =  0x11E1A300;        /*< compare a/b buf2 value>*/
 
     /* compare mode pin confg */
-    ret = pinmux_config(ARM_UTIMER_MODE_COMPARING);
-    if (ret != ARM_DRIVER_OK) {
-        printf("pinmux failed\n");
+    ret = pinconf_set (PORT_1, PIN_2, PINMUX_ALTERNATE_FUNCTION_4, 0);
+    if(ret != ARM_DRIVER_OK) {
+        printf("\r\n Error in PINMUX.\r\n");
     }
 
     ret = ptrUTIMER->Initialize (channel, utimer_compare_mode_cb_func);
@@ -1049,6 +992,16 @@ error_compare_mode_uninstall:
 
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
     utimer_basic_mode_app();
     utimer_buffering_mode_app();
     utimer_trigger_mode_app();

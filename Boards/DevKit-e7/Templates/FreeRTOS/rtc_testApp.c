@@ -31,27 +31,15 @@
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
 #include "task.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
 
 /* Project Includes */
 
 /* include for RTC Driver */
 #include "Driver_RTC.h"
-
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
-
-#ifdef DISABLE_PRINTF
-  #define printf( fmt, ... ) ( 0 )
-  /* Also Disable Semihosting */
-  #if __ARMCC_VERSION >= 6000000
-    __asm( ".global __use_no_semihosting" );
-  #elif __ARMCC_VERSION >= 5000000
-    #pragma import( __use_no_semihosting )
-  #else
-    #error Unsupported compiler
-  #endif
-  void _sys_exit( int return_code ) { while ( 1 ); }
-#endif
 
 /*Define for FreeRTOS*/
 #define STACK_SIZE     1024
@@ -142,7 +130,6 @@ void rtc_demo_Thread(void *pvParameters)
     uint32_t  val      = 0;
     uint32_t  iter     = 5;
     uint32_t  timeout  = 5;
-    uint64_t  events   = 0;
     int       ret      = 0;
     BaseType_t xReturned;
 
@@ -230,6 +217,16 @@ error_uninitialize:
  *---------------------------------------------------------------------------*/
 int main( void )
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
    /* System Initialization */
    SystemCoreClockUpdate();
    /* Create application main thread */

@@ -23,6 +23,16 @@ extern "C"
 #include "Driver_I3C.h"
 #include "i3c.h"
 
+/* Check if DMA Support is enable? */
+#if RTE_I3C_DMA_ENABLE
+#define I3C_DMA_ENABLE  1
+#else
+#define I3C_DMA_ENABLE  0
+#endif
+
+#if I3C_DMA_ENABLE
+#include <DMA_Common.h>
+#endif
 
 /**
 \brief I3C Driver states.
@@ -36,6 +46,14 @@ typedef volatile struct _I3C_DRIVER_STATE
   uint32_t reserved       : 28;/* Reserved              */
 } I3C_DRIVER_STATE;
 
+#if I3C_DMA_ENABLE
+typedef struct _I3C_DMA_HW_CONFIG
+{
+  DMA_PERIPHERAL_CONFIG dma_tx; /* DMA Tx interface */
+  DMA_PERIPHERAL_CONFIG dma_rx; /* DMA Rx interface */
+} I3C_DMA_HW_CONFIG;
+#endif
+
 /**
 \brief I3C Device Resources
 */
@@ -43,6 +61,11 @@ typedef struct _I3C_RESOURCES
 {
   I3C_Type              *regs;             /* Pointer to i3c regs                                */
   ARM_I3C_SignalEvent_t  cb_event;         /* Pointer to call back function                      */
+
+#if I3C_DMA_ENABLE
+  ARM_DMA_SignalEvent_t  dma_cb;           /* Pointer to DMA  Callback                           */
+#endif
+
   uint32_t               core_clk;         /* i3c core clock frequency                           */
   uint32_t               datp;             /* DAT (Device Address Table) offset                  */
   uint32_t               maxdevs;          /* maximum number of slaves supported                 */
@@ -53,6 +76,12 @@ typedef struct _I3C_RESOURCES
   I3C_DRIVER_STATE       state;            /* I3C driver state                                   */
   IRQn_Type              irq;              /* i3c interrupt number                               */
   uint32_t               irq_priority;     /* i3c interrupt priority                             */
+
+#if I3C_DMA_ENABLE
+  I3C_DMA_HW_CONFIG     *dma_cfg;          /* DMA Controller configuration                       */
+  const uint32_t         dma_irq_priority; /* DMA IRQ priority number                            */
+#endif
+
 }I3C_RESOURCES;
 
 

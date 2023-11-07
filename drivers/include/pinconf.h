@@ -17,8 +17,8 @@
  * @brief    Pin configuration.
  ******************************************************************************/
 
-#ifndef __PINCONF_H__
-#define __PINCONF_H__
+#ifndef _PINCONF_H_
+#define _PINCONF_H_
 
 #ifdef __cplusplus
 extern "C"
@@ -45,7 +45,8 @@ extern "C"
 #define PORT_12                                             12U
 #define PORT_13                                             13U
 #define PORT_14                                             14U
-#define PORT_LP                                             15U
+#define PORT_15                                             15U
+#define PORT_LP                                             PORT_15  /* PORT 15 name Alias */
 
 #define PIN_0                                               0U
 #define PIN_1                                               1U
@@ -72,10 +73,10 @@ extern "C"
 #define PADCTRL_DRIVER_DISABLED_PULL_UP                     0x08U
 #define PADCTRL_DRIVER_DISABLED_PULL_DOWN                   0x10U
 #define PADCTRL_DRIVER_DISABLED_BUS_REPEATER                0x18U
-#define PADCTRL_OUTPUT_DRIVE_STRENGTH_02_MILI_AMPS          0x00U
-#define PADCTRL_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS          0x20U
-#define PADCTRL_OUTPUT_DRIVE_STRENGTH_08_MILI_AMPS          0x40U
-#define PADCTRL_OUTPUT_DRIVE_STRENGTH_12_MILI_AMPS          0x60U
+#define PADCTRL_OUTPUT_DRIVE_STRENGTH_2MA                   0x00U
+#define PADCTRL_OUTPUT_DRIVE_STRENGTH_4MA                   0x20U
+#define PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA                   0x40U
+#define PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA                  0x60U
 #define PADCTRL_DRIVER_OPEN_DRAIN                           0x80U
 
 /**
@@ -103,4 +104,4 @@ int32_t pinconf_get(uint8_t port, uint8_t pin, uint8_t *alt_func, uint8_t *pad_c
 #ifdef  __cplusplus
 }
 #endif /* __cplusplus */
-#endif /* __PINCONF_H__ */
+#endif /* _PINCONF_H_ */

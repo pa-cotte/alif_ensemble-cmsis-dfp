@@ -50,28 +50,41 @@ extern "c"
 
 #define ARM_PDM_PEAK_DETECTION_NODE                         0x0CUL
 #define ARM_PDM_SAMPLE_ADVANCE                              0x0DUL
-#define ARM_PDM_DMA_HANDSHAKE                               0x0EUL
 
 /* PDM event */
 #define ARM_PDM_EVENT_ERROR                                (1UL << 0)
 #define ARM_PDM_EVENT_CAPTURE_COMPLETE                     (1UL << 1)
 #define ARM_PDM_EVENT_AUDIO_DETECTION                      (1UL << 2)
 
-/* PDM maximum channel */
-#define PDM_MAX_CHANNEL                                     8
+#define ARM_PDM_SELECT_RESOLUTION                          (1UL << 3)
+
+#define ARM_PDM_16BIT_RESOLUTION                           (1UL << 4)
+#define ARM_PDM_32BIT_RESOLUTION                           (1UL << 5)
 
 /* PDM channel FIR length */
 #define PDM_MAX_FIR_COEFFICIENT                             18
 
+#define ARM_PDM_SELECT_CHANNEL                              0x01UL
+
 /* PDM channels */
-#define ARM_PDM_AUDIO_CHANNEL_0                            (1 << 0)
-#define ARM_PDM_AUDIO_CHANNEL_1                            (1 << 1)
-#define ARM_PDM_AUDIO_CHANNEL_2                            (1 << 2)
-#define ARM_PDM_AUDIO_CHANNEL_3                            (1 << 3)
-#define ARM_PDM_AUDIO_CHANNEL_4                            (1 << 4)
-#define ARM_PDM_AUDIO_CHANNEL_5                            (1 << 5)
-#define ARM_PDM_AUDIO_CHANNEL_6                            (1 << 6)
-#define ARM_PDM_AUDIO_CHANNEL_7                            (1 << 7)
+#define ARM_PDM_AUDIO_CHANNEL_0                            (0x00)
+#define ARM_PDM_AUDIO_CHANNEL_1                            (0x01)
+#define ARM_PDM_AUDIO_CHANNEL_2                            (0x02)
+#define ARM_PDM_AUDIO_CHANNEL_3                            (0x03)
+#define ARM_PDM_AUDIO_CHANNEL_4                            (0x04)
+#define ARM_PDM_AUDIO_CHANNEL_5                            (0x05)
+#define ARM_PDM_AUDIO_CHANNEL_6                            (0x06)
+#define ARM_PDM_AUDIO_CHANNEL_7                            (0x07)
+
+/* PDM mask channels */
+#define ARM_PDM_MASK_CHANNEL_0                             (1 << ARM_PDM_AUDIO_CHANNEL_0)
+#define ARM_PDM_MASK_CHANNEL_1                             (1 << ARM_PDM_AUDIO_CHANNEL_1)
+#define ARM_PDM_MASK_CHANNEL_2                             (1 << ARM_PDM_AUDIO_CHANNEL_2)
+#define ARM_PDM_MASK_CHANNEL_3                             (1 << ARM_PDM_AUDIO_CHANNEL_3)
+#define ARM_PDM_MASK_CHANNEL_4                             (1 << ARM_PDM_AUDIO_CHANNEL_4)
+#define ARM_PDM_MASK_CHANNEL_5                             (1 << ARM_PDM_AUDIO_CHANNEL_5)
+#define ARM_PDM_MASK_CHANNEL_6                             (1 << ARM_PDM_AUDIO_CHANNEL_6)
+#define ARM_PDM_MASK_CHANNEL_7                             (1 << ARM_PDM_AUDIO_CHANNEL_7)
 
 typedef void (*ARM_PDM_SignalEvent_t) (uint32_t event);  /*Pointer to \ref PDM_SignalEvent : Signal PDM Event*/
 
@@ -90,43 +103,26 @@ typedef struct _PDM_CH_CONFIG {
 }PDM_CH_CONFIG;
 
 /**
- * brief: PDM Capture Configuration
- */
-typedef struct _PDM_Capture_CONFIG {
-    uint8_t en_multiple_ch;         /* Select the multiple channel */
-    uint32_t *ch0_1_addr;           /* Channel 0 and 1 audio output values are stored in this address provided by user */
-    uint32_t *ch2_3_addr;           /* Channel 2 and 3 audio output values are stored in this address provided by user */
-    uint32_t *ch4_5_addr;           /* Channel 4 and 5 audio output values are stored in this address provided by user */
-    uint32_t *ch6_7_addr;           /* Channel 6 and 7 audio output values are stored in this address provided by user */
-    uint32_t total_no_samples;      /* Store total number of samples */
-    uint32_t fifo_watermark;        /* Store fifo watermark threshold value */
-}PDM_Capture_CONFIG;
-
-/**
  @brief : PDM Driver Capabilities
  */
 typedef struct _ARM_PDM_CAPABILITIES{
-    uint32_t MICROPHONE_SLEEP_MODE        :1;   /* Supports Microphone sleep mode*/
-    uint32_t STANDARD_VOICE_MODE          :1;   /* Supports Standard voice mode */
-    uint32_t HIGH_QUALITY_VOICE_MODE      :1;   /* Supports High quality voice mode */
-    uint32_t WIDE_BANDWIDTH_AUDIO_MODE    :1;   /* Supports Wide bandwidth audio mode */
-    uint32_t FULL_BANDWIDTH_AUDIO_MODE    :1;   /* Supports Full bandwidth audio mode */
-    uint32_t ULTRASOUND_MODE              :1;   /* Supports Ultrasound mode */
-    uint32_t reserved                     :27;  /* Reserved (must be Zero) */
+    uint32_t mono_mode     :1;   /* supports Mono mode           */
+    uint32_t synchronous   :1;   /* supports synchronous Receive */
+    uint32_t reserved      :29;  /* Reserved (must be Zero)      */
 }ARM_PDM_CAPABILITIES;
 
 /**
  @brief  Access Structure of PDM Driver
 */
 typedef struct ARM_DRIVER_PDM{
-    ARM_DRIVER_VERSION            (*GetVersion)        (void);                                 /* pointer is pointing to PDM_GetVersion : used to get the driver version */
+    ARM_DRIVER_VERSION            (*GetVersion)        (void);                                 /* pointer is pointing to PDM_GetVersion : used to get the driver version        */
     ARM_PDM_CAPABILITIES          (*GetCapabilities)   (void);                                 /* pointer is pointing to PDM_Capabilities : used to get the driver capabilities */
-    int32_t                       (*Initialize)        (ARM_PDM_SignalEvent_t cb_event);       /* Pointer pointing to \ref PDM_intialize */
-    int32_t                       (*Uninitialize)      (void);                                 /* Pointer to PDM_Uninitialize : Un-initialize comparator Interface */
-    int32_t                       (*PowerControl)      (ARM_POWER_STATE state);                /* Pointer to PDM_PowerControl : Control Comparator Interface Power */
-    int32_t                       (*Control)           (uint32_t control, uint32_t arg);       /* Pointer to PDM_Control : Control Comparator Interface */
-    int32_t                       (*Config)            (PDM_CH_CONFIG *cnfg);                  /* Pointer to PDM Config: Channel configurations specific to each channel */
-    int32_t                       (*Capture)           (PDM_Capture_CONFIG *cap_cnfg) ;        /* Pointer to PDM_Capture : PDM Capture Configuration */
+    int32_t                       (*Initialize)        (ARM_PDM_SignalEvent_t cb_event);       /* Pointer pointing to \ref PDM_intialize                                        */
+    int32_t                       (*Uninitialize)      (void);                                 /* Pointer to PDM_Uninitialize : Un-initialize comparator Interface              */
+    int32_t                       (*PowerControl)      (ARM_POWER_STATE state);                /* Pointer to PDM_PowerControl : Control Comparator Interface Power              */
+    int32_t                       (*Control)           (uint32_t control, uint32_t arg);       /* Pointer to PDM_Control : Control Comparator Interface                         */
+    int32_t                       (*Config)            (PDM_CH_CONFIG *cnfg);                  /* Pointer to PDM Config: Channel configurations specific to each channel        */
+    int32_t                       (*Receive)           (void *data, uint32_t num);             /* Pointer to Receive : PDM Receive Configuration                                */
 }const ARM_DRIVER_PDM;
 
 #endif /* DRIVER_PDM_H_ */

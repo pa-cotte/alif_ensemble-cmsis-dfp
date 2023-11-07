@@ -31,7 +31,7 @@ void pdm_error_detect_irq_handler(PDM_Type *pdm)
 void pdm_audio_detect_irq_handler(PDM_Type *pdm, pdm_transfer_t *transfer )
 {
     /* Check current count is greater than the buffer size */
-    if (transfer->curr_cnt  >= (transfer->total_cnt))
+    if(transfer->curr_cnt  >= (transfer->total_cnt))
     {
         transfer->status |= PDM_AUDIO_STATUS_DETECTION;
 
@@ -76,39 +76,59 @@ void pdm_warning_irq_handler(PDM_Type *pdm, pdm_transfer_t *transfer)
 
             if(transfer->curr_cnt < transfer->total_cnt)
             {
-                /* Check for channel 0 and 1 */
-                if(audio_ch & PDM_CHANNEL_0_1)
+                if((audio_ch & PDM_CHANNEL_0 )== PDM_CHANNEL_0)
                 {
-                    /* Store the ch 0 and 1 audio output values in the user buffer memory */
-                    transfer->ch0_1_addr[transfer->curr_cnt] = audio_ch_0_1;
+                    /* Store the ch 0 audio output values in the user buffer memory */
+                    ((uint16_t *)transfer->buf)[transfer->curr_cnt] = (uint16_t)(audio_ch_0_1);
+                    transfer->curr_cnt ++;
                 }
-
-                /* Check for channel 2 and 3 */
-                if(audio_ch & PDM_CHANNEL_2_3)
+                if((audio_ch & PDM_CHANNEL_1) == PDM_CHANNEL_1)
                 {
-                    /* Store the ch 2 and 3 audio output values in the user buffer memory */
-                    transfer->ch2_3_addr[transfer->curr_cnt] = audio_ch_2_3;
+                    /* Store the ch 1 audio output values in the user buffer memory */
+                    ((uint16_t *)transfer->buf)[transfer->curr_cnt] = (uint16_t)(audio_ch_0_1 >> 16);
+                    transfer->curr_cnt ++;
                 }
-
-                /* Check for channel 4 and 5 */
-                if(audio_ch & PDM_CHANNEL_4_5)
+                if((audio_ch & PDM_CHANNEL_2) == PDM_CHANNEL_2)
                 {
-                    /* Store the ch 4 and 5 audio output values in the user buffer memory */
-                    transfer->ch4_5_addr[transfer->curr_cnt] = audio_ch_4_5;
+                    /* Store the ch 2 audio output values in the user buffer memory */
+                    ((uint16_t *)transfer->buf)[transfer->curr_cnt] = (uint16_t)(audio_ch_2_3);
+                    transfer->curr_cnt ++;
                 }
-
-                /* Check for channel 6 and 7 */
-                if(audio_ch & PDM_CHANNEL_6_7)
+                if((audio_ch & PDM_CHANNEL_3) == PDM_CHANNEL_3)
                 {
-                    /* Store the ch 6 and 7 audio output values in the user buffer memory */
-                    transfer->ch6_7_addr[transfer->curr_cnt] = audio_ch_6_7;
+                    /* Store the ch 3 audio output values in the user buffer memory */
+                    ((uint16_t *)transfer->buf)[transfer->curr_cnt] = (uint16_t)(audio_ch_2_3 >> 16);
+                    transfer->curr_cnt ++;
                 }
-                transfer->curr_cnt ++;
+                if((audio_ch &  PDM_CHANNEL_4) == PDM_CHANNEL_4)
+                {
+                    /* Store the ch 4 audio output values in the user buffer memory */
+                    ((uint16_t *)transfer->buf)[transfer->curr_cnt] = (uint16_t)(audio_ch_4_5);
+                    transfer->curr_cnt ++;
+                }
+                if((audio_ch & PDM_CHANNEL_5) == PDM_CHANNEL_5)
+                {
+                    /* Store the ch 5 audio output values in the user buffer memory */
+                    ((uint16_t *)transfer->buf)[transfer->curr_cnt] = (uint16_t)(audio_ch_4_5 >> 16);
+                    transfer->curr_cnt ++;
+                }
+                if((audio_ch & PDM_CHANNEL_6)== PDM_CHANNEL_6)
+                {
+                    /* Store the ch 6 audio output values in the user buffer memory */
+                    ((uint16_t *)transfer->buf)[transfer->curr_cnt] = (uint16_t)(audio_ch_6_7);
+                    transfer->curr_cnt ++;
+                }
+                if((audio_ch & PDM_CHANNEL_7) == PDM_CHANNEL_7)
+                {
+                    /* Store the ch 7 audio output values in the user buffer memory */
+                    ((uint16_t *)transfer->buf)[transfer->curr_cnt] = (uint16_t)(audio_ch_6_7 >> 16);
+                    transfer->curr_cnt ++;
+                }
             }
         }
     }
 
-    if (transfer->curr_cnt  >= (transfer->total_cnt ))
+    if(transfer->curr_cnt  >= (transfer->total_cnt ))
     {
         if(fifo_almost_full_irq== 1)
         {
