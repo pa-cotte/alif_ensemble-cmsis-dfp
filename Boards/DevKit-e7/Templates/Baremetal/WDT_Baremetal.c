@@ -89,7 +89,7 @@ void watchdog_demo_entry()
 	ret = WDTdrv->Control(ARM_WATCHDOG_UNLOCK, 0);
 	if(ret != ARM_DRIVER_OK){
 		printf("\r\n Error: watchdog unlock failed\n");
-		goto error_stop;
+		goto error_poweroff;
 	}
 
 	/* Start the watchDog Timer. */

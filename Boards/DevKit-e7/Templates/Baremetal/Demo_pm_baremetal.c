@@ -259,7 +259,6 @@ static int lptimer_error_power_off(void)
 */
 static int set_lptimer(uint32_t  timeout)
 {
-    uint32_t  val   = 0;
     int32_t   ret;
     uint32_t  count = 0;
 
@@ -497,7 +496,6 @@ int main(void)
                                       &service_error_code);
     if(error_code)
     {
-        printf("\r\nSE: get_run_cfg error = %d\n", error_code);
         while(1);
     }
 
@@ -513,17 +511,6 @@ int main(void)
     error_code = SERVICES_set_run_cfg(se_services_s_handle,
                                       &runp,
                                       &service_error_code);
-    if(error_code)
-    {
-        printf("\r\nSE: set_run_cfg error = %d\n", error_code);
-        while(1);
-    }
-
-    /*The below code is only required if UART clock source is 38.4MHz */
-    error_code = SERVICES_clocks_select_osc_source(se_services_s_handle,
-                                                   OSCILLATOR_SOURCE_XTAL,
-                                                   OSCILLATOR_TARGET_PERIPH_CLOCKS,
-                                                   &service_error_code);
     if(error_code)
     {
         while(1);
@@ -739,7 +726,7 @@ int main(void)
             offp.wakeup_events = WE_LPRTC | WE_LPGPIO4;
 #endif
             offp.vtor_address  = SCB->VTOR;
-            offp.memory_blocks = 0;
+            offp.memory_blocks = MRAM_MASK;
 
 #if defined(M55_HE)
             /*

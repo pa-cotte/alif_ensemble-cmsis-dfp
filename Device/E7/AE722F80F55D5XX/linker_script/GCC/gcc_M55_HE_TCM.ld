@@ -1,4 +1,3 @@
-
 /* This file was ported to work on Alif Semiconductor Ensemble family of devices. */
 
 /* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
@@ -31,8 +30,6 @@
 __STACK_SIZE    = 0x00002000;
 __HEAP_SIZE     = 0x00004000;
 __APP_HEAP_SIZE = 0x00004000;
-__ROM_BASE      = 0x80000000;
-__ROM_SIZE      = 0x00200000;
 
 MEMORY
 {
@@ -40,14 +37,13 @@ MEMORY
   DTCM  (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00040000
   SRAM0 (rwx) : ORIGIN = 0x02000000, LENGTH = 0x00400000
   SRAM1 (rwx) : ORIGIN = 0x08000000, LENGTH = 0x00280000
-  MRAM  (rx)  : ORIGIN = __ROM_BASE, LENGTH = __ROM_SIZE
 }
 
 ENTRY(Reset_Handler)
 
 SECTIONS
-{
-  .startup.at_mram : ALIGN(16)
+{  
+  .startup.at_itcm : ALIGN(8)
   {
     KEEP(*(.vectors))
 
@@ -61,8 +57,7 @@ SECTIONS
     *lv_*(.text .rodata*)
 
     *(startup_ro_data)
-    . = ALIGN(16);
-  } > MRAM
+  } > ITCM
 
   .copy.table : ALIGN(4)
   {
@@ -70,12 +65,8 @@ SECTIONS
     LONG ( LOADADDR(.data.at_dtcm) )
     LONG ( ADDR(.data.at_dtcm) )
     LONG ( SIZEOF(.data.at_dtcm)/4 )
-    LONG ( LOADADDR(.code.at_itcm) )
-    LONG ( ADDR(.code.at_itcm) )
-    LONG ( SIZEOF(.code.at_itcm)/4 )
     __copy_table_end__ = .;
-    . = ALIGN(16);
-  } > MRAM
+  } > ITCM
 
   .zero.table : ALIGN(4)
   {
@@ -85,14 +76,12 @@ SECTIONS
     LONG (ADDR(.bss.at_sram0))
     LONG (SIZEOF(.bss.at_sram0)/4)
     __zero_table_end__ = .;
-    . = ALIGN(16);
-  } > MRAM
+  } > ITCM
 
   .code.at_itcm : ALIGN(8)
   {
     *(.text*)
-    . = ALIGN(16);
-  } > ITCM AT > MRAM
+  } > ITCM
 
   .data.at_dtcm : ALIGN(8)
   {
@@ -109,8 +98,8 @@ SECTIONS
     __exidx_start = .;
     *(.ARM.exidx* .gnu.linkonce.armexidx.*)
     __exidx_end = .;
-    . = ALIGN(16);
-  } > DTCM AT > MRAM
+
+  } > DTCM AT > ITCM
 
   .bss.at_sram0 (NOLOAD) : ALIGN(8)
   {
@@ -137,7 +126,7 @@ SECTIONS
      __RAM_segment_used_end__ = .;
      . = . + __APP_HEAP_SIZE;
      . = ALIGN(8);
-   } >DTCM
+   } > DTCM
 
   .heap (NOLOAD) : ALIGN(8)
   {
@@ -157,7 +146,7 @@ SECTIONS
   } > DTCM
   PROVIDE(__stack = __StackTop);
 
-  .readonly.at_mram : ALIGN(8)
+  .readonly.at_itcm : ALIGN(8)
   {
     /* Use wildcards to mop up any read-only not directed to TCM */
     KEEP(*(.init))
@@ -200,8 +189,7 @@ SECTIONS
     *(.rodata*)
 
     KEEP(*(.eh_frame*))
-    . = ALIGN(16);
-  } > MRAM
+  } > ITCM
 
   /* Check if data + heap + stack exceeds RAM limit */
   ASSERT(__StackLimit >= __HeapLimit, "region RAM overflowed with stack")
