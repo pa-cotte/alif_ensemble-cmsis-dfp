@@ -16,7 +16,7 @@ About LED Blink TestApp
  Toolchain supported
 =====================
 - ARM DS IDE 2020.1
-- Alifsemiconductor.Ensemble.0.0.1.pack
+- Alifsemiconductor Ensemble DFP
 
 =======================
  Hardware requirements:
@@ -30,7 +30,7 @@ About LED Blink TestApp
 CSP board gpio connection to Carrier card as follows:
 ---------------------------------------
     CSP board                     Carrier Card
-    Port 1 pin 14           ----> ds1 LED
-    Port 1 pin 15           ----> ds2 LED
+    GPIO3_PIN7           ----> ds1 LED
+    GPIO7_PIN2           ----> ds2 LED
 ---------------------------------------
 If both CSP and Carrier card connected, Internally above mentioned pins of the CSP borad is routed to leds of carrier card.

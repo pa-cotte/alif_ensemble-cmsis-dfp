@@ -39,6 +39,10 @@
 #define ARM_GPIO_IRQ_SENSITIVE_LEVEL        0x00000000
 #define ARM_GPIO_IRQ_SENSITIVE_EDGE         0x00000004
 
+/****** GPIO Control code : ARM_GPIO_CONFIG_FLEXIO arg definition *****/
+#define ARM_GPIO_FLEXIO_VOLT_3V3            0x0
+#define ARM_GPIO_FLEXIO_VOLT_1V8            0x1
+
 /****** GPIO Interrupt events *****/
 #define ARM_GPIO_IRQ_EVENT_EXTERNAL         (1)
 
@@ -51,7 +55,8 @@ typedef enum _GPIO_OPERATION {
     ARM_GPIO_ENABLE_INTERRUPT,              /**<GPIO ENABLE interrupt configuration>*/
     ARM_GPIO_DISABLE_INTERRUPT,             /**<GPIO DISABLE interrupt configuration>*/
     ARM_GPIO_GET_CONFIG_VALUE1,             /**<GPIO GET Config reg-1 value operation>*/
-    ARM_GPIO_GET_CONFIG_VALUE2              /**<GPIO GET Config reg-2 value operation>*/
+    ARM_GPIO_GET_CONFIG_VALUE2,             /**<GPIO GET Config reg-2 value operation>*/
+    ARM_GPIO_CONFIG_FLEXIO                  /**<GPIO Config voltage flexio>*/
 } GPIO_OPERATION;
 
 typedef enum _GPIO_PIN_DIRECTION {
@@ -86,7 +91,7 @@ typedef enum _GPIO_PIN_STATE {
                 - ARM_POWER_FULL: power on: full operation at maximum performance
  \param[out]    int32_t: execution_status
 
- \fn            int32_t ARM_GPIO_SetDirection (uint32_t pin_no, uint32_t dir);
+ \fn            int32_t ARM_GPIO_SetDirection (uint32_t pin_no, GPIO_PIN_DIRECTION dir);
  \brief         Function Configure the GPIO to Input or Output operation .
  \param[in]     pin_no: GPIO Pin number.
  \param[in]     dir: GPIO direction.
@@ -98,7 +103,7 @@ typedef enum _GPIO_PIN_STATE {
  \param[in]     *dir: pointer to get the status of GPIO direction.
  \param[out]    int32_t: execution status.
 
- \fn            int32_t ARM_GPIO_SetValue (uint32_t pin_no, uint32_t value);
+ \fn            int32_t ARM_GPIO_SetValue (uint32_t pin_no, GPIO_PIN_OUTPUT_STATE value);
  \brief         Function Configure the GPIO pin Output state.
  \param[in]     pin_no: GPIO Pin number.
  \param[in]     value:  Set the output pin status.
@@ -119,6 +124,7 @@ typedef enum _GPIO_PIN_STATE {
                 - ARM_GPIO_DISABLE_INTERRUPT: GPIO DISABLE interrupt configuration.
                 - ARM_GPIO_GET_CONFIG_VALUE1: get Config reg-1 value.
                 - ARM_GPIO_GET_CONFIG_VALUE2: get Config reg-2 value.
+                - ARM_GPIO_CONFIG_FLEXIO: Voltage config for FLEXIO GPIO.
  \param[in]     *arg: pointer to operation parameters
  \param[out]    int32_t : execution_status
 
@@ -134,9 +140,9 @@ typedef enum _GPIO_PIN_STATE {
 typedef struct _ARM_DRIVER_GPIO {
     int32_t (*Initialize)   (uint8_t pin_no, ARM_GPIO_SignalEvent_t cb_event);              /**< Pointer to \ref ARM_GPIO_Initialize    : Initialize GPIO interface >*/
     int32_t (*PowerControl) (uint8_t pin_no, ARM_POWER_STATE state);                        /**< Pointer to \ref ARM_GPIO_PowerControl  : Control GPIO interface power. >*/
-    int32_t (*SetDirection) (uint8_t pin_no, uint32_t dir);                                 /**< Pointer to \ref ARM_GPIO_SetDirection  : Set GPIO direction. >*/
+    int32_t (*SetDirection) (uint8_t pin_no, GPIO_PIN_DIRECTION dir);                       /**< Pointer to \ref ARM_GPIO_SetDirection  : Set GPIO direction. >*/
     int32_t (*GetDirection) (uint8_t pin_no, uint32_t *dir);                                /**< Pointer to \ref ARM_GPIO_GetDirection  : Get GPIO direction. >*/
-    int32_t (*SetValue)     (uint8_t pin_no, uint32_t value);                               /**< Pointer to \ref ARM_GPIO_SetValue      : Set GPIO Output pin status>*/
+    int32_t (*SetValue)     (uint8_t pin_no, GPIO_PIN_OUTPUT_STATE value);                  /**< Pointer to \ref ARM_GPIO_SetValue      : Set GPIO Output pin status>*/
     int32_t (*GetValue)     (uint8_t pin_no, uint32_t *value);                              /**< Pointer to \ref ARM_GPIO_GetValue      : Get GPIO input pin status>*/
     int32_t (*Control)      (uint8_t pin_no, GPIO_OPERATION control_code, uint32_t *arg);   /**< Pointer to \ref ARM_GPIO_Control       : Control GPIO interface.>*/
     int32_t (*Uninitialize) (uint8_t pin_no);                                               /**< Pointer to \ref ARM_GPIO_Uninitialize  : Un-initialize the GPIO Pin configuration >*/

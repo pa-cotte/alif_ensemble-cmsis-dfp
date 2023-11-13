@@ -1,22 +1,16 @@
 ================================================================
- Overview : readme for uart test application (uart4_testApp.c)
+ Overview : readme for uart test application (uart4_baremetal.c)
 ================================================================
  RTE configurations(".rteconfig" file) for UART:
 	- CMSIS
 		- Core		
-	- CMSIS Driver
-		- Ensemble Peripherals
-			- PINCONF
-		- USART(API)
-			- UART4
 	- Device
-		- Conf
-			- RTE_Device
+		- SOC Peripherals
+			- Ensemble Peripherals
+				- PINCONF
+			- USART(API)
+				- UART4
 		- Startup		
-	- Ensemble Peripherals TestApp
-		- UART4
-	- RTOS AzureRTOS
-		- Kernel
 =======================
  Usage of UART TestApp
 =======================
@@ -31,11 +25,6 @@ This example demonstrates:
  Toolchain supported
 =====================
 - ARM DS IDE 2020.1
-
-====================
- Operating System
-====================
-- Microsoft Azure RTOS ThreadX
 
 =======================
  Hardware requirements
@@ -54,8 +43,8 @@ Note:- It uses UART instance-4 for data transfer.
     PC                       Carrier Card
 	
                              Board-Header  Port  Pin-Name
-TX  of FTDI Cable  ----> RX  J409-Pin6     P3_1  UART4_RX_B
-RX  of FTDI Cable  ----> TX  J409-Pin7     P3_2  UART4_TX_B
+TX  of FTDI Cable  ----> RX  J409-Pin6     PORT_5,  PIN_0  UART4_RX_B
+RX  of FTDI Cable  ----> TX  J409-Pin7     PORT_5,  PIN_1  UART4_TX_B
 GND of FTDI Cable  ----> GND J416-Pin1      -     -
 -------------------------------------------------------------
 

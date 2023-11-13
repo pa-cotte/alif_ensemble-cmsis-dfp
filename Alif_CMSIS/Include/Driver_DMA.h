@@ -17,7 +17,7 @@ extern "C"
 
 #include "Driver_Common.h"
 
-#define ARM_DMA_API_VERSION ARM_DRIVER_VERSION_MAJOR_MINOR(3,2)  /* API version */
+#define ARM_DMA_API_VERSION ARM_DRIVER_VERSION_MAJOR_MINOR(4,0)  /* API version */
 
 
 #define _ARM_Driver_DMA_(n)      Driver_DMA##n
@@ -28,6 +28,7 @@ extern "C"
 #define ARM_DMA_CONTROL_Msk             (0xFFUL)
 #define ARM_DMA_USER_PROVIDED_MCODE     (0x01UL)    ///< Use User provided microcode; arg = microcode address in memory
 #define ARM_DMA_I2S_MONO_MODE           (0x02UL)    ///< Support for I2S mono mode;
+#define ARM_DMA_CRC_MODE                (0x03UL)    ///< Support for CRC which doesn't require handshaking
 
 /**
 \brief DMA Data Direction
@@ -78,8 +79,8 @@ typedef struct _ARM_DMA_PARAMS {
   uint8_t                   burst_len;
   ARM_DMA_BS_Type           burst_size;
   ARM_DMA_DATA_DIR          dir;
-  void                      *src_addr;
-  void                      *dst_addr;
+  volatile const void       *src_addr;
+  volatile void             *dst_addr;
   uint32_t                  num_bytes;
   uint32_t                  irq_priority;
   ARM_DMA_SignalEvent_t     cb_event;
@@ -170,6 +171,7 @@ typedef struct _ARM_DRIVER_DMA {
   ARM_DMA_CAPABILITIES (*GetCapabilities) (void);                                            ///< Pointer to \ref ARM_DMA_GetCapabilities : Get driver capabilities.
   int32_t              (*Initialize)      (void);                                            ///< Pointer to \ref ARM_DMA_Initialize : Initialize DMA Interface.
   int32_t              (*Uninitialize)    (void);                                            ///< Pointer to \ref ARM_DMA_Uninitialize : De-initialize DMA Interface.
+  int32_t              (*PowerControl)    (ARM_POWER_STATE state);                           ///< Pointer to \ref ARM_DMA_PowerControl : Control DMA Interface Power.
   int32_t              (*Allocate)        (DMA_Handle_Type *handle);                         ///< Pointer to \ref ARM_DMA_Allocate : Allocate a DMA handle
   int32_t              (*Control)         (DMA_Handle_Type *handle, uint32_t control, uint32_t arg);  ///< Pointer to \ref ARM_DMA_Control : Control DMA operation
   int32_t              (*Start)           (DMA_Handle_Type *handle, ARM_DMA_PARAMS *params); ///< Pointer to \ref ARM_DMA_Start : Start DMA operation

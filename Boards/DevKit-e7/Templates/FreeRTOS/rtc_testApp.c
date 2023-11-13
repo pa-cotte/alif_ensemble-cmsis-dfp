@@ -31,6 +31,10 @@
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
 #include "task.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
 
 /* Project Includes */
 
@@ -100,10 +104,14 @@ uint32_t    event_flags_rtc;
 */
 static void alarm_callback(uint32_t event)
 {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE, xResult = pdFALSE;
+
     if (event & ARM_RTC_EVENT_ALARM_TRIGGER)
     {
         /* Received RTC Alarm: Wake-up Thread. */
-	xTaskNotifyFromISR(rtc_xHandle, RTC_ALARM_EVENT,eSetBits, NULL);
+        xTaskNotifyFromISR(rtc_xHandle, RTC_ALARM_EVENT,eSetBits, &xHigherPriorityTaskWoken);
+
+        if (xResult == pdTRUE)        {    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );    }
     }
 }
 
@@ -122,7 +130,6 @@ void rtc_demo_Thread(void *pvParameters)
     uint32_t  val      = 0;
     uint32_t  iter     = 5;
     uint32_t  timeout  = 5;
-    uint64_t  events   = 0;
     int       ret      = 0;
     BaseType_t xReturned;
 
@@ -200,18 +207,30 @@ error_uninitialize:
     }
 
     printf("\r\n XXX RTC demo thread exiting XXX...\r\n");
-}
 
+    /* thread delete */
+    vTaskDelete( NULL );
+}
 
 /*----------------------------------------------------------------------------
  *      Main: Initialize and start the FreeRTOS Kernel
  *---------------------------------------------------------------------------*/
 int main( void )
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
    /* System Initialization */
    SystemCoreClockUpdate();
    /* Create application main thread */
-   BaseType_t xReturned = xTaskCreate(rtc_demo_Thread, "rtc_demo_Thread", 1024, NULL,configMAX_PRIORITIES-1, &rtc_xHandle);
+   BaseType_t xReturned = xTaskCreate(rtc_demo_Thread, "rtc_demo_Thread", 256, NULL,configMAX_PRIORITIES-1, &rtc_xHandle);
    if (xReturned != pdPASS)
    {
       vTaskDelete(rtc_xHandle);

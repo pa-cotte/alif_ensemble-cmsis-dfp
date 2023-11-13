@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -10,283 +10,401 @@
 
 /**************************************************************************//**
  * @file     Driver_LPTIMER.c
- * @author   Girish BN
- * @email    girish.bn@alifsemi.com
+ * @author   Girish BN, Manoj A Murudi
+ * @email    girish.bn@alifsemi.com, manoj.murudi@alifsemi.com
  * @version  V1.0.0
- * @date     21-Aug-2020
- * @brief    CMSIS-Driver for LPTIMER.
+ * @date     27-March-2023
+ * @brief    CMSIS_Driver for LPTIMER.
  * @bug      None.
  * @Note     None
  ******************************************************************************/
 
-#include "LPTIMER_ll_drv.h"
+#include "Driver_LPTIMER.h"
+#include "Driver_LPTIMER_Private.h"
 
 #if !(RTE_LPTIMER)
 #error "LPTIMER is not enabled in RTE_Device.h"
 #endif
 
-#if (defined(RTE_Drivers_LPTIMER) && !RTE_LPTIMER)
-#error "LPTIMER not configured in RTE_Device.h!"
+#if !defined(RTE_Drivers_LPTIMER)
+#error "LPTIMER is not enabled in the RTE_Components.h"
 #endif
 
-static int32_t LPTIMER_Irq_Handler (LPTIMER_RESOURCES *LPTIMER, uint8_t channel) {
+/**
+ * @fn      int32_t ARM_LPTIMER_Initialize(LPTIMER_RESOURCES *LPTIMER_RES, uint8_t channel, ARM_LPTIMER_SignalEvent_t cb_event)
+ * @brief   Initialize the LPTIMER.
+ * @note    none.
+ * @param   LPTIMER_RES : Pointer to LPTIMER resources structure.
+ * @param   channel : Used LPTIMER channel.
+ * @param   cb_event : Pointer to user callback function.
+ * @retval  \ref execution_status
+ */
+static int32_t ARM_LPTIMER_Initialize (LPTIMER_RESOURCES *LPTIMER_RES, uint8_t channel, ARM_LPTIMER_SignalEvent_t cb_event)
+{
+    if (cb_event == NULL)
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
 
-    LPTIMER_reg_info *reg_ptr = (LPTIMER_reg_info*) LPTIMER->reg_base;
+    if (channel >= LPTIMER_MAX_CHANNEL_NUMBER)
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
+    if (LPTIMER_RES->ch_info[channel].state.initialized == 1)
+    {
+        return ARM_DRIVER_OK;
+    }
 
-    (void) (reg_ptr->ch_cntrl_reg[channel].eoi);
+    LPTIMER_RES->ch_info[channel].CB_function_ptr = cb_event;
 
-    LPTIMER->ch_info[channel].CB_function_ptr(ARM_LPTIMER_EVENT_UNDERFLOW);
+    if (!((LPTIMER_RES->ch_info[channel].clk_src >= LPTIMER_CLK_SOURCE_32K) &&
+          (LPTIMER_RES->ch_info[channel].clk_src <= LPTIMER_CLK_SOURCE_CASCADE)))
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    /* Input Clock select for LPTIMER */
+    select_lptimer_clk (LPTIMER_RES->ch_info[channel].clk_src, channel);
+
+    if (LPTIMER_RES->ch_info[channel].mode)
+    {
+        /* set lptimer as freerun mode */
+        lptimer_set_mode_freerunning (LPTIMER_RES->regs, channel);
+    }
+    else
+    {
+        /* set lptimer as user-defined mode */
+        lptimer_set_mode_userdefined (LPTIMER_RES->regs, channel);
+    }
+
+    /* unmask channel interrupt */
+    lptimer_unmask_interrupt (LPTIMER_RES->regs, channel);
+
+    LPTIMER_RES->ch_info[channel].state.initialized = 1;
 
     return ARM_DRIVER_OK;
 }
 
-static int32_t ARM_LPTIMER_Initialize (LPTIMER_RESOURCES *LPTIMER, uint8_t channel, ARM_LPTIMER_SignalEvent_t cb_event) {
-
-    int32_t ret = ARM_DRIVER_OK;
-
-    if (cb_event == NULL)                                 {   return ARM_DRIVER_ERROR_PARAMETER;    }
-    if (channel >= LPTIMER_MAX_CHANNEL_NUMBER)            {   return ARM_DRIVER_ERROR_PARAMETER;    }
-
-    if (LPTIMER->ch_info[channel].flag & LPTIMER_CHANNEL_INITIALIZED)  {    return ARM_DRIVER_OK;  }
-
-    LPTIMER->ch_info[channel].CB_function_ptr = cb_event;
-
-    ret = LPTIMER_ll_Initialize (LPTIMER, channel);
-    if (ret != ARM_DRIVER_OK)                             {    return ret;    }
-
-    LPTIMER->ch_info[channel].flag |= LPTIMER_CHANNEL_INITIALIZED;
-
-    return ARM_DRIVER_OK;
-}
-
-static int32_t ARM_LPTIMER_PowerControl (LPTIMER_RESOURCES *LPTIMER, uint8_t channel, ARM_POWER_STATE state) {
-
-    if (channel >= LPTIMER_MAX_CHANNEL_NUMBER)             {   return ARM_DRIVER_ERROR_PARAMETER;    }
-    if (state > ARM_POWER_FULL)                            {   return ARM_DRIVER_ERROR_PARAMETER;    }
+/**
+ * @fn      int32_t ARM_LPTIMER_PowerControl (LPTIMER_RESOURCES *LPTIMER, uint8_t channel, ARM_POWER_STATE state).
+ * @brief   Handles the LPTIMER power.
+ * @note    none.
+ * @param   LPTIMER_RES : Pointer to LPTIMER resources structure.
+ * @param   channel : used LPTIMER channel.
+ * @param   state : power state.
+ * @retval  \ref execution_status
+ */
+static int32_t ARM_LPTIMER_PowerControl (LPTIMER_RESOURCES *LPTIMER_RES, uint8_t channel, ARM_POWER_STATE state)
+{
+    if (channel >= LPTIMER_MAX_CHANNEL_NUMBER)
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
+    if (state > ARM_POWER_FULL)
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
 
     switch (state)
     {
-        case ARM_POWER_OFF:
-        {
-            if ((LPTIMER->ch_info[channel].flag & LPTIMER_CHANNEL_POWERED) == 0) {    return ARM_DRIVER_OK;  }
-
-            LPTIMER_ll_Irq_Disable (channel);
-
-            LPTIMER->ch_info[channel].flag &= ~LPTIMER_CHANNEL_POWERED;
-
-            break;
-        }
-        case ARM_POWER_FULL:
-        {
-            if (LPTIMER->ch_info[channel].flag & LPTIMER_CHANNEL_POWERED)  {    return ARM_DRIVER_OK;  }
-
-            if (LPTIMER->ch_info[channel].flag & LPTIMER_CHANNEL_INITIALIZED)
-            {
-                if (LPTIMER_ll_Irq_Enable (LPTIMER, channel) != ARM_DRIVER_OK)
-                {
-                    return ARM_DRIVER_ERROR;
-                }
-                LPTIMER->ch_info[channel].flag |= LPTIMER_CHANNEL_POWERED;
-            }
-            else
-            {
-                return ARM_DRIVER_ERROR;
-            }
-            break;
-        }
-        case ARM_POWER_LOW:
-        default:
-            return ARM_DRIVER_ERROR_UNSUPPORTED;
-        }
-    return ARM_DRIVER_OK;
-}
-
-static int32_t ARM_LPTIMER_Control (LPTIMER_RESOURCES *LPTIMER, uint8_t channel, uint32_t control_code, void *arg) {
-
-    int32_t ret = 0;
-
-    if (arg == NULL)                            {   return ARM_DRIVER_ERROR_PARAMETER;    }
-    if (channel >= LPTIMER_MAX_CHANNEL_NUMBER)  {   return ARM_DRIVER_ERROR_PARAMETER;    }
-    if (control_code > ARM_LPTIMER_GET_COUNT)   {   return ARM_DRIVER_ERROR_PARAMETER;    }
-
-    if ((LPTIMER->ch_info[channel].flag & LPTIMER_CHANNEL_POWERED) == 0)  {    return ARM_DRIVER_ERROR;  }
-
-    switch (control_code)
+    case ARM_POWER_OFF:
     {
-        case ARM_LPTIMER_SET_COUNT1:
+        if (LPTIMER_RES->ch_info[channel].state.powered == 0)
         {
-            if (LPTIMER->ch_info[channel].mode == LPTIMER_FREE_RUN_MODE)  {    return ARM_DRIVER_ERROR;  }
-
-            ret = LPTIMER_ll_Set_Count1_Value (LPTIMER, channel, arg);
-
-            LPTIMER->ch_info[channel].flag |= LPTIMER_CHANNEL_CONFIGURED_COUNT1;
-            break;
+            return ARM_DRIVER_OK;
         }
-        case ARM_LPTIMER_SET_COUNT2:
+
+        NVIC_ClearPendingIRQ(LPTIMER_CHANNEL_IRQ(channel));
+        NVIC_DisableIRQ(LPTIMER_CHANNEL_IRQ(channel));
+
+        LPTIMER_RES->ch_info[channel].state.powered = 0;
+        break;
+    }
+    case ARM_POWER_FULL:
+    {
+        if (LPTIMER_RES->ch_info[channel].state.powered == 1)
         {
-            if (LPTIMER->ch_info[channel].enable_PWM)
-            {
-                ret = LPTIMER_ll_Set_Count2_Value (LPTIMER, channel, arg);
-
-                LPTIMER->ch_info[channel].flag |= LPTIMER_CHANNEL_CONFIGURED_COUNT2;
-            }
-            else
-            {
-                return ARM_DRIVER_ERROR;
-            }
-            break;
+            return ARM_DRIVER_OK;
         }
-        case ARM_LPTIMER_GET_COUNT:
+
+        if (LPTIMER_RES->ch_info[channel].state.initialized == 1)
         {
-            if ((LPTIMER->ch_info[channel].flag & LPTIMER_CHANNEL_STARTED) == 0)  {    return ARM_DRIVER_ERROR;  }
+            NVIC_ClearPendingIRQ(LPTIMER_CHANNEL_IRQ(channel));
+            NVIC_SetPriority(LPTIMER_CHANNEL_IRQ(channel), LPTIMER_RES->ch_info[channel].irq_priority);
+            NVIC_EnableIRQ(LPTIMER_CHANNEL_IRQ(channel));
 
-            LPTIMER_ll_Get_Count_Value (LPTIMER, channel, arg);
-            break;
+            LPTIMER_RES->ch_info[channel].state.powered = 1;
         }
-        default:
+        else
         {
             return ARM_DRIVER_ERROR;
         }
+        break;
     }
-    return ret;
+    case ARM_POWER_LOW:
+    {
+        return ARM_DRIVER_ERROR_UNSUPPORTED;
+    }
+    }
+
+    return ARM_DRIVER_OK;
 }
 
-static int32_t ARM_LPTIMER_Start (LPTIMER_RESOURCES *LPTIMER, uint8_t channel) {
-
+/**
+ * @fn      int32_t ARM_LPTIMER_Control (LPTIMER_RESOURCES *LPTIMER_RES, uint8_t channel, uint32_t control_code, void *arg)
+ * @brief   Used to configure LPTIMER.
+ * @note    none.
+ * @param   LPTIMER_RES : Pointer to LPTIMER resources structure.
+ * @param   channel : used LPTIMER channel.
+ * @param   control_code : control code.
+ * @param   arg : argument.
+ * @retval  \ref execution_status
+ */
+static int32_t ARM_LPTIMER_Control (LPTIMER_RESOURCES *LPTIMER_RES, uint8_t channel, uint32_t control_code, void *arg)
+{
+    if (arg == NULL)
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
     if (channel >= LPTIMER_MAX_CHANNEL_NUMBER)
-    {   return ARM_DRIVER_ERROR_PARAMETER;    }
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
+    if (control_code > ARM_LPTIMER_GET_COUNT)
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
 
-    if (LPTIMER->ch_info[channel].flag & LPTIMER_CHANNEL_STARTED)
-    {   return ARM_DRIVER_OK;    }
+    if (LPTIMER_RES->ch_info[channel].state.powered == 0)
+    {
+        return ARM_DRIVER_ERROR;
+    }
 
-    if ((LPTIMER->ch_info[channel].flag & LPTIMER_CHANNEL_POWERED) == 0)
-    {    return ARM_DRIVER_ERROR;  }
+    switch (control_code)
+    {
+    case ARM_LPTIMER_SET_COUNT1:
+    {
+        if (LPTIMER_RES->ch_info[channel].mode == LPTIMER_FREE_RUN_MODE)
+        {
+            /* load maximum counter value*/
+            lptimer_load_max_count(LPTIMER_RES->regs, channel);
+        }
+        else
+        {
+            /* load counter value */
+            lptimer_load_count (LPTIMER_RES->regs, channel, arg);
+        }
 
-    if ((LPTIMER->ch_info[channel].mode == LPTIMER_USER_RUN_MODE) && ((LPTIMER->ch_info[channel].flag & LPTIMER_CHANNEL_CONFIGURED_COUNT1) == 0))
-    {    return ARM_DRIVER_ERROR;  }
+        LPTIMER_RES->ch_info[channel].state.set_count1 = 1;
+        break;
+    }
+    case ARM_LPTIMER_SET_COUNT2:
+    {
+        return ARM_DRIVER_ERROR_UNSUPPORTED;
+    }
+    case ARM_LPTIMER_GET_COUNT:
+    {
+        if (LPTIMER_RES->ch_info[channel].state.started == 0)
+        {
+            return ARM_DRIVER_ERROR;
+        }
 
-    if ((LPTIMER->ch_info[channel].enable_PWM) && ((LPTIMER->ch_info[channel].flag & LPTIMER_CHANNEL_CONFIGURED_COUNT1) == 0))
-    {    return ARM_DRIVER_ERROR;  }
-
-    if ((LPTIMER->ch_info[channel].enable_PWM) && ((LPTIMER->ch_info[channel].flag & LPTIMER_CHANNEL_CONFIGURED_COUNT2) == 0))
-    {    return ARM_DRIVER_ERROR;  }
-
-    LPTIMER_ll_Start (LPTIMER, channel);
-
-    LPTIMER->ch_info[channel].flag |= LPTIMER_CHANNEL_STARTED;
+        /* get current count value */
+        *(uint32_t*)arg |= lptimer_get_count (LPTIMER_RES->regs, channel);
+        break;
+    }
+    default:
+        return ARM_DRIVER_ERROR;
+    }
 
     return ARM_DRIVER_OK;
 }
 
-static int32_t ARM_LPTIMER_Stop (LPTIMER_RESOURCES *LPTIMER, uint8_t channel) {
+/**
+ * @fn      int32_t ARM_LPTIMER_Start (LPTIMER_RESOURCES *LPTIMER, uint8_t channel)
+ * @brief   Used to start LPTIMER counter.
+ * @note    none.
+ * @param   LPTIMER_RES : Pointer to LPTIMER resources structure.
+ * @param   channel : used LPTIMER channel.
+ * @retval  \ref execution_status
+ */
+static int32_t ARM_LPTIMER_Start (LPTIMER_RESOURCES *LPTIMER_RES, uint8_t channel)
+{
+    if (channel >= LPTIMER_MAX_CHANNEL_NUMBER)
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
 
-    if (channel >= LPTIMER_MAX_CHANNEL_NUMBER)  {   return ARM_DRIVER_ERROR_PARAMETER;    }
+    if (LPTIMER_RES->ch_info[channel].state.started == 1)
+    {
+        return ARM_DRIVER_OK;
+    }
 
-    if ((LPTIMER->ch_info[channel].flag & LPTIMER_CHANNEL_STARTED) == 0)      {   return ARM_DRIVER_OK;    }
+    if (LPTIMER_RES->ch_info[channel].state.powered == 0)
+    {
+        return ARM_DRIVER_ERROR;
+    }
 
-    LPTIMER_ll_Stop (LPTIMER, channel);
+    if (LPTIMER_RES->ch_info[channel].state.set_count1 == 0)
+    {
+        return ARM_DRIVER_ERROR;
+    }
 
-    LPTIMER->ch_info[channel].flag &= ~LPTIMER_CHANNEL_STARTED;
+    /* enable channel counter */
+    lptimer_enable_counter (LPTIMER_RES->regs, channel);
+
+    LPTIMER_RES->ch_info[channel].state.started = 1;
 
     return ARM_DRIVER_OK;
 }
 
-static int32_t ARM_LPTIMER_Uninitialize (LPTIMER_RESOURCES *LPTIMER, uint8_t channel) {
+/**
+ * @fn      int32_t ARM_LPTIMER_Stop (LPTIMER_RESOURCES *LPTIMER_RES, uint8_t channel)
+ * @brief   Used to stop LPTIMER counter.
+ * @note    none.
+ * @param   LPTIMER_RES : Pointer to LPTIMER resources structure.
+ * @param   channel : used LPTIMER channel.
+ * @retval  \ref execution_status
+ */
+static int32_t ARM_LPTIMER_Stop (LPTIMER_RESOURCES *LPTIMER_RES, uint8_t channel)
+{
+    if (channel >= LPTIMER_MAX_CHANNEL_NUMBER)
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
 
-    if (channel >= LPTIMER_MAX_CHANNEL_NUMBER)  {   return ARM_DRIVER_ERROR_PARAMETER;    }
+    /* disable channel counter */
+    lptimer_disable_counter (LPTIMER_RES->regs, channel);
 
-    if (LPTIMER->ch_info[channel].flag == 0)    {   return ARM_DRIVER_OK;    }
-
-    LPTIMER->ch_info[channel].CB_function_ptr = NULL;
-
-    LPTIMER->ch_info[channel].flag = 0;
+    LPTIMER_RES->ch_info[channel].state.started = 0;
 
     return ARM_DRIVER_OK;
 }
 
-LPTIMER_RESOURCES LPTIMER0_Resources = {
-    .reg_base   = (uint32_t)LPTIMER_BASE,
+/**
+ * @fn      int32_t ARM_LPTIMER_Uninitialize (LPTIMER_RESOURCES *LPTIMER, uint8_t channel)
+ * @brief   Un-Initialize the LPTIMER.
+ * @note    none.
+ * @param   LPTIMER_RES : Pointer to lptimer resources structure.
+ * @param   channel : used LPTIMER channel.
+ * @retval  \ref execution_status
+ */
+static int32_t ARM_LPTIMER_Uninitialize (LPTIMER_RESOURCES *LPTIMER_RES, uint8_t channel)
+{
+    if (channel >= LPTIMER_MAX_CHANNEL_NUMBER)
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
+
+    if (LPTIMER_RES->ch_info[channel].state.initialized == 0)
+    {
+        return ARM_DRIVER_OK;
+    }
+
+    LPTIMER_RES->ch_info[channel].CB_function_ptr = NULL;
+
+    LPTIMER_RES->ch_info[channel].state.initialized = 0;
+
+    return ARM_DRIVER_OK;
+}
+
+/**
+ * @fn      int32_t LPTIMER_Irq_Handler (LPTIMER_RESOURCES *LPTIMER_RES, uint8_t channel)
+ * @brief   LPTIMER interrupt handler.
+ * @note    none.
+ * @param   LPTIMER_RES : Pointer to lptimer resources structure.
+ * @param   channel : used LPTIMER channel.
+ * @retval  \ref execution_status
+ */
+static int32_t LPTIMER_Irq_Handler (LPTIMER_RESOURCES *LPTIMER_RES, uint8_t channel)
+{
+    /* clear channel interrupt  */
+    lptimer_clear_interrupt (LPTIMER_RES->regs, channel);
+
+    LPTIMER_RES->ch_info[channel].CB_function_ptr(ARM_LPTIMER_EVENT_UNDERFLOW);
+
+    return ARM_DRIVER_OK;
+}
+
+/* LPTIMER0 Driver Instance */
+#if (RTE_LPTIMER)
+
+static LPTIMER_RESOURCES LPTIMER0 = {
+    .regs   = (LPTIMER_Type*) LPTIMER_BASE,
     .ch_info[0] = {
-        .enable_PWM = RTE_LPTIMER_CHANNEL0_PWM,
         .mode = RTE_LPTIMER_CHANNEL0_FREE_RUN_MODE,
         .clk_src = RTE_LPTIMER_CHANNEL0_CLK_SRC,
-        .flag = 0,
         .irq_priority = RTE_LPTIMER_CHANNEL0_IRQ_PRIORITY
     },
     .ch_info[1] = {
-        .enable_PWM = RTE_LPTIMER_CHANNEL1_PWM,
         .mode = RTE_LPTIMER_CHANNEL1_FREE_RUN_MODE,
         .clk_src = RTE_LPTIMER_CHANNEL1_CLK_SRC,
-        .flag = 0,
         .irq_priority = RTE_LPTIMER_CHANNEL1_IRQ_PRIORITY
     },
     .ch_info[2] = {
-        .enable_PWM = RTE_LPTIMER_CHANNEL2_PWM,
         .mode = RTE_LPTIMER_CHANNEL2_FREE_RUN_MODE,
         .clk_src = RTE_LPTIMER_CHANNEL2_CLK_SRC,
-        .flag = 0,
         .irq_priority = RTE_LPTIMER_CHANNEL2_IRQ_PRIORITY
     },
     .ch_info[3] = {
-        .enable_PWM = RTE_LPTIMER_CHANNEL3_PWM,
         .mode = RTE_LPTIMER_CHANNEL3_FREE_RUN_MODE,
         .clk_src = RTE_LPTIMER_CHANNEL3_CLK_SRC,
-        .flag = 0,
         .irq_priority = RTE_LPTIMER_CHANNEL3_IRQ_PRIORITY
     }
 };
 
-extern void LPTIMER_CHANNEL0_IRQHandler (void);
-void LPTIMER_CHANNEL0_IRQHandler (void) {
-    LPTIMER_Irq_Handler (&LPTIMER0_Resources, 0);
+void LPTIMER0_IRQHandler (void)
+{
+    LPTIMER_Irq_Handler (&LPTIMER0, LPTIMER_CHANNEL_0);
 }
 
-extern void LPTIMER_CHANNEL1_IRQHandler (void);
-void LPTIMER_CHANNEL1_IRQHandler (void) {
-    LPTIMER_Irq_Handler (&LPTIMER0_Resources, 1);
+void LPTIMER1_IRQHandler (void)
+{
+    LPTIMER_Irq_Handler (&LPTIMER0, LPTIMER_CHANNEL_1);
 }
 
-extern void LPTIMER_CHANNEL2_IRQHandler (void);
-void LPTIMER_CHANNEL2_IRQHandler (void) {
-    LPTIMER_Irq_Handler (&LPTIMER0_Resources, 2);
+void LPTIMER2_IRQHandler (void)
+{
+    LPTIMER_Irq_Handler (&LPTIMER0, LPTIMER_CHANNEL_2);
 }
 
-extern void LPTIMER_CHANNEL3_IRQHandler (void);
-void LPTIMER_CHANNEL3_IRQHandler (void) {
-    LPTIMER_Irq_Handler (&LPTIMER0_Resources, 3);
+void LPTIMER3_IRQHandler (void)
+{
+    LPTIMER_Irq_Handler (&LPTIMER0, LPTIMER_CHANNEL_3);
 }
 
-static int32_t ARM_LPTIMER0_Initialize (uint8_t channel, ARM_LPTIMER_SignalEvent_t cb_unit_event) {
-
-    return ARM_LPTIMER_Initialize (&LPTIMER0_Resources, channel, cb_unit_event);
+static int32_t ARM_LPTIMER0_Initialize (uint8_t channel, ARM_LPTIMER_SignalEvent_t cb_unit_event)
+{
+    return ARM_LPTIMER_Initialize (&LPTIMER0, channel, cb_unit_event);
 }
 
-static int32_t ARM_LPTIMER0_PowerControl (uint8_t channel, ARM_POWER_STATE state) {
-
-    return ARM_LPTIMER_PowerControl (&LPTIMER0_Resources, channel, state);
+static int32_t ARM_LPTIMER0_PowerControl (uint8_t channel, ARM_POWER_STATE state)
+{
+    return ARM_LPTIMER_PowerControl (&LPTIMER0, channel, state);
 }
 
-static int32_t ARM_LPTIMER0_Control (uint8_t channel, uint32_t control_code, void *arg) {
-
-    return ARM_LPTIMER_Control (&LPTIMER0_Resources, channel, control_code, arg);
+static int32_t ARM_LPTIMER0_Control (uint8_t channel, uint32_t control_code, void *arg)
+{
+    return ARM_LPTIMER_Control (&LPTIMER0, channel, control_code, arg);
 }
 
-static int32_t ARM_LPTIMER0_Start (uint8_t channel) {
-
-    return ARM_LPTIMER_Start (&LPTIMER0_Resources, channel);
+static int32_t ARM_LPTIMER0_Start (uint8_t channel)
+{
+    return ARM_LPTIMER_Start (&LPTIMER0, channel);
 }
 
-static int32_t ARM_LPTIMER0_Stop (uint8_t channel) {
-
-    return ARM_LPTIMER_Stop (&LPTIMER0_Resources, channel);
+static int32_t ARM_LPTIMER0_Stop (uint8_t channel)
+{
+    return ARM_LPTIMER_Stop (&LPTIMER0, channel);
 }
 
-static int32_t ARM_LPTIMER0_Uninitialize (uint8_t channel) {
-
-    return ARM_LPTIMER_Uninitialize (&LPTIMER0_Resources, channel);
+static int32_t ARM_LPTIMER0_Uninitialize (uint8_t channel)
+{
+    return ARM_LPTIMER_Uninitialize (&LPTIMER0, channel);
 }
 
 /*LPTIMER Resources Control Block */
+extern ARM_DRIVER_LPTIMER DRIVER_LPTIMER0;
 ARM_DRIVER_LPTIMER  DRIVER_LPTIMER0 = {
     ARM_LPTIMER0_Initialize,
     ARM_LPTIMER0_PowerControl,
@@ -295,3 +413,6 @@ ARM_DRIVER_LPTIMER  DRIVER_LPTIMER0 = {
     ARM_LPTIMER0_Stop,
     ARM_LPTIMER0_Uninitialize
 };
+#endif /* RTE_LPTIMER */
+
+/************************ (C) COPYRIGHT ALIF SEMICONDUCTOR *****END OF FILE****/

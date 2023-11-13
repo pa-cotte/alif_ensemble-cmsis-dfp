@@ -5,14 +5,13 @@
  *
  * @par
  * @ingroup services
- * Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+ * Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
  * You should have received a copy of the Alif Semiconductor Software
  * License Agreement with this file. If not, please write to:
  * contact@alifsemi.com, or visit: https://alifsemi.com/license
- *
  */
 #ifndef __SERVICES_LIB_PROTOCOL_H__
 #define __SERVICES_LIB_PROTOCOL_H__
@@ -30,6 +29,39 @@ extern "C" {
  ******************************************************************************/
 /**
  * Version   JIRA         Description
+ * 0.0.42   SE-2176       Reduce the size of the packet buffer in the services
+ *                        examples
+ * 0.0.41
+ * 0.0.40   SE-2111       [aiPM] Define the parameter VDD_IOFLEX_3V3 as an enum
+ * 0.0.39   SE-2077       SERVICES switch to CMSIS V0.9.4
+ * 0.0.38   SE-2047       SERVICES switch to CMSIS V0.9.3
+ * 0.0.37   SE-1951       Scalable HFRC and HXTAL frequencies
+ * 0.0.36   SE-1961       SERVICES switch to CMSIS V0.9.1
+ *          SE-1960       arm clang startup issues
+ * 0.0.35   SE-1924       SERVICES build switch to CMake
+ *          SE-1923       addition of aiPM Service API - RUN
+ * 0.0.34   SE-1887       addition of amPM Service API - OFF
+ *          SE-1900       retrieve full revision info
+ * 0.0.33                 edits for simulation testing
+ * 0.0.32   SE-1822       Add a new service call SERVICES_boot_set_vtor
+ *          SE-1857       Use defines to support different power test variations
+ * 0.0.31   SE-1813       Warnings fixes
+ * 0.0.30   SE-1782       Fix services-he-hp-a32-xip.json HP address
+ * 0.0.29   SE-1731       Consistent Error handling
+ *          SE-1696       Memory Power On Off
+ *          SE-1737       Add boot services and clock tests
+ * 0.0.28   SE-1709       Add new warnings and do cleanup
+ * 0.0.27   SE-1709       Add new warnings and do cleanup
+ * 0.0.26   SE-1608       Retention fine grained control
+ *          SE-1676       CMSIS update build options
+ *          SE-1616       Add SERVICES_INVALID_ADDRESS error code
+ * 0.0.25   SE-777        Clocks apis
+ *          SE-1628       Retention APIs
+ *          SE-1497       TEST Services initialize polling
+ * 0.0.24   SE-1645       GCC build for m55_power
+ *          SE-1612       Query TOC by cpu id returns N entries
+ * 0.0.23   SE-1585       CMSIS integration
+ * 0.0.22   SE-1562       Simplify error code usage at the services transport layer
  * 0.0.21   SE-1548       Added build support for SPARK
  * 0.0.20   SE-1512       Updated ALIF License
  * 0.0.19   SE-1440       Adding CMake build
@@ -50,111 +82,25 @@ extern "C" {
  * 0.0.5    SE-1144       Service API error code added
  * 0.0.4    SE-700        Service BOOT reset added
  * 0.0.3    SE-827        RPC Parameter changes
- * 0.0.2    SE-708        First refactoring
+ * 0.0.2    SE-708        First re-factoring
  * 0.0.1                  First implementation
  */
-#define SE_SERVICES_VERSION_STRING "0.0.21"
+#define SE_SERVICES_VERSION_STRING                 "0.0.42"
 
-#define IMAGE_NAME_LENGTH           8
-#define VERSION_RESPONSE_LENGTH     80
+#define IMAGE_NAME_LENGTH                          8
+#define VERSION_RESPONSE_LENGTH                    80
+
+/**
+ * Transport layer error codes
+ */
+#define SERVICES_REQ_SUCCESS                       0x00
+#define SERVICES_REQ_NOT_ACKNOWLEDGE               0xFF
+#define SERVICES_REQ_TIMEOUT                       0xFD
+#define SERVICES_RESP_UNKNOWN_COMMAND              0xFC
 
 /*******************************************************************************
  *  T Y P E D E F S
  ******************************************************************************/
-
-/**
- * @enum SERVICE_ID_t Service Identifiers (SID)
- */
-typedef enum
-{
-  /**
-   * Maintenance Services
-   */
-  SERVICE_MAINTENANCE_START  = 0,                                     /**< SERVICE_MAINTENANCE_START        */
-  SERVICE_MAINTENANCE_HEARTBEAT_ID = SERVICE_MAINTENANCE_START,       /**< SERVICE_MAINTENANCE_HEARTBEAT_ID */
-  SERVICE_MAINTENANCE_RTC_ID,                                         /**< SERVICE_MAINTENANCE_RTC_ID       */
-  SERVICE_MAINTENANCE_END    = 99,                                    /**< SERVICE_MAINTENANCE_END          */
-
-  /**
-   * Application Services
-   */
-  SERVICE_APPLICATION_START  = 100,                                   /**< SERVICE_APPLICATION_START                  */
-  SERVICE_APPLICATION_CLOCK_MANAGEMENT_ID = SERVICE_APPLICATION_START,/**< SERVICE_APPLICATION_CLOCK_MANAGEMENT_ID    */
-  SERVICE_APPLICATION_PINMUX_ID,                                      /**< SERVICE_APPLICATION_PINMUX_ID              */
-  SERVICE_APPLICATION_PAD_CONTROL_ID,                                 /**< SERVICE_APPLICATION_PAD_CONTROL            */
-  SERVICE_APPLICATION_FIRMWARE_VERSION_ID,                            /**< SERVICE_APPLICATION_FIRMWARE_VERSION_ID    */
-  SERVICE_APPLICATION_UART_WRITE_ID,                                  /**< SERVICE_APPLICATION_UART_WRITE_ID          */
-  SERVICE_APPLICATION_OSPI_WRITE_KEY_ID,                              /**< SERVICE_APPLICATION_OSPI_WRITE_KEY_ID      */
-  SERVICE_APPLICATION_END    = 199,                                   /**< SERVICE_APPLICATION_END                    */
-
-  /**
-   * System Management Services
-   */
-  SERVICE_SYSTEM_MGMT_START  = 200,                                   /**< SERVICE_SYSTEM_MGMT_START                  */
-  SERVICE_SYSTEM_MGMT_GET_TOC_VERSION = SERVICE_SYSTEM_MGMT_START,    /**< SERVICE_SYSTEM_MGMT_GET_TOC_VERSION        */
-  SERVICE_SYSTEM_MGMT_GET_TOC_NUMBER,                                 /**< SERVICE_SYSTEM_MGMT_GET_TOC_NUMBER         */
-  SERVICE_SYSTEM_MGMT_GET_TOC_FLAGS,                                  /**< SERVICE_SYSTEM_MGMT_GET_TOC_FLAGS          */
-  SERVICE_SYSTEM_MGMT_GET_TOC_VIA_CPU_ID,                             /**< SERVICE_SYSTEM_MGMT_GET_TOC_VIA_CPU_ID     */
-  SERVICE_SYSTEM_MGMT_GET_TOC_VIA_CPU_NAME,                           /**< SERVICE_SYSTEM_MGMT_GET_TOC_VIA_CPU_NAME   */
-  SERVICE_SYSTEM_MGMT_GET_TOC_INFO,                                   /**< SERVICE_SYSTEM_MGMT_GET_TOC_INFO           */
-  SERVICE_SYSTEM_MGMT_GET_OTP_INFO,                                   /**< SERVICE_SYSTEM_MGMT_GET_OTP_INFO           */
-  SERVICE_SYSTEM_MGMT_GET_DEVICE_PART_NUMBER,                         /**< SERVICE_SYSTEM_MGMT_GET_DEVICE_PART_NUMBER */
-  SERVICE_SYSTEM_MGMT_SET_CAPABILITIES_DEBUG,                         /**< SERVICE_SYSTEM_MGMT_SET_CAPABILITIES_DEBUG */
-  SERVICE_SYSTEM_MGMT_READ_OTP,                                       /**< SERVICE_SYSTEM_MGMT_OTP_READ               */
-  SERVICE_SYSTEM_MGMT_END    = 299,                                   /**< SERVICE_SYSTEM_MGMT_END                    */
-
-  /**
-   * Power Services
-   */
-  SERVICE_POWER_START        = 300,                                   /**< SERVICE_POWER_START */
-  SERVICE_POWER_STOP_MODE_REQ_ID,                                     /**< SERVICE_POWER_STOP_MODE_REQ_ID */
-  SERVICE_POWER_EWIC_CONFIG_REQ_ID,                                   /**< SERVICE_POWER_EWIC_CONFIG_REQ_ID */
-  SERVICE_POWER_VBAT_WAKEUP_CONFIG_REQ_ID,                            /**< SERVICE_POWER_VBAT_WAKEUP_CONFIG_REQ_ID */
-  SERVICE_POWER_MEM_RETENTION_CONFIG_REQ_ID,                          /**< SERVICE_POWER_MEM_RETENTION_CONFIG_REQ_ID */
-  SERVICE_POWER_END          = 399,                                   /**< SERVICE_POWER_END */
-
-  /**
-   * Cryptocell / Security Services
-   */
-  SERVICE_CRYPTOCELL_START   = 400,                                   /**< SERVICE_CRYPTOCELL_START */
-  SERVICE_CRYPTOCELL_GET_RND =  SERVICE_CRYPTOCELL_START,             /**< SERVICE_CRYPTOCELL_GET_RND */
-  SERVICE_CRYPTOCELL_GET_LCS,                                         /**< SERVICE_CRYPTOCELL_GET_LCS */
-  SERVICE_CRYPTOCELL_MBEDTLS_AES_INIT,                                /**< SERVICE_CRYPTOCELL_MBEDTLS_AES_INIT */
-  SERVICE_CRYPTOCELL_MBEDTLS_AES_SET_KEY,                             /**< SERVICE_CRYPTOCELL_MBEDTLS_AES_SET_KEY */
-  SERVICE_CRYPTOCELL_MBEDTLS_AES_CRYPT,                               /**< SERVICE_CRYPTOCELL_MBEDTLS_AES_CRYPT_ECB */
-  SERVICE_CRYPTOCELL_MBEDTLS_CCM_GCM_SET_KEY,                         /**< SERVICE_CRYPTOCELL_MBEDTLS_CCM_GCM_SET_KEY */
-  SERVICE_CRYPTOCELL_MBEDTLS_CCM_GCM_CRYPT,                           /**< SERVICE_CRYPTOCELL_MBEDTLS_CCM_GCM_CRYPT */
-  SERVICE_CRYPTOCELL_MBEDTLS_CHACHA20_CRYPT,                          /**< SERVICE_CRYPTOCELL_MBEDTLS_CHACHA20_CRYPT */
-  SERVICE_CRYPTOCELL_MBEDTLS_CHACHAPOLY_CRYPT,                        /**< SERVICE_CRYPTOCELL_MBEDTLS_CHACHAPOLY_CRYPT */
-  SERVICE_CRYPTOCELL_MBEDTLS_POLY1305_CRYPT,                          /**< SERVICE_CRYPTOCELL_MBEDTLS_POLY1305_CRYPT */
-  SERVICE_CRYPTOCELL_MBEDTLS_SHA_STARTS,                              /**< SERVICE_CRYPTOCELL_MBEDTLS_SHA_STARTS */
-  SERVICE_CRYPTOCELL_MBEDTLS_SHA_PROCESS,                             /**< SERVICE_CRYPTOCELL_MBEDTLS_SHA_PROCESS */
-  SERVICE_CRYPTOCELL_MBEDTLS_SHA_UPDATE,                              /**< SERVICE_CRYPTOCELL_MBEDTLS_SHA_UPDATE */
-  SERVICE_CRYPTOCELL_MBEDTLS_SHA_FINISH,                              /**< SERVICE_CRYPTOCELL_MBEDTLS_SHA_FINISH */
-  SERVICE_CRYPTOCELL_MBEDTLS_TRNG_HARDWARE_POLL,                      /**< SERVICE_CRYPTOCELL_MBEDTLS_TRNG_HARDWARE_POLL */
-  SERVICE_CRYPTOCELL_MBEDTLS_CMAC_INIT_SETKEY,                        /**< SERVICE_CRYPTOCELL_MBEDTLS_CMAC_INIT_SETKEY */
-  SERVICE_CRYPTOCELL_MBEDTLS_CMAC_UPDATE,                             /**< SERVICE_CRYPTOCELL_MBEDTLS_CMAC_UPDATE */
-  SERVICE_CRYPTOCELL_MBEDTLS_CMAC_FINISH,                             /**< SERVICE_CRYPTOCELL_MBEDTLS_CMAC_FINISH */
-  SERVICE_CRYPTOCELL_MBEDTLS_CMAC_RESET,                              /**< SERVICE_CRYPTOCELL_MBEDTLS_CMAC_RESET */
-  SERVICE_CRYPTOCELL_END     = 499,                                   /**< SERVICE_CRYPTOCELL_END */
-
-  /**
-   * Boot Services
-   */
-  SERVICE_BOOT_START         = 500,                                   /**< SERVICE_BOOT_START */
-  SERVICE_BOOT_PROCESS_TOC_ENTRY = SERVICE_BOOT_START,                /**< SERVICE_BOOT_PROCESS_TOC_ENTRY */
-  SERVICE_BOOT_CPU,                                                   /**< SERVICE_BOOT_CPU */
-  SERVICE_BOOT_RELEASE_CPU,                                           /**< SERVICE_BOOT_RESEASE_CPU */
-  SERVICE_BOOT_RESET_CPU,                                             /**< SERVICE_BOOT_RESET_CPU */
-  SERVICE_BOOT_RESET_SOC,                                             /**< SERVICE_BOOT_RESET_SOC */
-  SERVICE_BOOT_END           = 599,                                   /**< SERVICE_BOOT_END */
-
-  /**
-   * Update Services
-   */
-  SERVICE_UPDATE_START       = 600,                                   /**< SERVICE_UPDATE_START */
-  SERVICE_UPDATE_END         = 699                                    /**< SERVICE_UPDATE_END */
-} SERVICE_ID_t;
 
 /**
  * Transport layer header structure, common for all services
@@ -165,71 +111,109 @@ typedef enum
  */
 typedef struct
 {
-  volatile uint16_t send_service_id; // Requested Service ID
-  volatile uint16_t send_flags;      // Request flags
-  volatile uint16_t resp_error_code; // Transport layer error code
-  volatile uint16_t none_padding;
+  volatile uint16_t hdr_service_id; // Requested Service ID
+  volatile uint16_t hdr_flags;      // Request flags
+  volatile uint16_t hdr_error_code; // Transport layer error code
+  volatile uint16_t hdr_padding;
 } service_header_t;
-
-/**
- * @struct Power profiles
- */
-typedef enum
-{
-  LOWEST_POWER_PROFILE = 0,      /**< LOWEST_POWER_PROFILE */
-  HIGH_PERFORMANCE_POWER_PROFILE,/**< HIGH_PERFORMANCE_POWER_PROFILE */
-  USER_SPECIFIED_PROFILE,        /**< USER_SPECIFIED_PROFILE */
-  DEFAULT_POWER_PROFILE,         /**< DEFAULT_POWER_PROFILE */
-  NUMBER_OF_POWER_PROFILES       /**< NUMBER_OF_POWER_PROFILES */
-} services_power_profile_t;
-
-
-typedef enum
-{
-  EWIC_RTC_SE               = 0x1,          // bit0
-  EWIC_MODEM                = 0x2,          // bit1
-  EWIC_MODEM_TO_SE_IRQ      = 0xC,          // bit3:2
-  EWIC_MODEM_PPU_IRQ        = 0x10,         // bit4
-  EWIC_MODEM_WARM_RESET_REQ = 0x20,         // bit5
-  EWIC_RTC_A                = 0x40,         // bit6
-  EWIC_VBAT_TIMER           = 0x780,        // bit10:7
-  EWIC_VBAT_GPIO            = 0x7F800,      // bit18:11
-  EWIC_VBAT_LP_CMP_IRQ      = 0x00080000UL, // bit19
-  EWIC_ES1_LP_I2C_IRQ       = 0x00100000UL, // bit20
-  EWIC_ES1_LP_UART_IRQ      = 0x00200000UL, // bit21
-  EWIC_BROWN_OUT            = 0x00400000UL, // bit22
-} SERVICES_ewic_cfg_t;
-
-typedef enum
-{
-  VBAT_WAKEUP_MDM           = 0x1,          // bit0
-  VBAT_WAKEUP_RTC_SE        = 0x10,         // bit4
-  VBAT_WAKEUP_RTC_A         = 0x20,         // bit5
-  VBAT_WAKEUP_LPCMP         = 0x40,         // bit6
-  VBAT_WAKEUP_BROWN_OUT     = 0x80,         // bit7
-  VBAT_WAKEUP_LPTIMER       = 0XF00,        // bit11:8
-  VBAT_WAKEUP_LPGPIO        = 0XFF0000,     // bit23:16
-} SERVICES_wakeup_cfg_t;
-
-// Memory retention bit encoding for mem_retention_enable
-#define POWER_MEM_RETENTION_BACKUP_RAM          0x01
-#define POWER_MEM_RETENTION_MODEM_BACKUP_RAM    0x02
-#define POWER_MEM_RETENTION_FIREWALL_RAM        0x04
-#define POWER_MEM_RETENTION_ES1_TCM             0x08
-#define POWER_MEM_RETENTION_MODEM_TCM           0x10
-#define POWER_MEM_RETENTION_SE_RAM              0x20
-
 
 /*******************************************************************************
  *  Service format definitions
  ******************************************************************************/
 
+// Generic APIs
+typedef struct
+{
+  service_header_t header;
+  volatile int     resp_error_code;
+} generic_svc_t;
+
+// AI PM APIs
+typedef struct {
+  service_header_t header;
+  volatile uint32_t send_power_domains;
+  volatile uint32_t send_dcdc_voltage;
+  volatile uint32_t send_dcdc_mode;
+  volatile uint32_t send_aon_clk_src;
+  volatile uint32_t send_run_clk_src;
+  volatile uint32_t send_cpu_clk_freq;
+  volatile uint32_t send_scaled_clk_freq;
+  volatile uint32_t send_memory_blocks;
+  volatile uint32_t send_ip_clock_gating;
+  volatile uint32_t send_phy_pwr_gating;
+  volatile uint32_t send_vdd_ioflex_3V3;
+  volatile uint32_t send_wakeup_events;
+  volatile uint32_t send_ewic_cfg;
+  volatile uint32_t send_vtor_address;
+  volatile uint32_t send_vtor_address_ns;
+  volatile int      resp_error_code;
+} aipm_set_run_profile_svc_t;
+
+typedef struct {
+  service_header_t header;
+  volatile uint32_t resp_power_domains;
+  volatile uint32_t resp_dcdc_voltage;
+  volatile uint32_t resp_dcdc_mode;
+  volatile uint32_t resp_aon_clk_src;
+  volatile uint32_t resp_run_clk_src;
+  volatile uint32_t resp_cpu_clk_freq;
+  volatile uint32_t resp_scaled_clk_freq;
+  volatile uint32_t resp_memory_blocks;
+  volatile uint32_t resp_ip_clock_gating;
+  volatile uint32_t resp_phy_pwr_gating;
+  volatile uint32_t resp_vdd_ioflex_3V3;
+  volatile uint32_t resp_wakeup_events;
+  volatile uint32_t resp_ewic_cfg;
+  volatile uint32_t resp_vtor_address;
+  volatile uint32_t resp_vtor_address_ns;
+  volatile int      resp_error_code;
+} aipm_get_run_profile_svc_t;
+
+typedef struct {
+  service_header_t header;
+  volatile uint32_t send_power_domains;
+  volatile uint32_t send_dcdc_voltage;
+  volatile uint32_t send_dcdc_mode;
+  volatile uint32_t send_aon_clk_src;
+  volatile uint32_t send_stby_clk_src;
+  volatile uint32_t send_stby_clk_freq;
+  volatile uint32_t send_memory_blocks;
+  volatile uint32_t send_ip_clock_gating;
+  volatile uint32_t send_phy_pwr_gating;
+  volatile uint32_t send_vdd_ioflex_3V3;
+  volatile uint32_t send_wakeup_events;
+  volatile uint32_t send_ewic_cfg;
+  volatile uint32_t send_vtor_address;
+  volatile uint32_t send_vtor_address_ns;
+  volatile int      resp_error_code;
+} aipm_set_off_profile_svc_t;
+
+typedef struct {
+  service_header_t header;
+  volatile uint32_t resp_power_domains;
+  volatile uint32_t resp_dcdc_voltage;
+  volatile uint32_t resp_dcdc_mode;
+  volatile uint32_t resp_aon_clk_src;
+  volatile uint32_t resp_stby_clk_src;
+  volatile uint32_t resp_stby_clk_freq;
+  volatile uint32_t resp_memory_blocks;
+  volatile uint32_t resp_ip_clock_gating;
+  volatile uint32_t resp_phy_pwr_gating;
+  volatile uint32_t resp_vdd_ioflex_3V3;
+  volatile uint32_t resp_wakeup_events;
+  volatile uint32_t resp_ewic_cfg;
+  volatile uint32_t resp_vtor_address;
+  volatile uint32_t resp_vtor_address_ns;
+  volatile int      resp_error_code;
+} aipm_get_off_profile_svc_t;
+
 // Crypto Services
 
 // Get Random Data
 
-// Same as MBEDTLS_CTR_DRBG_MAX_REQUEST in cryptocell-rt
-#define MAX_RND_LENGTH 1024
+// MBEDTLS_CTR_DRBG_MAX_REQUEST in cryptocell-rt is 1024,
+// it was decided that we will use a smaller buffer
+#define MAX_RND_LENGTH 256
 typedef struct
 {
   service_header_t header;
@@ -443,20 +427,20 @@ typedef struct
 typedef struct
 {
   service_header_t header;
-  volatile uint8_t  send_port_num;
-  volatile uint8_t  send_pin_num;
-  volatile uint8_t  send_config_data;
-  volatile uint8_t  resp_error_code;
+  volatile uint32_t send_port_num;
+  volatile uint32_t send_pin_num;
+  volatile uint32_t send_config_data;
+  volatile uint32_t resp_error_code;
 } pinmux_svc_t;
 
 // Pad Control
 typedef struct
 {
   service_header_t header;
-  volatile uint8_t  send_port_num;
-  volatile uint8_t  send_pin_num;
-  volatile uint8_t  send_config_data;
-  volatile uint8_t  resp_error_code;
+  volatile uint32_t send_port_num;
+  volatile uint32_t send_pin_num;
+  volatile uint32_t send_config_data;
+  volatile uint32_t resp_error_code;
 } pad_control_svc_t;
 
 /* UART Write */
@@ -476,6 +460,15 @@ typedef struct
   volatile uint8_t   send_key[16];
   volatile uint32_t  resp_error_code;
 } ospi_write_key_svc_t;
+
+// Perform the DMPU function, to advance from DM to SE LCS
+typedef struct
+{
+  service_header_t header;
+  volatile uint32_t send_assets_addr;
+  volatile uint32_t resp_error_code;
+} dmpu_svc_t;
+
 
 /**
  * @struct get_se_revision_t
@@ -563,6 +556,7 @@ typedef struct
 typedef struct
 {
   service_header_t header;
+  volatile uint32_t send_cpu_id;
   get_toc_entry_t resp_toc_entry[15];
   volatile uint32_t resp_number_of_toc_entries;
   volatile uint32_t resp_error_code;
@@ -586,16 +580,16 @@ typedef struct
 } get_otp_data_t;
 
 /**
- * @struct  read_otp_data_t
- * @brief   request for otp read
+ * @struct  otp_data_t
+ * @brief   request for otp read or write
  */
 typedef struct
 {
   service_header_t header;
-  volatile uint32_t send_offset;       /**< OTP offset to read */
-  volatile uint32_t resp_otp_word;     /**< OTP contents       */
+  volatile uint32_t send_offset;     /**< OTP offset to read or write */
+  volatile uint32_t otp_word;        /**< OTP contents       */
   volatile uint32_t resp_error_code;
-} read_otp_data_t;
+} otp_data_t;
 
 /**
  * @struct get_device_part_svc_t
@@ -609,6 +603,28 @@ typedef struct
 } get_device_part_svc_t;
 
 /**
+ * @struct  get_device_revision_data_t
+ * @brief   Get all relevant device information
+ *
+ */
+typedef struct
+{
+  service_header_t header;
+  volatile uint32_t revision_id;
+  volatile uint8_t resp_version[4];
+  volatile uint8_t ALIF_PN[16];
+  volatile uint8_t HBK0   [16];
+  volatile uint8_t HBK1   [16];
+  volatile uint8_t HBK_FW [20];
+  volatile uint8_t config [4];
+  volatile uint8_t DCU    [16];
+  volatile uint8_t MfgData[32];
+  volatile uint8_t SerialN[8];
+  volatile uint8_t LCS;
+  volatile uint32_t  resp_error_code;
+} get_device_revision_data_t;
+
+/**
  * @struct set_services_capabilities_t
  * Set capabilities
  * @note for now it is limited to debug toggle
@@ -620,23 +636,24 @@ typedef struct
   volatile uint32_t  resp_error_code;
 } set_services_capabilities_t;
 
-//////////////////////////////////////////////////////////////////
-// Power Services
-//
+/**
+ * Power Services
+ */
 
-//----------------------------------------------------------------
-// Stop Mode Request
-//  enable - any bit enables
-//           bit 1 - Set M55_HE VTOR to sentinel pattern
-//           bit 2 - Enable SE TCM retention
-//           bit 3 - force SE  WDOG expiration
-//           bit 4 - force SOC WDOG expiration
-//
+/**
+ * Stop Mode Request
+ * enable - any bit enables
+ *           bit 1 - Set M55_HE VTOR to sentinel pattern
+ *           bit 2 - Enable SE TCM retention
+ *           bit 3 - force SE  WDOG expiration
+ *           bit 4 - force SOC WDOG expiration
+ */
 typedef struct
 {
   service_header_t header;
-  services_power_profile_t power_profile;
+  uint32_t power_profile;
   bool override;
+  uint16_t pad;
 } stop_mode_request_svc_t;
 
 //----------------------------------------------------------------
@@ -646,7 +663,7 @@ typedef struct
 {
   service_header_t header;
   uint32_t send_ewic_source;
-  services_power_profile_t power_profile;
+  uint32_t power_profile;
   uint32_t resp_error_code;
 } ewic_config_request_svc_t;
 
@@ -657,7 +674,7 @@ typedef struct
 {
   service_header_t header;
   uint32_t send_vbat_wakeup_source;
-  services_power_profile_t power_profile;
+  uint32_t power_profile;
   uint32_t resp_error_code;
 } vbat_wakeup_config_request_svc_t;
 
@@ -668,10 +685,162 @@ typedef struct
 {
   service_header_t header;
   uint32_t send_mem_retention;
-  services_power_profile_t power_profile;
+  uint32_t power_profile;
   uint32_t resp_error_code;
 } mem_ret_config_request_svc_t;
 
+//----------------------------------------------------------------
+// SRAM 0 1 MRAM Power On Off
+//
+typedef struct
+{
+  service_header_t header;
+  uint32_t send_memory_power;
+  uint32_t resp_error_code;
+} mem_power_config_request_svc_t;
+
+//----------------------------------------------------------------
+// Global standby mode Request
+//
+typedef union
+{
+  struct
+  {
+    uint16_t pwr_req :1;
+    uint16_t mem_ret_req :1;
+  } bits;
+  uint32_t word;
+} host_cpu_clus_pwr_req_t;
+
+typedef union
+{
+  struct
+  {
+    uint8_t wakeup_en :1;
+    uint8_t refclk_req :1;
+    uint8_t dbgtop_pwr_req :1;
+    uint8_t systop_pwr_req :3;
+  } bits;
+  uint32_t word;
+} bsys_pwr_req_t;
+
+typedef union
+{
+  struct
+  {
+    uint8_t reserved :2;
+    uint8_t dbgtop_pwr_st :1;
+    uint8_t systop_pwr_st :3;
+  } bits;
+  uint32_t word;
+} bsys_pwr_st_t;
+
+typedef struct
+{
+  service_header_t header;
+  host_cpu_clus_pwr_req_t host_cpu_clus_pwr_req;
+  bsys_pwr_req_t bsys_pwr_req;
+  uint32_t resp_error_code;
+} global_standby_request_svc_t;
+
+//----------------------------------------------------------------
+// M55-HE VTOR save Request
+//
+typedef struct
+{
+  service_header_t header;
+  uint32_t ns_vtor_addr;
+  uint32_t se_vtor_addr;
+  uint32_t power_profile;
+  uint32_t resp_error_code;
+} m55_vtor_save_request_svc_t;
+
+//----------------------------------------------------------------
+// DCDC voltage control Request
+//
+typedef struct
+{
+  service_header_t header;
+  uint32_t dcdc_vout_sel; // bit1:0
+  uint32_t dcdc_vout_trim; // bit3:0
+  uint32_t resp_error_code;
+} dcdc_voltage_request_svc_t;
+
+//----------------------------------------------------------------
+// LDO voltage control Request
+//
+typedef struct
+{
+  service_header_t header;
+  uint32_t ret_ldo_voltage; // bit3:0
+  uint32_t aon_ldo_voltage; // bit3:0
+  uint32_t resp_error_code;
+} ldo_voltage_request_svc_t;
+
+//----------------------------------------------------------------
+// Clocks API
+
+// struct for clock selection APIs
+typedef struct
+{
+  service_header_t header;
+  uint32_t send_clock_source;
+  uint32_t send_clock_target;
+  uint32_t resp_error_code;
+} clk_select_clock_source_svc_t;
+
+// enable or disable a clock
+typedef struct
+{
+  service_header_t header;
+  uint32_t send_clock_type;
+  uint32_t send_enable;
+  uint32_t resp_error_code;
+} clk_set_enable_svc_t;
+
+// struct for M55 frequency selection APIs
+typedef struct
+{
+  service_header_t header;
+  uint32_t send_frequency;
+  uint32_t resp_error_code;
+} clk_m55_set_frequency_svc_t;
+
+// struct for system clock source selection (A32 and AXI)
+typedef struct
+{
+  service_header_t header;
+  uint32_t send_source;
+  uint32_t resp_error_code;
+} clk_select_sys_clk_source_svc_t;
+
+// struct for setting clock dividers
+typedef struct
+{
+  service_header_t header;
+  uint32_t send_divider;
+  uint32_t send_value;
+  uint32_t resp_error_code;
+} clk_set_clk_divider_svc_t;
+
+// struct for starting the external HF crystall
+typedef struct
+{
+  service_header_t header;
+  uint32_t send_faststart;
+  uint32_t send_boost;
+  uint32_t send_delay_count;
+  uint32_t resp_error_code;
+} pll_xtal_start_svc_t;
+
+// struct for starting the PLL
+typedef struct
+{
+  service_header_t header;
+  uint32_t send_faststart;
+  uint32_t send_delay_count;
+  uint32_t resp_error_code;
+} pll_clkpll_start_svc_t;
 
 /*******************************************************************************
  *  G L O B A L   D E F I N E S
@@ -681,8 +850,14 @@ typedef struct
  *  F U N C T I O N   P R O T O T Y P E S
  ******************************************************************************/
 
-uint32_t SERVICES_local_to_global_addr(uint32_t local_addr);
-uint32_t SERVICES_global_to_local_addr(uint32_t global_addr);
+uintptr_t SERVICES_prepare_packet_buffer(uint32_t size);
+
+typedef void (*SERVICES_sender_callback) (uint32_t sender_id, uint32_t data);
+
+uint32_t SERVICES_send_msg(uint32_t services_handle, uint32_t services_data);
+uint32_t SERVICES_send_request(uint32_t services_handle,
+                               uint16_t service_id,
+                               SERVICES_sender_callback callback);
 
 #ifdef __cplusplus
 }

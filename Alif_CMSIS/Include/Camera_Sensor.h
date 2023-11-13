@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -10,10 +10,15 @@
 
 /**************************************************************************//**
  * @file     Camera_Sensor.h
- * @author   Tanay Rami
- * @email    tanay@alifsemi.com
- * @version  V1.0.0
- * @date     01-Sep-2021
+ * @author   Tanay Rami and Chandra Bhushan Singh
+ * @email    tanay@alifsemi.com and chandrabhushan.singh@alifsemi.com
+ * @version  V1.1.0
+ *             -Removed enums for clock source, interface, polarity, hsync mode,
+ *             data mode, and data mask.
+ *             -Included low level header file 'cpi.h'
+ *             -Replaced data types in CAMERA_SENSOR_INFO structure with CPI low
+ *             level file data types.
+ * @date     19-April-2023
  * @brief    Camera Sensor Device definitions.
  ******************************************************************************/
 
@@ -26,103 +31,87 @@ extern "C"
 #endif
 
 #include <stdint.h>
-#include "Camera_Common.h"
+#include <stdbool.h>
+#include "cpi.h"
+#include "csi.h"
+#include "DPHY_init.h"
+
+/****** CAMERA_SENSOR used for registering camera sensor *****/
+#define CAMERA_SENSOR(sensor) \
+CAMERA_SENSOR_DEVICE *Get_Camera_Sensor(void) \
+{ \
+    return &sensor; \
+} \
+
+/****** LPCAMERA_SENSOR used for registering low power camera sensor *****/
+#define LPCAMERA_SENSOR(sensor) \
+CAMERA_SENSOR_DEVICE *Get_LPCamera_Sensor(void) \
+{ \
+    return &sensor; \
+} \
 
 /**
-\brief Camera Clock Source
+\brief CPI information structure
 */
-typedef enum _CAMERA_CLOCK_SOURCE {
-  CAMERA_CLOCK_SOURCE_INTERNAL_CAMERA_CONTROLLER = 0,   /* Clock Source: Internal from Camera Controller    */
-  CAMERA_CLOCK_SOURCE_EXTERNAL_CAMERA_SENSOR,           /* Clock Source: External from Camera Sensor Device */
-} CAMERA_CLOCK_SOURCE;
+typedef struct _CPI_INFO {
+    CPI_INTERFACE            interface;        /* CPI Interface */
+    CPI_WAIT_VSYNC           vsync_wait;       /* CPI VSYNC Wait */
+    CPI_CAPTURE_DATA_ENABLE  vsync_mode;       /* CPI VSYNC Mode */
+    CPI_SIG_POLARITY         pixelclk_pol;     /* CPI Pixel Clock Polarity */
+    CPI_SIG_POLARITY         hsync_pol;        /* CPI HSYNC Polarity */
+    CPI_SIG_POLARITY         vsync_pol;        /* CPI VSYNC Polarity */
+    CPI_DATA_MODE            data_mode;        /* CPI Data Mode */
+    CPI_DATA_ENDIANNESS      data_endianness;  /* CPI MSB/LSB */
+    CPI_CODE10ON8_CODING     code10on8;        /* CPI code10on8 enable/disable */
+    CPI_DATA_MASK            data_mask;        /* CPI Data Mask */
+    CPI_COLOR_MODE_CONFIG    csi_mode;         /* CPI CSI Color mode */
+} CPI_INFO;
 
 /**
-\brief Camera Sensor Interface
+\brief CSI override CPI color mode structure
 */
-typedef enum _CAMERA_SENSOR_INTERFACE {
-  CAMERA_SENSOR_INTERFACE_PARALLEL = 0,          /* Camera Sensor Interface: Parallel */
-  CAMERA_SENSOR_INTERFACE_MIPI_CSI,              /* Camera Sensor Interface: MIPI_CSI */
-} CAMERA_SENSOR_INTERFACE;
+typedef struct _CSI_OVERRIDE_CPI_COLOR {
+    bool                  override;        /* CPI color mode override by CPI */
+    CPI_COLOR_MODE_CONFIG cpi_color_mode;  /* CPI color mode to be override */
+} CSI_OVERRIDE_CPI_COLOR;
 
 /**
-\brief Camera Sensor Polarity
+\brief CSI information structure
 */
-typedef enum _CAMERA_SENSOR_POLARITY {
-  CAMERA_SENSOR_POLARITY_NOT_INVERT = 0,         /* Camera Sensor Polarity: Not Invert */
-  CAMERA_SENSOR_POLARITY_INVERT,                 /* Camera Sensor Polarity: Invert     */
-} CAMERA_SENSOR_POLARITY;
-
-/**
-\brief Camera Sensor HSYNC Mode
-*/
-typedef enum _CAMERA_SENSOR_HSYNC_MODE {
-  CAMERA_SENSOR_HSYNC_SIG_IS_HYNC = 0,           /* Camera Sensor HSYNC MODE: HSYNC signal is HYNC        */
-  CAMERA_SENSOR_HSYNC_SIG_IS_DATA_EN,            /* Camera Sensor HSYNC MODE: HSYNC signal is Data Enable */
-} CAMERA_SENSOR_HSYNC_MODE;
-
-/**
-\brief Camera Sensor Data Mode
-*/
-typedef enum _CAMERA_SENSOR_DATA_MODE {
-  CAMERA_SENSOR_DATA_MODE_8_BIT = 0,             /* Camera Sensor Data Mode:  8-bit */
-  CAMERA_SENSOR_DATA_MODE_16_BIT,                /* Camera Sensor Data Mode: 16-bit */
-  CAMERA_SENSOR_DATA_MODE_32_BIT,                /* Camera Sensor Data Mode: 32-bit */
-  CAMERA_SENSOR_DATA_MODE_64_BIT                 /* Camera Sensor Data Mode: 64-bit */
-} CAMERA_SENSOR_DATA_MODE;
-
-/**
-\brief Camera Sensor Data Mask
- @Note No impact on 8-bit mode
-*/
-typedef enum _CAMERA_SENSOR_DATA_MASK {
-  CAMERA_SENSOR_DATA_MASK_10_BIT = 0,            /* Camera Sensor Data Mask: 10-bit */
-  CAMERA_SENSOR_DATA_MASK_12_BIT,                /* Camera Sensor Data Mask: 12-bit */
-  CAMERA_SENSOR_DATA_MASK_14_BIT,                /* Camera Sensor Data Mask: 14-bit */
-  CAMERA_SENSOR_DATA_MASK_16_BIT                 /* Camera Sensor Data Mask: 16-bit */
-} CAMERA_SENSOR_DATA_MASK;
-
-/**
-\brief CAMERA Sensor Device Information
-*/
-typedef struct _CAMERA_SENSOR_INFO {
-  uint8_t output_format;     /* Camera Sensor Image Output Format Mono/RAW-Bayer/RGB/YUV */
-  uint8_t additional_width;  /* if Camera Sensor requires additional width  (ex: in case of border pixel for demosaic.) */
-  uint8_t additional_height; /* if Camera Sensor requires additional height (ex: in case of border pixel for demosaic.) */
-} CAMERA_SENSOR_INFO;
-
-/**
-\brief CAMERA Sensor Device Configurations
-*/
-typedef struct _CAMERA_SENSOR_CONFIG {
-  CAMERA_CLOCK_SOURCE      clock_source;         /* Camera Clock Source                 */
-  CAMERA_SENSOR_INTERFACE  interface;            /* Camera Sensor Interface             */
-  CAMERA_SENSOR_POLARITY   pixelclk_pol;         /* Camera Sensor Pixel Clock Polarity  */
-  CAMERA_SENSOR_POLARITY   hsync_pol;            /* Camera Sensor HSYNC Polarity        */
-  CAMERA_SENSOR_POLARITY   vsync_pol;            /* Camera Sensor VSYNC Polarity        */
-  CAMERA_SENSOR_HSYNC_MODE hsync_mode;           /* Camera Sensor HSYNC Mode            */
-  CAMERA_SENSOR_DATA_MODE  data_mode;            /* Camera Sensor Data Mode             */
-  CAMERA_SENSOR_DATA_MASK  data_mask;            /* Camera Sensor Data Mask             */
-} CAMERA_SENSOR_CONFIG;
+typedef struct _CSI_INFO {
+    uint32_t                frequency;                /* CSI clock frequency */
+    CSI_DATA_TYPE           dt;                       /* CSI data type */
+    DPHY_CLK_MODE           clk_mode;                 /* CSI Clock mode */
+    uint8_t                 n_lanes;                  /* CSI number of data lanes */
+    CSI_VC_ID               vc_id;                    /* CSI virtual channel ID */
+    CSI_OVERRIDE_CPI_COLOR  cpi_cfg;                  /* CSI override CPI color mode */
+} CSI_INFO;
 
 /**
 \brief CAMERA Sensor Device Operations
 */
 typedef struct _CAMERA_SENSOR_OPERATIONS {
-  int32_t (*Init)    (ARM_CAMERA_RESOLUTION camera_resolution);   /* Initialize Camera Sensor device    */
-  int32_t (*Uninit)  (void);                                      /* De-initialize Camera Sensor device */
-  int32_t (*Start)   (void);                                      /* Start Camera Sensor device         */
-  int32_t (*Stop)    (void);                                      /* Stop Camera Sensor device          */
-  int32_t (*Control) (uint32_t control, uint32_t arg);            /* Control Camera Sensor device       */
+    int32_t (*Init)    (void);                           /* Initialize Camera Sensor device */
+    int32_t (*Uninit)  (void);                           /* De-initialize Camera Sensor device */
+    int32_t (*Start)   (void);                           /* Start Camera Sensor device */
+    int32_t (*Stop)    (void);                           /* Stop Camera Sensor device */
+    int32_t (*Control) (uint32_t control, uint32_t arg); /* Control Camera Sensor device */
 } CAMERA_SENSOR_OPERATIONS;
 
 /**
 \brief CAMERA Sensor Device
 */
 typedef struct _CAMERA_SENSOR_DEVICE {
-  CAMERA_SENSOR_INFO       *Info;                /* Camera Sensor device Information    */
-  CAMERA_SENSOR_CONFIG     *Config;              /* Camera Sensor device Configurations */
-  CAMERA_SENSOR_OPERATIONS *Ops;                 /* Camera Sensor device Operations     */
+    int                       width;     /* Frame Width */
+    int                       height;    /* Frame Height */
+    CPI_INFO                  *cpi_info; /* CPI Camera Sensor device Information */
+    CSI_INFO                  *csi_info; /* CSI Camera Sensor device Information */
+    CAMERA_SENSOR_OPERATIONS  *ops;      /* Camera Sensor device Operations */
 } CAMERA_SENSOR_DEVICE;
+
+/** Get CPI/LPCPI sensor information */
+CAMERA_SENSOR_DEVICE *Get_Camera_Sensor(void);
+CAMERA_SENSOR_DEVICE *Get_LPCamera_Sensor(void);
 
 #ifdef  __cplusplus
 }

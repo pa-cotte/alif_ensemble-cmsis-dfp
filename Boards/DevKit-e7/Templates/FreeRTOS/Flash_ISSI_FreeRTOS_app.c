@@ -22,7 +22,8 @@
 #include <stdio.h>
 #include "stdint.h"
 #include "Driver_Flash.h"
-#include "Driver_PINMUX_AND_PINPAD.h"
+#include "Driver_GPIO.h"
+#include "pinconf.h"
 #include "RTE_Components.h"
 #include CMSIS_device_header
 
@@ -30,22 +31,10 @@
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
 #include "task.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
-
-#ifdef DISABLE_PRINTF
-  #define printf( fmt, ... ) ( 0 )
-  /* Also Disable Semihosting */
-  #if __ARMCC_VERSION >= 6000000
-    __asm( ".global __use_no_semihosting" );
-  #elif __ARMCC_VERSION >= 5000000
-    #pragma import( __use_no_semihosting )
-  #else
-    #error Unsupported compiler
-  #endif
-  void _sys_exit( int return_code ) { while ( 1 ); }
-#endif
 
 #define DEMO_THREAD_STACK_SIZE                        ( 512 )
 
@@ -57,115 +46,114 @@ TaskHandle_t xDemoTask;
 extern ARM_DRIVER_FLASH ARM_Driver_Flash_( FLASH_NUM );
 #define ptrFLASH ( &ARM_Driver_Flash_( FLASH_NUM ) )
 
+#define OSPI_RESET_PORT     15
+#define OSPI_RESET_PIN      7
+
+extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(OSPI_RESET_PORT);
+ARM_DRIVER_GPIO *GPIODrv = &ARM_Driver_GPIO_(OSPI_RESET_PORT);
+
 #define FLASH_ADDR 0x00
 #define BUFFER_SIZE 1024
 
 /* Buffers for reading and writing data */
-uint8_t ucReadBuff[  BUFFER_SIZE  ];
-uint8_t ucWriteBuff[  BUFFER_SIZE  ];
-
+uint16_t usReadBuff[  BUFFER_SIZE  ];
+uint16_t usWriteBuff[  BUFFER_SIZE  ];
 
 /**
  * @fn      static int32_t prvSetupPinMUX( void )
  * @brief   Set up PinMUX and PinPAD
  * @note    none
  * @param   none
- * @retval  ARM_DRIVER_ERROR
- *          0 : for Success
+ * @retval  -1 : On Error
+ *           0 :  On Success
  */
 static int32_t prvSetupPinMUX( void )
 {
     int32_t lRet;
 
-    /* Configure OctalSPI 0 pins - DevBoard
-    *
-    * P1_16 .. P1_23 = D0..D7
-    * P1_26 = RXDS
-    * P1_25 = SCLK
-    * P2_6 = CS
-    * P2_7 = SCLKN
-    */
+    lRet = pinconf_set(PORT_9, PIN_5, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+    if (lRet)
+        return -1;
 
-    lRet = PINMUX_Config( PORT_NUMBER_1, PIN_NUMBER_16, PINMUX_ALTERNATE_FUNCTION_3 );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = pinconf_set(PORT_9, PIN_6, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+    if (lRet)
+        return -1;
 
-    lRet = PINMUX_Config( PORT_NUMBER_1, PIN_NUMBER_17, PINMUX_ALTERNATE_FUNCTION_3 );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = pinconf_set(PORT_9, PIN_7, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST |  PADCTRL_READ_ENABLE);
+    if (lRet)
+        return -1;
 
-    lRet = PINMUX_Config( PORT_NUMBER_1, PIN_NUMBER_18, PINMUX_ALTERNATE_FUNCTION_3 );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = pinconf_set(PORT_10, PIN_0, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+    if (lRet)
+        return -1;
 
-    lRet = PINMUX_Config( PORT_NUMBER_1, PIN_NUMBER_19, PINMUX_ALTERNATE_FUNCTION_3 );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = pinconf_set(PORT_10, PIN_1, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+    if (lRet)
+        return -1;
 
-    lRet = PINMUX_Config( PORT_NUMBER_1, PIN_NUMBER_20, PINMUX_ALTERNATE_FUNCTION_3 );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = pinconf_set(PORT_10, PIN_2, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+    if (lRet)
+        return -1;
 
-    lRet = PINMUX_Config( PORT_NUMBER_1, PIN_NUMBER_21, PINMUX_ALTERNATE_FUNCTION_4 );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = pinconf_set(PORT_10, PIN_3, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST | PADCTRL_READ_ENABLE);
+    if (lRet)
+        return -1;
 
-    lRet = PINMUX_Config( PORT_NUMBER_1, PIN_NUMBER_22, PINMUX_ALTERNATE_FUNCTION_4 );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = pinconf_set(PORT_10, PIN_4, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST |  PADCTRL_READ_ENABLE);
+    if (lRet)
+        return -1;
 
-    lRet = PINMUX_Config( PORT_NUMBER_1, PIN_NUMBER_23, PINMUX_ALTERNATE_FUNCTION_3 );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = pinconf_set(PORT_10, PIN_7, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_READ_ENABLE);
+    if (lRet)
+        return -1;
 
-    lRet = PINMUX_Config( PORT_NUMBER_1, PIN_NUMBER_25, PINMUX_ALTERNATE_FUNCTION_3 );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = pinconf_set(PORT_5, PIN_5, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST);
+    if (lRet)
+        return -1;
 
-    lRet = PINMUX_Config( PORT_NUMBER_1, PIN_NUMBER_26, PINMUX_ALTERNATE_FUNCTION_3 );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = pinconf_set(PORT_8, PIN_0, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA);
+    if (lRet)
+        return -1;
 
-    lRet = PINMUX_Config( PORT_NUMBER_2, PIN_NUMBER_6, PINMUX_ALTERNATE_FUNCTION_4 );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = pinconf_set(PORT_5, PIN_6, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA);
+    if (lRet)
+        return -1;
 
-    /* Configure pad control registers */
-    lRet = PINPAD_Config( PORT_NUMBER_1, PIN_NUMBER_16, PAD_FUNCTION_READ_ENABLE );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = pinconf_set(PORT_5, PIN_7, PINMUX_ALTERNATE_FUNCTION_1,
+                     PADCTRL_OUTPUT_DRIVE_STRENGTH_12MA | PADCTRL_SLEW_RATE_FAST);
+    if (lRet)
+        return -1;
 
-    lRet = PINPAD_Config( PORT_NUMBER_1, PIN_NUMBER_17, PAD_FUNCTION_READ_ENABLE );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = GPIODrv->Initialize(OSPI_RESET_PIN, NULL);
+    if (lRet != ARM_DRIVER_OK)
+        return -1;
 
-    lRet = PINPAD_Config( PORT_NUMBER_1, PIN_NUMBER_18, PAD_FUNCTION_READ_ENABLE );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = GPIODrv->PowerControl(OSPI_RESET_PIN, ARM_POWER_FULL);
+    if (lRet != ARM_DRIVER_OK)
+        return -1;
 
-    lRet = PINPAD_Config( PORT_NUMBER_1, PIN_NUMBER_19, PAD_FUNCTION_READ_ENABLE );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = GPIODrv->SetDirection(OSPI_RESET_PIN, GPIO_PIN_DIRECTION_OUTPUT);
+    if (lRet != ARM_DRIVER_OK)
+        return -1;
 
-    lRet = PINPAD_Config( PORT_NUMBER_1, PIN_NUMBER_20, PAD_FUNCTION_READ_ENABLE );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = GPIODrv->SetValue(OSPI_RESET_PIN, GPIO_PIN_OUTPUT_STATE_LOW);
+    if (lRet != ARM_DRIVER_OK)
+        return -1;
 
-    lRet = PINPAD_Config( PORT_NUMBER_1, PIN_NUMBER_21, PAD_FUNCTION_READ_ENABLE );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
-
-    lRet = PINPAD_Config( PORT_NUMBER_1, PIN_NUMBER_22, PAD_FUNCTION_READ_ENABLE );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
-
-    lRet = PINPAD_Config( PORT_NUMBER_1, PIN_NUMBER_23, PAD_FUNCTION_READ_ENABLE );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
-
-    lRet = PINPAD_Config( PORT_NUMBER_1, PIN_NUMBER_26, PAD_FUNCTION_READ_ENABLE );
-    if ( lRet )
-        return ARM_DRIVER_ERROR;
+    lRet = GPIODrv->SetValue(OSPI_RESET_PIN, GPIO_PIN_OUTPUT_STATE_HIGH);
+    if (lRet != ARM_DRIVER_OK)
+        return -1;
 
     return 0;
 }
@@ -185,12 +173,9 @@ void vFlashThread ( void *pvParameters )
     ARM_FLASH_INFO *pxFlashInfo;
 
     /* Prepare the data for writing to flash */
-    while ( ulIter < BUFFER_SIZE )
+    for ( ulIndex = 0; ulIndex < BUFFER_SIZE; ulIndex++ )
     {
-        for ( ulIndex = 0; ulIndex < 256; ulIndex++ )
-        {
-            ucWriteBuff[ ulIter++ ] = ulIndex;
-        }
+        usWriteBuff[ ulIndex ] = ulIndex % 65536;
     }
 
     printf( "OSPI Flash Initialization\n" );
@@ -247,8 +232,8 @@ void vFlashThread ( void *pvParameters )
 
     ulIter = 0;
 
-    /* Read the 1KB data after erase and check if it is erased completely */
-    lStatus = ptrFLASH->ReadData( FLASH_ADDR, ucReadBuff, BUFFER_SIZE );
+    /* Read 2KB data after erase and check if it is erased completely */
+    lStatus = ptrFLASH->ReadData( FLASH_ADDR, usReadBuff, BUFFER_SIZE );
 
     if ( lStatus != BUFFER_SIZE )
     {
@@ -259,7 +244,7 @@ void vFlashThread ( void *pvParameters )
     /* Verify the read data */
     while ( ulIter < BUFFER_SIZE )
     {
-        if ( ucReadBuff[ ulIter ] != pxFlashInfo->erased_value )
+        if ( usReadBuff[ ulIter ] != ( pxFlashInfo->erased_value << 8 | pxFlashInfo->erased_value ))
             ulCount++;
         ulIter++;
     }
@@ -268,8 +253,8 @@ void vFlashThread ( void *pvParameters )
 
     printf( "Starting writing\n" );
 
-    /* Write 1 KB data to the flash */
-    lStatus = ptrFLASH->ProgramData( FLASH_ADDR, ucWriteBuff, BUFFER_SIZE );
+    /* Write 2 KB data to the flash */
+    lStatus = ptrFLASH->ProgramData( FLASH_ADDR, usWriteBuff, BUFFER_SIZE );
     if ( lStatus != BUFFER_SIZE )
     {
         printf( "Data not written completely\n" );
@@ -283,8 +268,8 @@ void vFlashThread ( void *pvParameters )
 
     printf( "Starting reading after writing\n" );
 
-    /* Read the 1KB data after writing to flash */
-    lStatus = ptrFLASH->ReadData( FLASH_ADDR, ucReadBuff, BUFFER_SIZE );
+    /* Read 2KB data after writing to flash */
+    lStatus = ptrFLASH->ReadData( FLASH_ADDR, usReadBuff, BUFFER_SIZE );
 
     if ( lStatus != BUFFER_SIZE )
     {
@@ -294,7 +279,7 @@ void vFlashThread ( void *pvParameters )
 
     while ( ulIter < BUFFER_SIZE )
     {
-        if ( ucReadBuff[ ulIter ] != ucWriteBuff[ ulIter ] )
+        if ( usReadBuff[ ulIter ] != usWriteBuff[ ulIter ] )
             ulCount++;
         ulIter++;
     }
@@ -315,8 +300,8 @@ void vFlashThread ( void *pvParameters )
 
     printf( "starting reading after erasing a sector\n" );
 
-    /* Read the 1KB data after erasing a sector */
-    lStatus = ptrFLASH->ReadData( FLASH_ADDR, ucReadBuff, BUFFER_SIZE );
+    /* Read 2KB data after erasing a sector */
+    lStatus = ptrFLASH->ReadData( FLASH_ADDR, usReadBuff, BUFFER_SIZE );
 
     if ( lStatus != BUFFER_SIZE )
     {
@@ -326,7 +311,7 @@ void vFlashThread ( void *pvParameters )
 
     while ( ulIter < BUFFER_SIZE )
     {
-        if ( ucReadBuff[ ulIter ] != pxFlashInfo->erased_value )
+        if ( usReadBuff[ ulIter ] != ( pxFlashInfo->erased_value << 8 | pxFlashInfo->erased_value ) )
             ulCount++;
         ulIter++;
     }
@@ -358,6 +343,16 @@ error_pinmux :
  *---------------------------------------------------------------------------*/
 int main(  void  )
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
     /* System Initialization */
     SystemCoreClockUpdate();
 

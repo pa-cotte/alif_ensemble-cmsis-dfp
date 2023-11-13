@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -13,15 +13,21 @@
  * @author   Manoj A Murudi
  * @email    manoj.murudi@alifsemi.com
  * @version  V1.0.0
- * @date     30-October-2022
+ * @date     21-July-2023
  * @brief    Baremetal demo application for QEC0 channel.
  * @bug      None.
  * @Note     None
  ******************************************************************************/
+
 #include <stdio.h>
 #include "Driver_UTIMER.h"
 #include "Driver_GPIO.h"
-#include "Driver_PINMUX_AND_PINPAD.h"
+#include "pinconf.h"
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
 
 /* GPIO related definitions */
 #define GPIO1                          1
@@ -35,195 +41,145 @@ ARM_DRIVER_UTIMER *ptrUTIMER = &DRIVER_UTIMER0;
 
 /* GPIO1 Driver instance */
 extern ARM_DRIVER_GPIO ARM_Driver_GPIO_(GPIO1);
-ARM_DRIVER_GPIO *ptrDrv = &ARM_Driver_GPIO_(GPIO1);
-
-volatile uint32_t cb_qec_status = 0;
-
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
-
-#ifdef DISABLE_PRINTF
-#define printf(fmt, ...) (0)
-/* Also Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-__asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
-
-void _sys_exit(int return_code) {
-   while (1);
-}
-#endif
+ARM_DRIVER_GPIO *ptrGPIO = &ARM_Driver_GPIO_(GPIO1);
 
 /**
- * @function    int pinmux_config()
+ * @function    int pinmux_config(void)
  * @brief       QEC h/w pin init using pinmux driver
  * @note        none
  * @param       none
  * @retval      execution status
  */
-static int32_t pinmux_config()
+static int32_t pinmux_config(void)
 {
     int32_t ret;
 
-    ret = PINMUX_Config (PORT_NUMBER_2, PIN_NUMBER_28, PINMUX_ALTERNATE_FUNCTION_5);
+    ret = pinconf_set (PORT_8, PIN_4, PINMUX_ALTERNATE_FUNCTION_3, PADCTRL_READ_ENABLE);
     if(ret != ARM_DRIVER_OK) {
         printf("\r\n Error in PINMUX.\r\n");
         return -1;
     }
 
-    ret = PINMUX_Config (PORT_NUMBER_2, PIN_NUMBER_29, PINMUX_ALTERNATE_FUNCTION_5);
+    ret = pinconf_set (PORT_8, PIN_5, PINMUX_ALTERNATE_FUNCTION_3, PADCTRL_READ_ENABLE);
     if(ret != ARM_DRIVER_OK) {
         printf("\r\n Error in PINMUX.\r\n");
         return -1;
     }
 
-    ret = PINMUX_Config (PORT_NUMBER_2, PIN_NUMBER_30, PINMUX_ALTERNATE_FUNCTION_4);
+    ret = pinconf_set (PORT_8, PIN_6, PINMUX_ALTERNATE_FUNCTION_3, PADCTRL_READ_ENABLE);
     if(ret != ARM_DRIVER_OK) {
         printf("\r\n Error in PINMUX.\r\n");
         return -1;
     }
 
-    return ARM_DRIVER_OK;
+    return 0;
 }
 
 /**
- * @function    int gpio_init()
+ * @function    int gpio_init(void)
  * @brief       GPIO initialization using gpio driver
  * @note        none
  * @param       none
  * @retval      execution status
  */
-static int32_t gpio_init()
+static int32_t gpio_init(void)
 {
     int32_t ret = ARM_DRIVER_OK;
 
     /* init P1_0 as GPIO */
-    ret = PINMUX_Config (PORT_NUMBER_1, PIN_NUMBER_0, PINMUX_ALTERNATE_FUNCTION_0);
-    if(ret != ARM_DRIVER_OK) {
-        printf("\r\n Error in PINMUX.\r\n");
-        return -1;
-    }
-    ret = PINPAD_Config (PORT_NUMBER_1, PIN_NUMBER_0, (PAD_FUNCTION_READ_ENABLE|PAD_FUNCTION_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS));
+    ret = pinconf_set (PORT_1, PIN_0, PINMUX_ALTERNATE_FUNCTION_0, 0);
     if(ret != ARM_DRIVER_OK) {
         printf("\r\n Error in PINMUX.\r\n");
         return -1;
     }
 
-    ret = ptrDrv->Initialize(GPIO1_PIN0, NULL);
+    ret = ptrGPIO->Initialize (GPIO1_PIN0, NULL);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to initialize GPIO1_PIN0 as GPIO\n");
         return -1;
     }
 
-    ret = ptrDrv->PowerControl(GPIO1_PIN0, ARM_POWER_FULL);
+    ret = ptrGPIO->PowerControl (GPIO1_PIN0, ARM_POWER_FULL);
     if (ret != ARM_DRIVER_OK) {
-        printf("ERROR: Failed to Powered the GPIO1_PIN0\n");
+        printf("ERROR: Failed to Power up GPIO1_PIN0\n");
         return -1;
     }
 
-    ret = ptrDrv->SetDirection(GPIO1_PIN0, GPIO_PIN_DIRECTION_OUTPUT);
+    ret = ptrGPIO->SetDirection (GPIO1_PIN0, GPIO_PIN_DIRECTION_OUTPUT);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to set direction for GPIO1_PIN0\n");
         return -1;
     }
 
-    ret = ptrDrv->SetValue(GPIO1_PIN0, GPIO_PIN_OUTPUT_STATE_LOW);
+    ret = ptrGPIO->SetValue (GPIO1_PIN0, GPIO_PIN_OUTPUT_STATE_LOW);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to set value for GPIO1_PIN0\n");
         return -1;
     }
 
     /* init P1_1 as GPIO */
-    ret = PINMUX_Config (PORT_NUMBER_1, PIN_NUMBER_1, PINMUX_ALTERNATE_FUNCTION_0);
-    if(ret != ARM_DRIVER_OK) {
-        printf("\r\n Error in PINMUX.\r\n");
-        return -1;
-    }
-    ret = PINPAD_Config (PORT_NUMBER_1, PIN_NUMBER_1, (PAD_FUNCTION_READ_ENABLE|PAD_FUNCTION_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS));
+    ret = pinconf_set (PORT_1, PIN_1, PINMUX_ALTERNATE_FUNCTION_0, 0);
     if(ret != ARM_DRIVER_OK) {
         printf("\r\n Error in PINMUX.\r\n");
         return -1;
     }
 
-    ret = ptrDrv->Initialize(GPIO1_PIN1, NULL);
+    ret = ptrGPIO->Initialize (GPIO1_PIN1, NULL);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to initialize GPIO1_PIN1 as GPIO\n");
         return -1;
     }
 
-    ret = ptrDrv->PowerControl(GPIO1_PIN1, ARM_POWER_FULL);
+    ret = ptrGPIO->PowerControl (GPIO1_PIN1, ARM_POWER_FULL);
     if (ret != ARM_DRIVER_OK) {
-        printf("ERROR: Failed to Powered the GPIO1_PIN1\n");
+        printf("ERROR: Failed to Power up GPIO1_PIN1\n");
         return -1;
     }
 
-    ret = ptrDrv->SetDirection(GPIO1_PIN1, GPIO_PIN_DIRECTION_OUTPUT);
+    ret = ptrGPIO->SetDirection (GPIO1_PIN1, GPIO_PIN_DIRECTION_OUTPUT);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to set direction for GPIO1_PIN1\n");
         return -1;
     }
 
-    ret = ptrDrv->SetValue(GPIO1_PIN1, GPIO_PIN_OUTPUT_STATE_LOW);
+    ret = ptrGPIO->SetValue (GPIO1_PIN1, GPIO_PIN_OUTPUT_STATE_LOW);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to set value for GPIO1_PIN1\n");
         return -1;
     }
 
     /* init P1_2 as GPIO */
-    ret = PINMUX_Config (PORT_NUMBER_1, PIN_NUMBER_2, PINMUX_ALTERNATE_FUNCTION_0);
-    if(ret != ARM_DRIVER_OK) {
-        printf("\r\n Error in PINMUX.\r\n");
-        return -1;
-    }
-    ret = PINPAD_Config (PORT_NUMBER_1, PIN_NUMBER_2, (PAD_FUNCTION_READ_ENABLE|PAD_FUNCTION_OUTPUT_DRIVE_STRENGTH_04_MILI_AMPS));
+    ret = pinconf_set (PORT_1, PIN_2, PINMUX_ALTERNATE_FUNCTION_0, 0);
     if(ret != ARM_DRIVER_OK) {
         printf("\r\n Error in PINMUX.\r\n");
         return -1;
     }
 
-    ret = ptrDrv->Initialize(GPIO1_PIN2, NULL);
+    ret = ptrGPIO->Initialize (GPIO1_PIN2, NULL);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to initialize GPIO1_PIN2 as GPIO\n");
         return -1;
     }
 
-    ret = ptrDrv->PowerControl(GPIO1_PIN2, ARM_POWER_FULL);
+    ret = ptrGPIO->PowerControl (GPIO1_PIN2, ARM_POWER_FULL);
     if (ret != ARM_DRIVER_OK) {
-        printf("ERROR: Failed to Powered the GPIO1_PIN2\n");
+        printf("ERROR: Failed to Power up GPIO1_PIN2\n");
         return -1;
     }
 
-    ret = ptrDrv->SetDirection(GPIO1_PIN2, GPIO_PIN_DIRECTION_OUTPUT);
+    ret = ptrGPIO->SetDirection (GPIO1_PIN2, GPIO_PIN_DIRECTION_OUTPUT);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to set direction for GPIO1_PIN2\n");
         return -1;
     }
 
-    ret = ptrDrv->SetValue(GPIO1_PIN2, GPIO_PIN_OUTPUT_STATE_LOW);
+    ret = ptrGPIO->SetValue (GPIO1_PIN2, GPIO_PIN_OUTPUT_STATE_LOW);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to set value for GPIO1_PIN2\n");
         return -1;
     }
 
-    return ARM_DRIVER_OK;
-}
-
-/**
- * @function    void qec_cb_func(event)
- * @brief       QEC callback function
- * @note        none
- * @param       event
- * @retval      none
- */
-static void qec_cb_func(uint32_t event)
-{
-    if (event == ARM_QEC_COMPARE_A_EVENT) {
-        cb_qec_status = 1;
-    }
+    return 0;
 }
 
 /**
@@ -233,56 +189,50 @@ static void qec_cb_func(uint32_t event)
  * @param       none
  * @retval      none
  */
-static void qec0_app()
+static void qec0_app(void)
 {
     int32_t ret;
-    uint32_t buf, buf1;
     uint8_t channel = 12;
-    uint32_t count_array[ARM_QEC_COUNT_NUMBER];
+    uint32_t init_count = 0;
 
-    UTIMER_MODE_CONFIG config_info = {
-        .mode = ARM_UTIMER_MODE_CAPTURING,
-        .direction = ARM_UTIMER_COUNT_DIRECTION_TRIANGLE,
-        .count_array = count_array,
-        .count_number = ARM_QEC_COUNT_NUMBER
+    ARM_UTIMER_TRIGGER_CONFIG upcount_trig = {
+        .triggerTarget = ARM_UTIMER_TRIGGER_UPCOUNT,
+        .triggerSrc = ARM_UTIMER_SRC_0,
+        .trigger = ARM_UTIMER_SRC0_TRIG0_RISING
     };
 
-    UTIMER_GET_OPERATION_CONFIG get_cntr = {
-        .operation_type = ARM_UTIMER_GET_COUNT_OF_CURRENT_RUNNING_TIMER,
-        .count = &buf
+    ARM_UTIMER_TRIGGER_CONFIG downcount_trig = {
+        .triggerTarget = ARM_UTIMER_TRIGGER_DOWNCOUNT,
+        .triggerSrc = ARM_UTIMER_SRC_0,
+        .trigger = ARM_UTIMER_SRC0_TRIG1_RISING
     };
 
-    UTIMER_GET_OPERATION_CONFIG get_capt = {
-        .operation_type = ARM_UTIMER_GET_COUNT_OF_DRIVE_A_CAPTURE_VALUE,
-        .count = &buf1
+    ARM_UTIMER_TRIGGER_CONFIG clear_trig = {
+        .triggerTarget = ARM_UTIMER_TRIGGER_CAPTURE_A,
+        .triggerSrc = ARM_UTIMER_SRC_0,
+        .trigger = ARM_UTIMER_SRC0_TRIG2_RISING
     };
 
     /*
      * utimer channel 12 is configured as QEC0.
-     * QEC pins are connected to motors/actuators to measure speed and direction.
      * For testing purpose, QEC inputs are connected to gpio's. And GPIO's are toggled accordingly.
      *
-     * H/W connection : short P1_0 and P2_28, short P1_1 and P2_29, short P1_2 and P2_30.
+     * H/W connection : short P1_0 and P8_4, short P1_1 and P8_5, short P1_2 and P8_6.
      **/
 
     printf("*** QEC demo application started ***\n");
 
-    count_array[0] = 0;        /*< initial count value >*/
-    count_array[1] = 100;      /*< overflow count value >*/
-
     ret = pinmux_config();
-    if (ret != ARM_DRIVER_OK) {
+    if (ret) {
         printf("pinmux failed\n");
-        return;
     }
 
     ret = gpio_init();
-    if (ret != ARM_DRIVER_OK) {
+    if (ret) {
         printf("gpio init failed\n");
-        return;
     }
 
-    ret = ptrUTIMER->Initialize (channel, qec_cb_func);
+    ret = ptrUTIMER->Initialize (channel, NULL);
     if (ret != ARM_DRIVER_OK) {
         printf("utimer channel %d failed initialize \n", channel);
         return;
@@ -294,92 +244,73 @@ static void qec0_app()
         goto error_qec_uninstall;
     }
 
-    ret = ptrUTIMER->Control (channel, ARM_UTIMER_MODE_CONFIG, &config_info);
+    ret = ptrUTIMER->ConfigCounter (channel, ARM_UTIMER_MODE_TRIGGERING, ARM_UTIMER_COUNTER_TRIANGLE);
     if (ret != ARM_DRIVER_OK) {
         printf("utimer channel %d mode configuration failed \n", channel);
         goto error_qec_poweroff;
     }
 
-    /* Config Trigger for up count */
-    ret = ptrUTIMER->Configure_Trigger (channel, ARM_UTIMER_TRIGGER_FOR_UPCOUNT, \
-        (ARM_UTIMER_DRIVE_A_RISING_B_0|ARM_UTIMER_DRIVE_A_FALLING_B_1|ARM_UTIMER_DRIVE_B_FALLING_A_0|ARM_UTIMER_DRIVE_B_RISING_A_1));
+    ret = ptrUTIMER->SetCount (channel, ARM_UTIMER_CNTR, init_count);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d set count failed \n", channel);
+        goto error_qec_poweroff;
+    }
+
+    ret = ptrUTIMER->ConfigTrigger (channel, &upcount_trig);
     if (ret != ARM_DRIVER_OK) {
         printf("utimer channel %d trigger configuration failed \n", channel);
         goto error_qec_poweroff;
     } else {
-        printf("utimer channel %d triggered for up count \n", channel);
+        printf("utimer channel %d triggered for up count using Trig0\n", channel);
     }
 
-    /* Config Trigger for down count */
-    ret = ptrUTIMER->Configure_Trigger (channel, ARM_UTIMER_TRIGGER_FOR_DOWNCOUNT, \
-        (ARM_UTIMER_DRIVE_A_FALLING_B_0|ARM_UTIMER_DRIVE_A_RISING_B_1|ARM_UTIMER_DRIVE_B_RISING_A_0|ARM_UTIMER_DRIVE_B_FALLING_A_1));
+    ret = ptrUTIMER->ConfigTrigger (channel, &downcount_trig);
     if (ret != ARM_DRIVER_OK) {
         printf("utimer channel %d trigger configuration failed \n", channel);
         goto error_qec_poweroff;
     } else {
-        printf("utimer channel %d triggered for down count \n", channel);
+        printf("utimer channel %d triggered for down count using Trig1\n", channel);
     }
 
-    /* Config Trigger for capture counter value */
-    ret = ptrUTIMER->Configure_Trigger (channel, ARM_UTIMER_TRIGGER_FOR_CAPTURE_A, \
-            (ARM_UTIMER_TRIG0_RISING|ARM_UTIMER_TRIG0_FALLING));
+    ret = ptrUTIMER->ConfigTrigger (channel, &clear_trig);
     if (ret != ARM_DRIVER_OK) {
         printf("utimer channel %d trigger configuration failed \n", channel);
         goto error_qec_poweroff;
     } else {
-        printf("utimer channel %d triggered for capture counter value \n", channel);
+        printf("utimer channel %d triggered for counter clear using Trig3\n", channel);
     }
 
-    /* Toggling gpio's connected to x/y for 10 times to increment cnt value, so cnt value will be 20 */
-    for(int i=0;i<10;i++)
+    /* Toggling gpio's connected to x for 20 times to increment cnt value for 10 times */
+    for(int i=0; i<20; i++)
     {
-        ret = ptrDrv->SetValue(GPIO1_PIN0, GPIO_PIN_OUTPUT_STATE_TOGGLE);
-        ret = ptrDrv->SetValue(GPIO1_PIN1, GPIO_PIN_OUTPUT_STATE_TOGGLE);
+        ret = ptrGPIO->SetValue (GPIO1_PIN0, GPIO_PIN_OUTPUT_STATE_TOGGLE);
         if (ret != ARM_DRIVER_OK) {
-            printf("ERROR: Failed to set data \n");
+            printf("ERROR: Failed to set value for GPIO1_PIN0\n");
         }
     }
 
-    ret = ptrUTIMER->Control (channel, ARM_UTIMER_GET_COUNT, &get_cntr);
-    if (ret != ARM_DRIVER_OK) {
-        printf("utimer channel %d reading counter value failed \n", channel);
-        goto error_qec_poweroff;
-    } else {
-        printf("current counter value : %d\n", buf);
-    }
+    printf("counter value after counter increment : %d\n", ptrUTIMER->GetCount (channel, ARM_UTIMER_CNTR));
 
-    /* Toggling gpio's connected to x/y for 5 times to decrement cnt value, so cnt value is reduced by 10 */
-    for(int i=0;i<5;i++)
+    /* Toggling gpio's connected to x for 10 times to increment cnt value for 5 times */
+    for(int i=0; i<10; i++)
     {
-        ret = ptrDrv->SetValue(GPIO1_PIN1, GPIO_PIN_OUTPUT_STATE_TOGGLE);
-        ret = ptrDrv->SetValue(GPIO1_PIN0, GPIO_PIN_OUTPUT_STATE_TOGGLE);
-        if (ret != ARM_DRIVER_OK) {
-            printf("ERROR: Failed to set data \n");
+        ret = ptrGPIO->SetValue (GPIO1_PIN1, GPIO_PIN_OUTPUT_STATE_TOGGLE);
+       if (ret != ARM_DRIVER_OK) {
+            printf("ERROR: Failed to set value for GPIO1_PIN1\n");
         }
     }
 
-    /* Making z event as high to capture count value */
-    ret = ptrDrv->SetValue(GPIO1_PIN2, GPIO_PIN_OUTPUT_STATE_HIGH);
+    printf("counter value after counter decrement: %d\n", ptrUTIMER->GetCount (channel, ARM_UTIMER_CNTR));
+
+    /* Making z event as high to clear count value */
+    ret = ptrGPIO->SetValue (GPIO1_PIN2, GPIO_PIN_OUTPUT_STATE_HIGH);
     if (ret != ARM_DRIVER_OK) {
-        printf("ERROR: Failed to set data \n");
+        printf("ERROR: Failed to set value for GPIO1_PIN2\n");
     }
 
-    /* Check for an interrupt */
-    if (cb_qec_status) {
-        printf("Capture A interrupt occurred\n");
-    } else {
-        printf("Capture A interrupt not occurred\n");
-    }
+    printf("counter value after counter clear: %d\n", ptrUTIMER->GetCount (channel, ARM_UTIMER_CNTR));
 
-    ret = ptrUTIMER->Control (channel, ARM_UTIMER_GET_COUNT, &get_capt);
-    if (ret != ARM_DRIVER_OK) {
-        printf("utimer channel %d mode configuration failed \n", channel);
-        goto error_qec_poweroff;
-    } else {
-        printf("capture A value : %d\n", buf1);
-    }
-
-    ret = ptrUTIMER->Stop (channel, UTIMER_COUNTER_CLEAR);
+    ret = ptrUTIMER->Stop (channel, ARM_UTIMER_COUNTER_CLEAR);
     if (ret != ARM_DRIVER_OK) {
         printf("utimer channel %d failed to stop \n", channel);
     } else {
@@ -405,5 +336,15 @@ error_qec_uninstall:
 
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
     qec0_app();
 }

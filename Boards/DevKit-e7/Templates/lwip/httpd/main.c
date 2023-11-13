@@ -1,11 +1,34 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
- * Use, distribution and modification of this code is permitted under the
- * terms stated in the Alif Semiconductor Software License Agreement
+/*
+ * LWIP http webserver demo application
  *
- * You should have received a copy of the Alif Semiconductor Software
- * License Agreement with this file. If not, please write to:
- * contact@alifsemi.com, or visit: https://alifsemi.com/license
+ * Derived from CMSIS LWIP example projects.
  *
+ * Author   : Silesh C V <silesh@alifsemi.com>
+ *
+ * Copyright (C) 2022 ALIF SEMICONDUCTOR
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *  - Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *  - Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *  - Neither the name of ALIF SEMICONDUCTOR nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL COPYRIGHT HOLDERS AND CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "RTE_Components.h"
@@ -23,7 +46,7 @@
 #include "netif/etharp.h"
 #include "lwip/dhcp.h"
 
-#include "Driver_PINMUX_AND_PINPAD.h"
+#include "pinconf.h"
 
 static void net_init (void);
 static void net_periodic (uint32_t tick);
@@ -37,47 +60,47 @@ static int pin_mux_init(void)
 {
   int32_t ret;
 
-  ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_0, PINMUX_ALTERNATE_FUNCTION_3);
+  ret = pinconf_set(PORT_11, PIN_0, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE);
   if (ret)
     return -1;
 
-  ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_1, PINMUX_ALTERNATE_FUNCTION_3);
+  ret = pinconf_set(PORT_11, PIN_1, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE);
   if (ret)
     return -1;
 
-  ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_2, PINMUX_ALTERNATE_FUNCTION_3);
+  ret = pinconf_set(PORT_11, PIN_2, PINMUX_ALTERNATE_FUNCTION_6, 0);
   if (ret)
     return -1;
 
-  ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_3, PINMUX_ALTERNATE_FUNCTION_3);
+  ret = pinconf_set(PORT_11, PIN_3, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE);
   if (ret)
     return -1;
 
-  ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_4, PINMUX_ALTERNATE_FUNCTION_3);
+  ret = pinconf_set(PORT_11, PIN_4, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE);
   if (ret)
     return -1;
 
-  ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_5, PINMUX_ALTERNATE_FUNCTION_3);
+  ret = pinconf_set(PORT_11, PIN_5, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE);
   if (ret)
     return -1;
 
-  ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_6, PINMUX_ALTERNATE_FUNCTION_3);
+  ret = pinconf_set(PORT_11, PIN_6, PINMUX_ALTERNATE_FUNCTION_6, 0);
   if (ret)
     return -1;
 
-  ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_7, PINMUX_ALTERNATE_FUNCTION_3);
+  ret = pinconf_set(PORT_11, PIN_7, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE);
   if (ret)
     return -1;
 
-  ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_8, PINMUX_ALTERNATE_FUNCTION_3);
+  ret = pinconf_set(PORT_6, PIN_0, PINMUX_ALTERNATE_FUNCTION_6, 0);
   if (ret)
     return -1;
 
-  ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_9, PINMUX_ALTERNATE_FUNCTION_3);
+  ret = pinconf_set(PORT_10, PIN_5, PINMUX_ALTERNATE_FUNCTION_6, 0);
   if (ret)
     return -1;
 
-  ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_10, PINMUX_ALTERNATE_FUNCTION_3);
+  ret = pinconf_set(PORT_10, PIN_6, PINMUX_ALTERNATE_FUNCTION_6, 0);
   if (ret)
     return -1;
 

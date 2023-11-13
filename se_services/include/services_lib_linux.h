@@ -50,6 +50,7 @@ typedef struct
 
 // Services infrastructure APIs
 void SERVICES_initialize(services_lib_t * init_params);
+int  SERVICES_synchronize_with_se(uint32_t services_handle);
 
 #define SERVICES_LIB_ERROR   0xFFFFFFFFul
 

@@ -40,7 +40,6 @@ extern "C" {
  */
 typedef struct
 {
-  uint32_t             global_offset;
   uint32_t             packet_buffer_address;
   MHU_send_message_t   fn_send_mhu_message;
   wait_ms_t            fn_wait_ms;
@@ -58,6 +57,7 @@ typedef struct
 
 // Services infrastructure APIs
 void SERVICES_initialize(services_lib_t * init_params);
+int  SERVICES_synchronize_with_se(uint32_t services_handle);
 void SERVICES_send_msg_acked_callback(uint32_t sender_id, 
                                       uint32_t channel_number);
 void SERVICES_rx_msg_callback(uint32_t receiver_id, 

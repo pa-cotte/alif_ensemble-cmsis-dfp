@@ -13,10 +13,11 @@
  * @author   Manoj A Murudi
  * @email    manoj.murudi@alifsemi.com
  * @version  V1.0.0
- * @date     13-June-2022
- * @brief    Baremetal Test Application for I2S for Carrier board.
- *           I2S0 is configured as master transmitter with MCLK 24.576Mhz and 24bit
- *           I2S2 is configured as master receiver SPH0645LM4H-1 device 24bit
+ * @date     3-May-2023
+ * @brief    Test Application for I2S for Devkit
+ *           For HP, I2S1 is configured as master transmitter (DAC).
+ *           For HE, LPI2S will be used as DAC.
+ *           I2S3(ADC) is configured as master receiver SPH0645LM4H-1 device 24bit
  * @bug      None.
  * @Note	 None
  ******************************************************************************/
@@ -27,35 +28,19 @@
 
 /* Project Includes */
 #include <Driver_SAI.h>
-#include <Driver_PINMUX_AND_PINPAD.h>
+#include <pinconf.h>
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
 
 /*Audio samples */
 #include "i2s_samples.h"
 
-void DAC_Init ();
-void ADC_Init ();
-void Receiver ();
-
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
-#ifdef DISABLE_PRINTF
-    #define printf(fmt, ...) (0)
-    /* Also Disable Semihosting */
-    #if __ARMCC_VERSION >= 6000000
-            __asm(".global __use_no_semihosting");
-    #elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
-    void _sys_exit(int return_code) {
-        (void)return_code;
-        while (1);
-    }
-#endif
-
-/* Enable this to feed the predefined hello sample in the TX path and RX path is disabled */
-//#define DAC_PREDEFINED_SAMPLES
+void DAC_Init (void);
+void ADC_Init (void);
+void Receiver (void);
 
 /* 1 to send the data stream continuously , 0 to send data only once */
 #define REPEAT_TX 1
@@ -63,36 +48,43 @@ void Receiver ();
 #define ERROR  -1
 #define SUCCESS 0
 
-#define I2S_DAC 0                    /* DAC I2S Controller 0 */
-#define I2S_ADC 2                    /* ADC I2S Controller 2 */
+#if defined (M55_HE)
+#define I2S_DAC LP            /* DAC LPI2S Controller */
+#else
+/* Enable this to feed the predefined hello sample in the
+ * Send function. Receive will be disabled.
+ */
+//#define DAC_PREDEFINED_SAMPLES
+#define I2S_DAC 1             /* DAC I2S Controller 1 */
+#endif
+#define I2S_ADC 3             /* ADC I2S Controller 3 */
 
 #define DAC_SEND_COMPLETE_EVENT    (1U << 0)
 #define ADC_RECEIVE_COMPLETE_EVENT (1U << 1)
 #define ADC_RECEIVE_OVERFLOW_EVENT (1U << 2)
 
-#define NUM_SAMPLES                 51200
+#define NUM_SAMPLES                 40000
 
-uint32_t    buf_len2 = 0;
-volatile int32_t event_flag = 0;
+static volatile  uint32_t event_flag = 0;
 
 /* Buffer for ADC samples */
-uint32_t sample_buf[NUM_SAMPLES];
+static uint32_t sample_buf[NUM_SAMPLES];
 
-uint32_t wlen = 24;
-uint32_t sampling_rate = 48000;        /* 48Khz audio sampling rate */
+static uint32_t wlen = 24;
+static uint32_t sampling_rate = 48000;        /* 48Khz audio sampling rate */
 
 extern ARM_DRIVER_SAI ARM_Driver_SAI_(I2S_DAC);
-ARM_DRIVER_SAI *i2s_dac = &ARM_Driver_SAI_(I2S_DAC);
+static ARM_DRIVER_SAI *i2s_dac = &ARM_Driver_SAI_(I2S_DAC);
 
 extern ARM_DRIVER_SAI ARM_Driver_SAI_(I2S_ADC);
-ARM_DRIVER_SAI *i2s_adc = &ARM_Driver_SAI_(I2S_ADC);
+static ARM_DRIVER_SAI *i2s_adc = &ARM_Driver_SAI_(I2S_ADC);
 
 /**
   \fn          void dac_callback(uint32_t event)
   \brief       Callback routine from the i2s driver
   \param[in]   event: Event for which the callback has been called
 */
-void dac_callback(uint32_t event)
+static void dac_callback(uint32_t event)
 {
     if(event & ARM_SAI_EVENT_SEND_COMPLETE)
     {
@@ -106,38 +98,59 @@ void dac_callback(uint32_t event)
   \brief       Initialize the pinmux for DAC
   \return      status
 */
-int32_t dac_pinmux_config(void)
+static int32_t dac_pinmux_config(void)
 {
     int32_t status;
 
-    /* Configure I2S0 SDO */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_29, PINMUX_ALTERNATE_FUNCTION_3);
+#if (I2S_DAC == LP)
+    /* Configure LPI2S_C SDO */
+    status = pinconf_set(PORT_13, PIN_5, PINMUX_ALTERNATE_FUNCTION_2, 0);
     if(status)
         return ERROR;
 
-    /* Configure I2S0 WS */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_31, PINMUX_ALTERNATE_FUNCTION_3);
+    /* Configure LPI2S_C WS */
+    status = pinconf_set(PORT_13, PIN_7, PINMUX_ALTERNATE_FUNCTION_2, 0);
     if(status)
         return ERROR;
 
-    /* Configure I2S0 SCLK */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_30, PINMUX_ALTERNATE_FUNCTION_2);
+    /* Configure LPI2S_C SCLK */
+    status = pinconf_set(PORT_13, PIN_6, PINMUX_ALTERNATE_FUNCTION_2, 0);
     if(status)
         return ERROR;
+#else
+    /* Configure I2S1_A SDO */
+    status = pinconf_set(PORT_3, PIN_3, PINMUX_ALTERNATE_FUNCTION_3, 0);
+    if(status)
+        return ERROR;
+
+    /* Configure I2S1_A WS */
+    status = pinconf_set(PORT_4, PIN_0, PINMUX_ALTERNATE_FUNCTION_3, 0);
+    if(status)
+        return ERROR;
+
+    /* Configure I2S1_A SCLK */
+    status = pinconf_set(PORT_3, PIN_4, PINMUX_ALTERNATE_FUNCTION_4, 0);
+    if(status)
+        return ERROR;
+
+#endif
 
     return SUCCESS;
 }
 
 /**
-  \fn          void DAC_Init()
+  \fn          void DAC_Init(void)
   \brief       DAC thread for master transmission
   \param[in]   None
 */
-void DAC_Init()
+void DAC_Init(void)
 {
     ARM_DRIVER_VERSION   version;
     ARM_SAI_CAPABILITIES cap;
     int32_t              status;
+#ifdef DAC_PREDEFINED_SAMPLES
+    uint32_t             buf_len2 = 0;
+#endif
 
     /* Configure the dac pins */
     if(dac_pinmux_config())
@@ -158,7 +171,7 @@ void DAC_Init()
         return;
     }
 
-    /* Initializes I2S0 interface */
+    /* Initializes I2S interface */
     status = i2s_dac->Initialize(dac_callback);
     if(status)
     {
@@ -166,7 +179,7 @@ void DAC_Init()
         goto error_initialize;
     }
 
-    /* Enable the power for I2S0 */
+    /* Enable the power for I2S */
     status = i2s_dac->PowerControl(ARM_POWER_FULL);
     if(status)
     {
@@ -174,12 +187,12 @@ void DAC_Init()
         goto error_power;
     }
 
-    /* configure I2S0 Transmitter to Asynchronous Master */
+    /* configure I2S Transmitter to Asynchronous Master */
     status = i2s_dac->Control(ARM_SAI_CONFIGURE_TX |
-                                ARM_SAI_MODE_MASTER  |
-                                ARM_SAI_ASYNCHRONOUS |
-                                ARM_SAI_PROTOCOL_I2S |
-                                ARM_SAI_DATA_SIZE(wlen), wlen*2, sampling_rate);
+                              ARM_SAI_MODE_MASTER  |
+                              ARM_SAI_ASYNCHRONOUS |
+                              ARM_SAI_PROTOCOL_I2S |
+                              ARM_SAI_DATA_SIZE(wlen), wlen*2, sampling_rate);
     if(status)
     {
         printf("DAC Control status = %d\n", status);
@@ -285,7 +298,7 @@ error_initialize:
   \brief       Callback routine from the i2s driver
   \param[in]   event Event for which the callback has been called
 */
-void adc_callback(uint32_t event)
+static void adc_callback(uint32_t event)
 {
     if(event & ARM_SAI_EVENT_RECEIVE_COMPLETE)
     {
@@ -305,22 +318,22 @@ void adc_callback(uint32_t event)
   \brief       Initialize the pinmux for ADC
   \return      status
 */
-int32_t adc_pinmux_config(void)
+static int32_t adc_pinmux_config(void)
 {
     int32_t  status;
 
-    /* Configure I2S2 WS */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_4, PINMUX_ALTERNATE_FUNCTION_2);
+    /* Configure I2S3_B WS */
+    status = pinconf_set(PORT_8, PIN_7, PINMUX_ALTERNATE_FUNCTION_2, 0);
     if(status)
         return ERROR;
 
-    /* Configure I2S2 SCLK */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_3, PINMUX_ALTERNATE_FUNCTION_3);
+    /* Configure I2S3_B SCLK */
+    status = pinconf_set(PORT_8, PIN_6, PINMUX_ALTERNATE_FUNCTION_2, 0);
     if(status)
         return ERROR;
 
-    /* Configure I2S2 SDI */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_1, PINMUX_ALTERNATE_FUNCTION_3);
+    /* Configure I2S3_B SDI */
+    status = pinconf_set(PORT_9, PIN_0, PINMUX_ALTERNATE_FUNCTION_2, PADCTRL_READ_ENABLE);
     if(status)
         return ERROR;
 
@@ -328,11 +341,11 @@ int32_t adc_pinmux_config(void)
 }
 
 /**
-  \fn          void ADC_Thread()
+  \fn          void ADC_Thread(void)
   \brief       ADC Thread to initialize ADC
   \param[in]   None
 */
-void ADC_Init()
+void ADC_Init(void)
 {
     ARM_DRIVER_VERSION   version;
     ARM_SAI_CAPABILITIES cap;
@@ -357,7 +370,7 @@ void ADC_Init()
         return;
     }
 
-    /* Initializes I2S2 interface */
+    /* Initializes I2S interface */
     status = i2s_adc->Initialize(adc_callback);
     if(status)
     {
@@ -365,7 +378,7 @@ void ADC_Init()
         return;
     }
 
-    /* Enable the power for I2S2 */
+    /* Enable the power for I2S */
     status = i2s_adc->PowerControl(ARM_POWER_FULL);
     if(status)
     {
@@ -373,12 +386,12 @@ void ADC_Init()
         return;
     }
 
-    /* configure I2S2 Receiver to Asynchronous Master */
+    /* configure I2S Receiver to Asynchronous Master */
     status = i2s_adc->Control(ARM_SAI_CONFIGURE_RX |
-                                ARM_SAI_MODE_MASTER  |
-                                ARM_SAI_ASYNCHRONOUS |
-                                ARM_SAI_PROTOCOL_I2S |
-                                ARM_SAI_DATA_SIZE(wlen), wlen*2, sampling_rate);
+                              ARM_SAI_MODE_MASTER  |
+                              ARM_SAI_ASYNCHRONOUS |
+                              ARM_SAI_PROTOCOL_I2S |
+                              ARM_SAI_DATA_SIZE(wlen), wlen*2, sampling_rate);
     if(status)
     {
       printf("ADC Control status = %d\n", status);
@@ -387,11 +400,11 @@ void ADC_Init()
 }
 
 /**
-  \fn          void Receiver()
+  \fn          void Receiver(void)
   \brief       Function performing reception from mic
   \param[in]   None
 */
-void Receiver()
+void Receiver(void)
 {
     int32_t  status;
 
@@ -419,8 +432,24 @@ void Receiver()
     }
 }
 
-int main()
+/**
+  \fn          int main(void)
+  \brief       Application Main
+  \return      int application exit status
+*/
+int main(void)
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
     DAC_Init();
     return 0;
 }
