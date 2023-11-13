@@ -12,8 +12,8 @@
   -->
 
   <releases>
-    <release version="1.0.0-rc4" date="2023-11-10">
-      Initial release
+    <release version="1.0.0-rc4" tag="v1.0.0-rc4" url="https://github.com/alifsemi/alif_ensemble-cmsis-dfp/releases/download/v1.0.0-rc4/AlifSemiconductor.Ensemble.1.0.0-rc4.pack" date="2023-11-10">
+      First release with support for Ensemble Generation 2 devices.
     </release>
   </releases>
 
