@@ -54,6 +54,8 @@ void SERVICES_initialize(services_lib_t * init_params)
  * @brief  Function to synchronize with SE
  * @param  services_handle Services library handle
  * @return total number of retries
+ *          if nonnegative, success
+ *          if negative, failure
  */
 int SERVICES_synchronize_with_se(uint32_t services_handle)
 {
@@ -71,7 +73,7 @@ int SERVICES_synchronize_with_se(uint32_t services_handle)
     }
     if (retry_count > MAX_RETRY)
     {
-      break;
+      return -retry_count;
     }
   }
 
@@ -224,11 +226,11 @@ uint32_t SERVICES_send_request(uint32_t services_handle,
   /**
    * Send a message to the SE
    */
-  uint32_t global_address = s_pkt_buffer_address_global;
 
-  SCB_CleanDCache_by_Addr((uint32_t*)global_address, SERVICES_MAX_PACKET_BUFFER_SIZE);
+  RTSS_CleanDCache_by_Addr((uint32_t *)s_services_host.packet_buffer_address,
+                          SERVICES_MAX_PACKET_BUFFER_SIZE);
 
-  uint32_t ret = SERVICES_send_msg(services_handle, global_address);
+  uint32_t ret = SERVICES_send_msg(services_handle, s_pkt_buffer_address_global);
   if (ret != SERVICES_REQ_SUCCESS)
   {
       return ret;
@@ -255,7 +257,7 @@ uint32_t SERVICES_send_request(uint32_t services_handle,
     //}
   }
 
-  SCB_InvalidateDCache_by_Addr((uint32_t*)global_address,
+  RTSS_InvalidateDCache_by_Addr((uint32_t*)s_services_host.packet_buffer_address,
                                 SERVICES_MAX_PACKET_BUFFER_SIZE);
 
   return p_header->hdr_error_code;

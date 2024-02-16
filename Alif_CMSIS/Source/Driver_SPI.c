@@ -10,8 +10,8 @@
 
 /**************************************************************************//**
  * @file     Driver_SPI.c
- * @author   Girish BN
- * @email    girish.bn@alifsemi.com
+ * @author   Girish BN, Manoj A Murudi
+ * @email    girish.bn@alifsemi.com, manoj.murudi@alifsemi.com
  * @version  V1.0.0
  * @date     20-04-2023
  * @brief    CMSIS-Driver for SPI.
@@ -48,7 +48,7 @@ static const ARM_DRIVER_VERSION DriverVersion = {
 /* Driver Capabilities */
 static const ARM_SPI_CAPABILITIES DriverCapabilities = {
     0, /* Reserved (must be zero) */
-    1, /* TI Synchronous Serial Interface */
+    0, /* TI Synchronous Serial Interface */
     1, /* Microwire Interface */
     0, /* Signal Mode Fault event: \ref ARM_SPI_EVENT_MODE_FAULT */
     0  /* Reserved (must be zero) */
@@ -259,6 +259,55 @@ static inline int32_t SPI_DMA_GetStatus(DMA_PERIPHERAL_CONFIG *dma_periph, uint3
 }
 #endif /* SPI_DMA_ENABLE */
 
+#if SPI_MICROWIRE_FRF_ENABLE
+/**
+ * @fn      int32_t ARM_SPI_MicroWire_Config(SPI_RESOURCES *SPI).
+ * @brief   Config the Microwire for communication.
+ * @note    none.
+ * @param   SPI : Pointer to spi resources structure.
+ * @retval  \ref execution_status
+ */
+static int32_t ARM_SPI_MicroWire_Config(SPI_RESOURCES *SPI)
+{
+    if (!((SPI->mw_config.cfs >= SPI_MW_CONTROL_FRAME_SIZE_MIN) && (SPI->mw_config.cfs <= SPI_MW_CONTROL_FRAME_SIZE_MAX)))
+    {
+        return ARM_DRIVER_ERROR_PARAMETER;
+    }
+
+    if (SPI->mw_config.transfer_mode == SPI_MW_TRANSFER_MODE_SEQUANTIAL)
+    {
+        spi_mw_set_sequential_mode(SPI->regs);
+    }
+    else
+    {
+        spi_mw_set_non_sequential_mode(SPI->regs);
+    }
+
+    if (SPI->transfer.is_master)
+    {
+        if (SPI->mw_config.handshake_enable)
+        {
+            spi_mw_enable_handshake(SPI->regs);
+        }
+        else
+        {
+            spi_mw_disable_handshake(SPI->regs);
+        }
+    }
+
+    if (SPI->drv_instance == LPSPI_INSTANCE)
+    {
+        lpspi_mw_set_cfs(SPI->regs, SPI->mw_config.cfs);
+    }
+    else
+    {
+        spi_mw_set_cfs(SPI->regs, SPI->mw_config.cfs);
+    }
+
+    return ARM_DRIVER_OK;
+}
+#endif
+
 /**
  * @fn      int32_t ARM_SPI_Initialize(SPI_RESOURCES *SPI, ARM_SPI_SignalEvent_t cb_event).
  * @brief   Initialize the Spi for communication.
@@ -274,9 +323,15 @@ static int32_t ARM_SPI_Initialize(SPI_RESOURCES *SPI, ARM_SPI_SignalEvent_t cb_e
         return ARM_DRIVER_OK;
     }
 
-    if (cb_event == NULL)
+    bool blocking_mode = false;
+#if SPI_BLOCKING_MODE_ENABLE
+    if (!SPI->blocking_mode)
+         blocking_mode = true;
+#endif
+
+    if (blocking_mode == false && cb_event == NULL)
     {
-        return ARM_DRIVER_ERROR_PARAMETER;
+         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
     if ((SPI->tx_fifo_threshold > SPI_TX_FIFO_DEPTH) || (SPI->tx_fifo_start_level > SPI_TX_FIFO_DEPTH))
@@ -296,7 +351,8 @@ static int32_t ARM_SPI_Initialize(SPI_RESOURCES *SPI, ARM_SPI_SignalEvent_t cb_e
     SPI->transfer.tx_default_val     = 0;
     SPI->transfer.tx_default_enable  = false;
 
-    SPI->transfer.total_cnt          = 0;
+    SPI->transfer.tx_total_cnt       = 0;
+    SPI->transfer.rx_total_cnt       = 0;
     SPI->transfer.tx_current_cnt     = 0;
     SPI->transfer.rx_current_cnt     = 0;
     SPI->transfer.status             = SPI_TRANSFER_STATUS_NONE;
@@ -361,7 +417,8 @@ static int32_t ARM_SPI_Uninitialize(SPI_RESOURCES *SPI)
     SPI->transfer.rx_buff           = NULL;
     SPI->transfer.tx_default_val    = 0;
     SPI->transfer.tx_default_enable = false;
-    SPI->transfer.total_cnt         = 0;
+    SPI->transfer.tx_total_cnt      = 0;
+    SPI->transfer.rx_total_cnt      = 0;
     SPI->transfer.tx_current_cnt    = 0;
     SPI->transfer.rx_current_cnt    = 0;
     SPI->transfer.status            = SPI_TRANSFER_STATUS_NONE;
@@ -399,7 +456,7 @@ static int32_t ARM_SPI_PowerControl(SPI_RESOURCES *SPI, ARM_POWER_STATE state)
                 return ARM_DRIVER_OK;
             }
 
-            if (spi_busy(SPI->regs))
+            if (SPI->status.busy)
             {
                 return ARM_DRIVER_ERROR_BUSY;
             }
@@ -436,7 +493,7 @@ static int32_t ARM_SPI_PowerControl(SPI_RESOURCES *SPI, ARM_POWER_STATE state)
 #endif
 
 #if SPI_USE_MASTER_SS_SW
-            if (SPI->master_ss_control == SPI_SS_SW_CONTROL)
+            if ((SPI->transfer.is_master) && (SPI->master_ss_control == SPI_SS_SW_CONTROL))
             {
                 ret = SPI->sw_config.drvGPIO->PowerControl(SPI->sw_config.ss_pin, ARM_POWER_OFF);
                 if(ret != ARM_DRIVER_OK)            {    return ret;    }
@@ -482,7 +539,6 @@ static int32_t ARM_SPI_PowerControl(SPI_RESOURCES *SPI, ARM_POWER_STATE state)
             NVIC_EnableIRQ(SPI->irq);
 
             spi_set_tx_threshold(SPI->regs, SPI->tx_fifo_threshold);
-            spi_set_rx_threshold(SPI->regs, SPI->rx_fifo_threshold);
 
             if (SPI->drv_instance != LPSPI_INSTANCE)
             {
@@ -550,6 +606,16 @@ static int32_t ARM_SPI_Send(SPI_RESOURCES *SPI, const void *data, uint32_t num)
         return ARM_DRIVER_ERROR;
     }
 
+#if SPI_MICROWIRE_FRF_ENABLE
+    if (SPI->mw_enable)
+    {
+        if (!SPI->transfer.is_master)
+        {
+            return ARM_DRIVER_ERROR;
+        }
+    }
+#endif
+
     if ((data == NULL) && (SPI->transfer.tx_default_enable == false))
     {
         return ARM_DRIVER_ERROR_PARAMETER;
@@ -560,7 +626,7 @@ static int32_t ARM_SPI_Send(SPI_RESOURCES *SPI, const void *data, uint32_t num)
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    if (spi_busy(SPI->regs))
+    if (SPI->status.busy)
     {
         return ARM_DRIVER_ERROR_BUSY;
     }
@@ -568,10 +634,28 @@ static int32_t ARM_SPI_Send(SPI_RESOURCES *SPI, const void *data, uint32_t num)
     SPI->status.busy = 1;
 
     SPI->transfer.tx_buff        = (const uint8_t *) data;
-    SPI->transfer.total_cnt      = num;
+    SPI->transfer.tx_total_cnt   = num;
     SPI->transfer.tx_current_cnt = 0;
     SPI->transfer.status         = SPI_TRANSFER_STATUS_NONE;
     SPI->transfer.mode           = SPI_TMOD_TX;
+
+#if SPI_MICROWIRE_FRF_ENABLE
+    if (SPI->mw_enable)
+    {
+        if (SPI->mw_config.transfer_mode == SPI_MW_TRANSFER_MODE_SEQUANTIAL)
+        {
+            /* In master sequential mode, continuous data transfer is not available;
+             * therefore, the value of 'tx_total_cnt' should be set to 2. */
+            SPI->transfer.tx_total_cnt = 2U;
+        }
+        else
+        {
+            /* In master non-sequential mode, the value of "tx_total_cnt" should be
+             * twice the amount of data that needs to be sent. */
+            SPI->transfer.tx_total_cnt = (num << 1);
+        }
+    }
+#endif
 
     /* If the Frame size is more than 16, check if it is aligned to 4 bytes */
     if ((SPI->transfer.frame_size > 16) && ((uint32_t)data & 0x3U) != 0U)
@@ -610,17 +694,17 @@ static int32_t ARM_SPI_Send(SPI_RESOURCES *SPI, const void *data, uint32_t num)
 
         if (SPI->transfer.frame_size > 16)
         {
-            dma_params.num_bytes = SPI->transfer.total_cnt * sizeof(uint32_t);
+            dma_params.num_bytes = SPI->transfer.tx_total_cnt * sizeof(uint32_t);
             dma_params.burst_size = BS_BYTE_4;
         }
         else if (SPI->transfer.frame_size > 8)
         {
-            dma_params.num_bytes = SPI->transfer.total_cnt * sizeof(uint16_t);
+            dma_params.num_bytes = SPI->transfer.tx_total_cnt * sizeof(uint16_t);
             dma_params.burst_size = BS_BYTE_2;
         }
         else
         {
-            dma_params.num_bytes = SPI->transfer.total_cnt * sizeof(uint8_t);
+            dma_params.num_bytes = SPI->transfer.tx_total_cnt * sizeof(uint8_t);
             dma_params.burst_size = BS_BYTE_1;
         }
 
@@ -632,13 +716,33 @@ static int32_t ARM_SPI_Send(SPI_RESOURCES *SPI, const void *data, uint32_t num)
     else
 #endif
     {
-        if (SPI->drv_instance == LPSPI_INSTANCE)
+#if SPI_MICROWIRE_FRF_ENABLE
+        if (SPI->mw_enable)
         {
-            lpspi_send(SPI->regs);
+            spi_mw_transmit(SPI->regs, !(SPI->transfer.is_master));
         }
         else
+#endif
         {
-            spi_send(SPI->regs);
+            if (SPI->drv_instance == LPSPI_INSTANCE)
+            {
+                lpspi_send(SPI->regs);
+            }
+            else
+            {
+#if SPI_BLOCKING_MODE_ENABLE
+                if (SPI->blocking_mode)
+                {
+                    spi_send_blocking(SPI->regs, &SPI->transfer);
+                    SPI->transfer.status = SPI_TRANSFER_STATUS_COMPLETE;
+                    SPI->status.busy = 0;
+                }
+                else
+#endif
+                {
+                    spi_send(SPI->regs);
+                }
+            }
         }
     }
 
@@ -666,7 +770,17 @@ static int32_t ARM_SPI_Receive(SPI_RESOURCES *SPI, void *data, uint32_t num)
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    if (spi_busy(SPI->regs))
+#if SPI_MICROWIRE_FRF_ENABLE
+    if (SPI->mw_enable)
+    {
+        if (SPI->transfer.is_master)
+        {
+            return ARM_DRIVER_ERROR;
+        }
+    }
+#endif
+
+    if (SPI->status.busy)
     {
         return ARM_DRIVER_ERROR_BUSY;
     }
@@ -674,10 +788,30 @@ static int32_t ARM_SPI_Receive(SPI_RESOURCES *SPI, void *data, uint32_t num)
     SPI->status.busy = 1;
 
     SPI->transfer.rx_buff         = data;
-    SPI->transfer.total_cnt       = num;
+    SPI->transfer.rx_total_cnt    = num;
     SPI->transfer.rx_current_cnt  = 0;
     SPI->transfer.status          = SPI_TRANSFER_STATUS_NONE;
     SPI->transfer.mode            = SPI_TMOD_RX;
+
+    spi_set_rx_threshold(SPI->regs, SPI->rx_fifo_threshold);
+
+#if SPI_MICROWIRE_FRF_ENABLE
+    if (SPI->mw_enable)
+    {
+        if (SPI->mw_config.transfer_mode == SPI_MW_TRANSFER_MODE_SEQUANTIAL)
+        {
+            /* In slave sequential mode, the value of "rx_total_cnt" should be
+             * one greater than the number of data needs to be received. */
+            SPI->transfer.rx_total_cnt = (num + 1U);
+        }
+        else
+        {
+            /* In slave non-sequential mode, the value of "rx_total_cnt" should be
+             * twice the amount of data that needs to be received. */
+            SPI->transfer.rx_total_cnt = (num << 1);
+        }
+    }
+#endif
 
     /* If the Frame size is more than 16, check if it is aligned to 4 bytes */
     if ((SPI->transfer.frame_size > 16) && ((uint32_t)data & 0x3U) != 0U)
@@ -698,7 +832,7 @@ static int32_t ARM_SPI_Receive(SPI_RESOURCES *SPI, void *data, uint32_t num)
     {
         if (SPI->drv_instance == LPSPI_INSTANCE)
         {
-            lpspi_dma_receive(SPI->regs, &SPI->transfer);
+            lpspi_dma_receive(SPI->regs, SPI->transfer.rx_total_cnt);
         }
         else
         {
@@ -716,17 +850,17 @@ static int32_t ARM_SPI_Receive(SPI_RESOURCES *SPI, void *data, uint32_t num)
 
         if (SPI->transfer.frame_size > 16)
         {
-            rx_dma_params.num_bytes = SPI->transfer.total_cnt * sizeof(uint32_t);
+            rx_dma_params.num_bytes = SPI->transfer.rx_total_cnt * sizeof(uint32_t);
             rx_dma_params.burst_size = BS_BYTE_4;
         }
         else if (SPI->transfer.frame_size > 8)
         {
-            rx_dma_params.num_bytes = SPI->transfer.total_cnt * sizeof(uint16_t);
+            rx_dma_params.num_bytes = SPI->transfer.rx_total_cnt * sizeof(uint16_t);
             rx_dma_params.burst_size = BS_BYTE_2;
         }
         else
         {
-            rx_dma_params.num_bytes = SPI->transfer.total_cnt;
+            rx_dma_params.num_bytes = SPI->transfer.rx_total_cnt;
             rx_dma_params.burst_size = BS_BYTE_1;
         }
 
@@ -775,13 +909,33 @@ static int32_t ARM_SPI_Receive(SPI_RESOURCES *SPI, void *data, uint32_t num)
     else
 #endif
     {
-        if (SPI->drv_instance == LPSPI_INSTANCE)
+#if SPI_MICROWIRE_FRF_ENABLE
+        if (SPI->mw_enable)
         {
-            lpspi_receive(SPI->regs, SPI->transfer.total_cnt);
+            spi_mw_receive(SPI->regs, &SPI->transfer);
         }
         else
+#endif
         {
-            spi_receive(SPI->regs, &SPI->transfer);
+            if (SPI->drv_instance == LPSPI_INSTANCE)
+            {
+                lpspi_receive(SPI->regs, SPI->transfer.rx_total_cnt);
+            }
+            else
+            {
+#if SPI_BLOCKING_MODE_ENABLE
+                if (SPI->blocking_mode)
+                {
+                    spi_receive_blocking(SPI->regs, &SPI->transfer);
+                    SPI->transfer.status = SPI_TRANSFER_STATUS_COMPLETE;
+                    SPI->status.busy = 0;
+                }
+                else
+#endif
+                {
+                    spi_receive(SPI->regs, &SPI->transfer);
+                }
+            }
         }
     }
 
@@ -815,7 +969,7 @@ static int32_t ARM_SPI_Transfer(SPI_RESOURCES *SPI, const void *data_out, void *
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    if (spi_busy(SPI->regs))
+    if (SPI->status.busy)
     {
         return ARM_DRIVER_ERROR_BUSY;
     }
@@ -824,11 +978,31 @@ static int32_t ARM_SPI_Transfer(SPI_RESOURCES *SPI, const void *data_out, void *
 
     SPI->transfer.tx_buff        = (const uint8_t *) data_out;
     SPI->transfer.rx_buff        = data_in;
-    SPI->transfer.total_cnt      = num;
+    SPI->transfer.tx_total_cnt   = num;
+    SPI->transfer.rx_total_cnt   = num;
     SPI->transfer.tx_current_cnt = 0;
     SPI->transfer.rx_current_cnt = 0;
     SPI->transfer.status         = SPI_TRANSFER_STATUS_NONE;
     SPI->transfer.mode           = SPI_TMOD_TX_AND_RX;
+
+    spi_set_rx_threshold(SPI->regs, SPI->rx_fifo_threshold);
+
+#if SPI_MICROWIRE_FRF_ENABLE
+    if (SPI->mw_enable)
+    {
+        if (SPI->transfer.is_master && (SPI->mw_config.transfer_mode == SPI_MW_TRANSFER_MODE_SEQUANTIAL))
+        {
+            /* In master sequential mode receive, tx_total_cnt should be 1 as only one control word is sent */
+            SPI->transfer.tx_total_cnt = 1U;
+        }
+
+        if ((!SPI->transfer.is_master) && (SPI->mw_config.transfer_mode == SPI_MW_TRANSFER_MODE_SEQUANTIAL))
+        {
+            /* In slave sequential mode transmit, rx_total_cnt should be 1 as only one control word is received */
+            SPI->transfer.rx_total_cnt = 1U;
+        }
+    }
+#endif
 
     /* If the Frame size is more than 16, check if it is aligned to 4 bytes */
     if ((SPI->transfer.frame_size > 16) && ((((uint32_t)data_in & 0x3U) != 0U) && (((uint32_t)data_out & 0x3U) != 0U)))
@@ -849,11 +1023,11 @@ static int32_t ARM_SPI_Transfer(SPI_RESOURCES *SPI, const void *data_out, void *
     {
         if (SPI->drv_instance == LPSPI_INSTANCE)
         {
-            lpspi_dma_transfer(SPI->regs, SPI->transfer.total_cnt);
+            lpspi_dma_transfer(SPI->regs);
         }
         else
         {
-            spi_dma_transfer(SPI->regs, SPI->transfer.total_cnt);
+            spi_dma_transfer(SPI->regs);
         }
 
         /* Start the DMA engine for sending the data to SPI */
@@ -876,23 +1050,23 @@ static int32_t ARM_SPI_Transfer(SPI_RESOURCES *SPI, const void *data_out, void *
 
         if (SPI->transfer.frame_size > 16)
         {
-            tx_dma_params.num_bytes  = SPI->transfer.total_cnt * sizeof(uint32_t);
-            rx_dma_params.num_bytes  = SPI->transfer.total_cnt * sizeof(uint32_t);
+            tx_dma_params.num_bytes  = SPI->transfer.tx_total_cnt * sizeof(uint32_t);
+            rx_dma_params.num_bytes  = SPI->transfer.rx_total_cnt * sizeof(uint32_t);
             tx_dma_params.burst_size = BS_BYTE_4;
             rx_dma_params.burst_size = BS_BYTE_4;
         }
         else if (SPI->transfer.frame_size > 8)
         {
-            tx_dma_params.num_bytes  = SPI->transfer.total_cnt * sizeof(uint16_t);
-            rx_dma_params.num_bytes  = SPI->transfer.total_cnt * sizeof(uint16_t);
+            tx_dma_params.num_bytes  = SPI->transfer.tx_total_cnt * sizeof(uint16_t);
+            rx_dma_params.num_bytes  = SPI->transfer.rx_total_cnt * sizeof(uint16_t);
             tx_dma_params.burst_size = BS_BYTE_2;
             rx_dma_params.burst_size = BS_BYTE_2;
         }
         else
         {
             tx_dma_params.src_addr   = (const uint8_t *)data_out;
-            tx_dma_params.num_bytes  = SPI->transfer.total_cnt * sizeof(uint8_t);
-            rx_dma_params.num_bytes  = SPI->transfer.total_cnt * sizeof(uint8_t);
+            tx_dma_params.num_bytes  = SPI->transfer.tx_total_cnt * sizeof(uint8_t);
+            rx_dma_params.num_bytes  = SPI->transfer.rx_total_cnt * sizeof(uint8_t);
             tx_dma_params.burst_size = BS_BYTE_1;
             rx_dma_params.burst_size = BS_BYTE_1;
         }
@@ -909,13 +1083,40 @@ static int32_t ARM_SPI_Transfer(SPI_RESOURCES *SPI, const void *data_out, void *
     else
 #endif
     {
-        if (SPI->drv_instance == LPSPI_INSTANCE)
+#if SPI_MICROWIRE_FRF_ENABLE
+        if (SPI->mw_enable)
         {
-            lpspi_transfer(SPI->regs, SPI->transfer.total_cnt);
+            if (SPI->transfer.is_master)
+            {
+                spi_mw_receive(SPI->regs, &SPI->transfer);
+            }
+            else
+            {
+                spi_mw_transmit(SPI->regs, !(SPI->transfer.is_master));
+            }
         }
         else
+#endif
         {
-            spi_transfer(SPI->regs, SPI->transfer.total_cnt);
+            if (SPI->drv_instance == LPSPI_INSTANCE)
+            {
+                lpspi_transfer(SPI->regs);
+            }
+            else
+            {
+#if SPI_BLOCKING_MODE_ENABLE
+                if (SPI->blocking_mode)
+                {
+                    spi_transfer_blocking(SPI->regs, &SPI->transfer);
+                    SPI->transfer.status = SPI_TRANSFER_STATUS_COMPLETE;
+                    SPI->status.busy = 0;
+                }
+                else
+#endif
+                {
+                    spi_transfer(SPI->regs);
+                }
+            }
         }
     }
 
@@ -979,7 +1180,7 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
         return ARM_DRIVER_ERROR;
     }
 
-    if (spi_busy(SPI->regs))
+    if (SPI->status.busy)
     {
         return ARM_DRIVER_ERROR_BUSY;
     }
@@ -1146,7 +1347,8 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
             SPI->transfer.rx_buff            = NULL;
             SPI->transfer.tx_default_val     = 0;
             SPI->transfer.tx_default_enable  = false;
-            SPI->transfer.total_cnt          = 0;
+            SPI->transfer.tx_total_cnt       = 0;
+            SPI->transfer.rx_total_cnt       = 0;
             SPI->transfer.tx_current_cnt     = 0;
             SPI->transfer.rx_current_cnt     = 0;
             SPI->status.busy                 = 0;
@@ -1171,10 +1373,12 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
             if (SPI->drv_instance == LPSPI_INSTANCE)
             {
                 lpspi_set_mode(SPI->regs, SPI_MODE_0);
+                lpspi_set_sste(SPI->regs, SPI->sste_enable);
             }
             else
             {
                 spi_set_mode(SPI->regs, SPI_MODE_0);
+                spi_set_sste(SPI->regs, SPI->sste_enable);
             }
             break;
         }
@@ -1195,10 +1399,12 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
             if (SPI->drv_instance == LPSPI_INSTANCE)
             {
                 lpspi_set_mode(SPI->regs, SPI_MODE_2);
+                lpspi_set_sste(SPI->regs, SPI->sste_enable);
             }
             else
             {
                 spi_set_mode(SPI->regs, SPI_MODE_2);
+                spi_set_sste(SPI->regs, SPI->sste_enable);
             }
             break;
         }
@@ -1232,6 +1438,12 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
         /* National Microwire Frame Format */
         case ARM_SPI_MICROWIRE:
         {
+#if SPI_MICROWIRE_FRF_ENABLE
+            if (!SPI->mw_enable)
+            {
+                return ARM_DRIVER_ERROR_PARAMETER;
+            }
+
             if (SPI->drv_instance == LPSPI_INSTANCE)
             {
                 lpspi_set_protocol(SPI->regs, SPI_PROTO_MICROWIRE);
@@ -1240,6 +1452,13 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
             {
                 spi_set_protocol(SPI->regs, SPI_PROTO_MICROWIRE);
             }
+
+            ret = ARM_SPI_MicroWire_Config(SPI);
+            if (ret != ARM_DRIVER_OK)
+            {
+                return ARM_DRIVER_ERROR_PARAMETER;
+            }
+#endif
             break;
         }
 
@@ -1286,6 +1505,9 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
             /* SPI Slave Select when Master: Not used (default) */
             case ARM_SPI_SS_MASTER_UNUSED:
             {
+                /* add dummy value to SER reg to start the data transfer. Below, setting first bit */
+                spi_control_ss(SPI->regs, 0x0, SPI_SS_STATE_ENABLE);
+
                 break;
             }
 
@@ -1293,6 +1515,9 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
             case ARM_SPI_SS_MASTER_SW:
             {
 #if SPI_USE_MASTER_SS_SW
+                /* add dummy value to SER reg to start the data transfer. Below, setting first bit */
+                spi_control_ss(SPI->regs, 0x0, SPI_SS_STATE_ENABLE);
+
                 /* GPIO setup */
                 ret = SPI->sw_config.drvGPIO->Initialize(SPI->sw_config.ss_pin, NULL);
                 if(ret != ARM_DRIVER_OK)            {    return ret;    }
@@ -1355,7 +1580,16 @@ static int32_t ARM_SPI_Control(SPI_RESOURCES *SPI, uint32_t control, uint32_t ar
  */
 static void SPI_IRQ_Handler(SPI_RESOURCES *SPI)
 {
-    spi_irq_handler(SPI->regs, &(SPI->transfer));
+#if SPI_MICROWIRE_FRF_ENABLE
+    if (SPI->mw_enable)
+    {
+        spi_mw_irq_handler(SPI->regs, &(SPI->transfer));
+    }
+    else
+#endif
+    {
+        spi_irq_handler(SPI->regs, &(SPI->transfer));
+    }
 
     if (SPI->transfer.status == SPI_TRANSFER_STATUS_COMPLETE)
     {
@@ -1526,6 +1760,7 @@ static SPI_RESOURCES SPI0_RES = {
     .tx_fifo_start_level    = RTE_SPI0_TX_FIFO_LEVEL_TO_START_TRANSFER,
     .rx_fifo_threshold      = RTE_SPI0_RX_FIFO_THRESHOLD,
     .rx_sample_delay        = RTE_SPI0_RX_SAMPLE_DELAY,
+    .sste_enable            = RTE_SPI0_SSTE_ENABLE,
     .irq                    = SPI0_IRQ_IRQn,
 #if RTE_SPI0_DMA_ENABLE
     .dma_enable             = RTE_SPI0_DMA_ENABLE,
@@ -1533,13 +1768,29 @@ static SPI_RESOURCES SPI0_RES = {
     .dma_cb                 = SPI0_DMACallback,
     .dma_cfg                = &SPI0_DMA_HW_CONFIG,
 #endif
+#if SPI_BLOCKING_MODE_ENABLE
+    .blocking_mode          = RTE_SPI0_BLOCKING_MODE_ENABLE,
+#endif
 #if RTE_SPI0_USE_MASTER_SS_SW
     .sw_config =
     {
         .ss_port            = RTE_SPI0_SW_SPI_PORT,
         .ss_pin             = RTE_SPI0_SW_SPI_PIN,
         .active_polarity    = RTE_SPI0_SW_SPI_SS_POLARITY,
-        .drvGPIO            = (ARM_DRIVER_GPIO*) &ARM_Driver_GPIO_(RTE_SPI0_SW_SPI_PORT)
+        .drvGPIO            = (ARM_DRIVER_GPIO*) &ARM_Driver_GPIO_(RTE_SPI0_SW_SPI_PORT),
+    }
+#endif
+#if RTE_SPI0_MICROWIRE_FRF_ENABLE
+    .mw_enable              = RTE_SPI0_MICROWIRE_FRF_ENABLE,
+    .mw_config =
+    {
+#if RTE_SPI0_MW_TRANSFER_MODE
+        .transfer_mode      = SPI_MW_TRANSFER_MODE_SEQUANTIAL,
+#else
+        .transfer_mode      = SPI_MW_TRANSFER_MODE_NON_SEQUANTIAL,
+#endif
+        .handshake_enable   = RTE_SPI0_MW_HANDSAHKE_ENABLE,
+        .cfs                = RTE_SPI0_MW_CFS
     }
 #endif
 };
@@ -1676,6 +1927,7 @@ static SPI_RESOURCES SPI1_RES = {
     .tx_fifo_start_level    = RTE_SPI1_TX_FIFO_LEVEL_TO_START_TRANSFER,
     .rx_fifo_threshold      = RTE_SPI1_RX_FIFO_THRESHOLD,
     .rx_sample_delay        = RTE_SPI1_RX_SAMPLE_DELAY,
+    .sste_enable            = RTE_SPI1_SSTE_ENABLE,
     .irq                    = SPI1_IRQ_IRQn,
 #if RTE_SPI1_DMA_ENABLE
     .dma_enable             = RTE_SPI1_DMA_ENABLE,
@@ -1683,13 +1935,29 @@ static SPI_RESOURCES SPI1_RES = {
     .dma_cb                 = SPI1_DMACallback,
     .dma_cfg                = &SPI1_DMA_HW_CONFIG,
 #endif
+#if SPI_BLOCKING_MODE_ENABLE
+    .blocking_mode          = RTE_SPI1_BLOCKING_MODE_ENABLE,
+#endif
 #if RTE_SPI1_USE_MASTER_SS_SW
     .sw_config =
     {
         .ss_port            = RTE_SPI1_SW_SPI_PORT,
         .ss_pin             = RTE_SPI1_SW_SPI_PIN,
         .active_polarity    = RTE_SPI1_SW_SPI_SS_POLARITY,
-        .drvGPIO            = (ARM_DRIVER_GPIO*) &ARM_Driver_GPIO_(RTE_SPI1_SW_SPI_PORT)
+        .drvGPIO            = (ARM_DRIVER_GPIO*) &ARM_Driver_GPIO_(RTE_SPI1_SW_SPI_PORT),
+    }
+#endif
+#if RTE_SPI1_MICROWIRE_FRF_ENABLE
+    .mw_enable              = RTE_SPI1_MICROWIRE_FRF_ENABLE,
+    .mw_config =
+    {
+#if RTE_SPI1_MW_TRANSFER_MODE
+        .transfer_mode      = SPI_MW_TRANSFER_MODE_SEQUANTIAL,
+#else
+        .transfer_mode      = SPI_MW_TRANSFER_MODE_NON_SEQUANTIAL,
+#endif
+        .handshake_enable   = RTE_SPI1_MW_HANDSAHKE_ENABLE,
+        .cfs                = RTE_SPI1_MW_CFS
     }
 #endif
 };
@@ -1826,6 +2094,7 @@ static SPI_RESOURCES SPI2_RES = {
     .tx_fifo_start_level    = RTE_SPI2_TX_FIFO_LEVEL_TO_START_TRANSFER,
     .rx_fifo_threshold      = RTE_SPI2_RX_FIFO_THRESHOLD,
     .rx_sample_delay        = RTE_SPI2_RX_SAMPLE_DELAY,
+    .sste_enable            = RTE_SPI2_SSTE_ENABLE,
     .irq                    = SPI2_IRQ_IRQn,
 #if RTE_SPI2_DMA_ENABLE
     .dma_enable             = RTE_SPI2_DMA_ENABLE,
@@ -1833,13 +2102,29 @@ static SPI_RESOURCES SPI2_RES = {
     .dma_cb                 = SPI2_DMACallback,
     .dma_cfg                = &SPI2_DMA_HW_CONFIG
 #endif
+#if SPI_BLOCKING_MODE_ENABLE
+    .blocking_mode          = RTE_SPI2_BLOCKING_MODE_ENABLE,
+#endif
 #if RTE_SPI2_USE_MASTER_SS_SW
     .sw_config =
     {
         .ss_port            = RTE_SPI2_SW_SPI_PORT,
         .ss_pin             = RTE_SPI2_SW_SPI_PIN,
         .active_polarity    = RTE_SPI2_SW_SPI_SS_POLARITY,
-        .drvGPIO            = (ARM_DRIVER_GPIO*) &ARM_Driver_GPIO_(RTE_SPI2_SW_SPI_PORT)
+        .drvGPIO            = (ARM_DRIVER_GPIO*) &ARM_Driver_GPIO_(RTE_SPI2_SW_SPI_PORT),
+    }
+#endif
+#if RTE_SPI2_MICROWIRE_FRF_ENABLE
+    .mw_enable              = RTE_SPI2_MICROWIRE_FRF_ENABLE,
+    .mw_config =
+    {
+#if RTE_SPI2_MW_TRANSFER_MODE
+        .transfer_mode      = SPI_MW_TRANSFER_MODE_SEQUANTIAL,
+#else
+        .transfer_mode      = SPI_MW_TRANSFER_MODE_NON_SEQUANTIAL,
+#endif
+        .handshake_enable   = RTE_SPI2_MW_HANDSAHKE_ENABLE,
+        .cfs                = RTE_SPI2_MW_CFS
     }
 #endif
 };
@@ -1975,6 +2260,7 @@ static SPI_RESOURCES SPI3_RES = {
     .tx_fifo_start_level    = RTE_SPI3_TX_FIFO_LEVEL_TO_START_TRANSFER,
     .rx_fifo_threshold      = RTE_SPI3_RX_FIFO_THRESHOLD,
     .rx_sample_delay        = RTE_SPI3_RX_SAMPLE_DELAY,
+    .sste_enable            = RTE_SPI3_SSTE_ENABLE,
     .irq                    = SPI3_IRQ_IRQn,
 #if RTE_SPI3_DMA_ENABLE
     .dma_enable             = RTE_SPI3_DMA_ENABLE,
@@ -1982,13 +2268,29 @@ static SPI_RESOURCES SPI3_RES = {
     .dma_cb                 = SPI3_DMACallback,
     .dma_cfg                = &SPI3_DMA_HW_CONFIG,
 #endif
+#if SPI_BLOCKING_MODE_ENABLE
+    .blocking_mode          = RTE_SPI3_BLOCKING_MODE_ENABLE,
+#endif
 #if RTE_SPI3_USE_MASTER_SS_SW
     .sw_config =
     {
         .ss_port            = RTE_SPI3_SW_SPI_PORT,
         .ss_pin             = RTE_SPI3_SW_SPI_PIN,
         .active_polarity    = RTE_SPI3_SW_SPI_SS_POLARITY,
-        .drvGPIO            = (ARM_DRIVER_GPIO*) &ARM_Driver_GPIO_(RTE_SPI3_SW_SPI_PORT)
+        .drvGPIO            = (ARM_DRIVER_GPIO*) &ARM_Driver_GPIO_(RTE_SPI3_SW_SPI_PORT),
+    }
+#endif
+#if RTE_SPI3_MICROWIRE_FRF_ENABLE
+    .mw_enable              = RTE_SPI3_MICROWIRE_FRF_ENABLE,
+    .mw_config =
+    {
+#if RTE_SPI3_MW_TRANSFER_MODE
+        .transfer_mode      = SPI_MW_TRANSFER_MODE_SEQUANTIAL,
+#else
+        .transfer_mode      = SPI_MW_TRANSFER_MODE_NON_SEQUANTIAL,
+#endif
+        .handshake_enable   = RTE_SPI3_MW_HANDSAHKE_ENABLE,
+        .cfs                = RTE_SPI3_MW_CFS
     }
 #endif
 };
@@ -2138,6 +2440,7 @@ static SPI_RESOURCES LPSPI_RES = {
     .tx_fifo_threshold      = RTE_LPSPI_TX_FIFO_THRESHOLD,
     .tx_fifo_start_level    = RTE_LPSPI_TX_FIFO_LEVEL_TO_START_TRANSFER,
     .rx_fifo_threshold      = RTE_LPSPI_RX_FIFO_THRESHOLD,
+    .sste_enable            = RTE_LPSPI_SSTE_ENABLE,
     .irq                    = LPSPI_IRQ_IRQn,
 #if RTE_LPSPI_DMA_ENABLE
     .dma_enable             = RTE_LPSPI_DMA_ENABLE,
@@ -2151,7 +2454,20 @@ static SPI_RESOURCES LPSPI_RES = {
         .ss_port            = RTE_LPSPI_SW_SPI_PORT,
         .ss_pin             = RTE_LPSPI_SW_SPI_PIN,
         .active_polarity    = RTE_LPSPI_SW_SPI_SS_POLARITY,
-        .drvGPIO            = (ARM_DRIVER_GPIO*) &ARM_Driver_GPIO_(RTE_LPSPI_SW_SPI_PORT)
+        .drvGPIO            = (ARM_DRIVER_GPIO*) &ARM_Driver_GPIO_(RTE_LPSPI_SW_SPI_PORT),
+    }
+#endif
+#if RTE_LPSPI_MICROWIRE_FRF_ENABLE
+    .mw_enable              = RTE_LPSPI_MICROWIRE_FRF_ENABLE,
+    .mw_config =
+    {
+#if RTE_LPSPI_MW_TRANSFER_MODE
+        .transfer_mode      = SPI_MW_TRANSFER_MODE_SEQUANTIAL,
+#else
+        .transfer_mode      = SPI_MW_TRANSFER_MODE_NON_SEQUANTIAL,
+#endif
+        .handshake_enable   = RTE_LPSPI_MW_HANDSAHKE_ENABLE,
+        .cfs                = RTE_LPSPI_MW_CFS
     }
 #endif
 };

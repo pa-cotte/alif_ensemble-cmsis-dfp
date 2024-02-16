@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!--Copyright (C) 2009-2023 Arm Limited (or its affiliates). All rights reserved.--><platform_data xmlns="http://www.arm.com/project_type" xmlns:peripheral="http://com.arm.targetconfigurationeditor" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" info_url="" type="HARDWARE" xsi:schemaLocation="http://www.arm.com/project_type ../../../Schemas/platform_data-1.xsd">
-    <flash_config>CDB://../mram15.xml</flash_config>    
+    <flash_config>CDB://mram15.xml</flash_config>    
     <project_type_list>
         <project_type type="BARE_METAL">
             <name language="en">Bare Metal Debug</name>

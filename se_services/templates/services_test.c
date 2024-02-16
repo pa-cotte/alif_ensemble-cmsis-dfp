@@ -22,8 +22,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include "services_lib_interface.h"
 #include "services_lib_api.h"
+#ifdef A32_LINUX
+#include "services_lib_linux.h"
+#else
+#include "services_lib_interface.h"
+#endif
+
 
 /* forward tests */
 static uint32_t test_services_heartbeat(char *p_test_name, uint32_t services_handle);
@@ -35,8 +40,7 @@ static uint32_t test_services_crypto_lcs(char *p_test_name, uint32_t services_ha
 static uint32_t test_services_get_se_revision(char *p_test_name, uint32_t services_handle);
 static uint32_t test_services_get_socid(char *p_test_name, uint32_t services_handle);
 static uint32_t test_services_read_otp (char *p_test_name, uint32_t services_handle);
-//static uint32_t test_services_getotp(char *p_test_name, uint32_t services_handle);
-static uint32_t test_services_getotp_part_number(char *p_test_name,uint32_t services_handle);
+static uint32_t test_services_read_otp_illegal (char *p_test_name, uint32_t services_handle);
 static uint32_t test_services_get_device_data(char *p_test_name,uint32_t services_handle);
 static uint32_t test_services_gettoc(char *p_test_name, uint32_t services_handle);
 static uint32_t test_services_gettoc_via_name_m55_he(char *p_test_name, uint32_t services_handle);
@@ -51,6 +55,7 @@ static uint32_t test_services_boot_cpu(char *p_test_name, uint32_t services_hand
 static uint32_t test_services_boot_reset_cpu(char *p_test_name, uint32_t services_handle);
 static uint32_t test_services_boot_release_extsys0(char *p_test_name, uint32_t services_handle);
 static uint32_t test_services_mbedtls_aes(char *p_test_name, uint32_t services_handle);
+static uint32_t test_services_mbedtls_sha(char *p_test_name, uint32_t services_handle);
 static uint32_t test_services_bounds(char *p_test_name, uint32_t services_handle);
 static uint32_t test_services_mem_retention_config(char *p_test_name, uint32_t services_handle);
 static uint32_t test_services_ewic_config(char *p_test_name, uint32_t services_handle);
@@ -82,6 +87,9 @@ static uint32_t test_services_dcdc_voltage(char *p_test_name,
                                            uint32_t services_handle);
 static uint32_t test_services_ldo_voltage(char *p_test_name,
                                           uint32_t services_handle);
+
+static uint32_t test_services_get_bus_frequencies(char *p_test_name, uint32_t services_handle);
+static uint32_t test_services_get_eui(char *p_test_name, uint32_t services_handle);
 
 /*******************************************************************************
  *  M A C R O   D E F I N E S
@@ -162,16 +170,20 @@ static services_test_t s_tests[] =
     { test_services_heartbeat,               "heartbeat       "            , false}, /*0*/
     { test_services_pinmux,                  "pinmux          "            , false}, /*1*/
     { test_services_padcontrol,              "padcontrol      "            , false}, /*2*/
+
     { test_services_crypto_trng64,           "crypto TRNG 64  "            , false}, /*3*/
     { test_services_crypto_trng32,           "crypto TRNG 32  "            , false}, /*4*/
     { test_services_crypto_trng64,           "crypto TRNG 64  "            , false}, /*5*/
-    { test_services_crypto_trng32,           "crypto TRNG 32  "            , false}, /*6*/
+    { test_services_mbedtls_sha,             "MbedTLS SHA     "            , false}, /*6*/
     { test_services_crypto_lcs,              "crypto get LCS  "            , false}, /*7*/
+
     { test_services_get_se_revision,         "get SE revision "            , false}, /*8*/
     { test_services_get_socid,               "get soc id      "            , false}, /*9*/
     { test_services_get_device_data,         "get device info"             , false}, /*10*/
-    { test_services_read_otp,                "OTP read otp    "            , false}, /*11*/
-    { test_services_getotp_part_number,      "OTP get part number"         , false}, /*12*/
+
+    { test_services_read_otp,                "OTP read otp        "        , false}, /*11*/
+    { test_services_read_otp_illegal,        "OTP read otp illegal"        , false}, /*12*/
+
     { test_services_gettoc,                  "TOC get data    "            , false}, /*13*/
     { test_services_gettoc_via_name_m55_he,  "TOC via name  HE"            , false}, /*14*/
     { test_services_gettoc_via_name_m55_hp,  "TOC via name  HP"            , false}, /*15*/
@@ -180,6 +192,7 @@ static services_test_t s_tests[] =
     { test_services_gettoc_via_cpuid_a32,    "TOC via cpuidA32"            , false}, /*18*/
     { test_services_gettoc_version,          "TOC version     "            , false}, /*19*/
     { test_services_gettoc_data,             "TOC get data    "            , false}, /*20*/
+
     { test_services_boot_toc_a32,            "Boot TOC A32    "            , false}, /*21*/
     { test_services_boot_cpu,                "Boot CPU        "            , false}, /*22*/
     { test_services_boot_reset_cpu,          "Boot reset CPU  "            , false}, /*23*/
@@ -211,8 +224,10 @@ static services_test_t s_tests[] =
     { test_services_xtal_stop,               "Test XTAL stop         "     , false}, /*48*/
 
     { test_services_cpu_boot_sequence,       "Test CPU boot sequence "     , false},  /*49*/
-    { test_services_dcdc_voltage,            "DCDC voltage control"        , false},  /*50*/
-    { test_services_ldo_voltage,             "LDO voltage control "        , false},  /*51*/
+    { test_services_dcdc_voltage,            "DCDC voltage control   "     , false},  /*50*/
+    { test_services_ldo_voltage,             "LDO voltage control    "     , false},  /*51*/
+    { test_services_get_bus_frequencies,     "Get BUS frequencies    "     , false},  /*52*/
+    { test_services_get_eui,                 "Get EUI-48/EUI-64 extensions", false},  /*53*/
 };
 
 static SERVICES_toc_data_t     toc_info;    /*!< Global to test harness */
@@ -415,7 +430,7 @@ static uint32_t test_services_crypto_trng64(char *p_test_name,
                                            &rnd_value,
                                            &service_error_code);
   TEST_print(services_handle,
-              "** TEST %s error_code=%s 64-bit Random value = 0x%jx service_resp=%d\n",
+              "** TEST %s error_code=%s 64-bit Random value = 0x%jx service_resp=0x%08X\n",
               p_test_name,
               SERVICES_error_to_string(error_code),
               rnd_value,
@@ -441,7 +456,7 @@ static uint32_t test_services_crypto_trng32(char *p_test_name,
                                            &rnd_value,
                                            &service_error_code);
   TEST_print(services_handle,
-             "** TEST %s error_code=%s 32-bit Random value = 0x%08x service_resp=%d\n",
+             "** TEST %s error_code=%s 32-bit Random value = 0x%08x service_resp=0x%08X\n",
              p_test_name,
              SERVICES_error_to_string(error_code),
              rnd_value,
@@ -490,41 +505,48 @@ static uint32_t test_services_crypto_lcs(char *p_test_name,
  * @return
  * @note  Use knowledge of OTP eFuse map to read the Device Part#
  */
-static uint32_t test_services_getotp_part_number(char *p_test_name,
-                                                 uint32_t services_handle)
+static uint32_t test_services_read_otp(char *p_test_name,
+                                       uint32_t services_handle)
 {
   uint32_t error_code = SERVICES_REQ_SUCCESS;
   uint32_t service_error_code;
-  static uint32_t words[OTP_ALIF_MANUFACTURE_INFO_PART_NUMBER_LENGTH_BYTES];
-  static char part_string[OTP_ALIF_MANUFACTURE_INFO_PART_NUMBER_LENGTH_BYTES+1] = {0};
-  int otp_row;
-  int j;
-  int next_pos = 0;
+  uint32_t otp_value;
+
+   /**
+    * Customer Security Flags field
+    * OTP Word Address = 0x0005F, Size = 4 bytes
+    */
+   error_code = SERVICES_system_read_otp(services_handle,
+                                         OTP_CUSTOMER_SECURITY_FLAGS_START,
+                                         &otp_value,
+                                         &service_error_code);
+   PRINT_TEST_RESULT;
+
+   return error_code;
+}
+
+/**
+ * @brief get otp data using read OTP Service
+ *
+ * @param p_test_name
+ * @param services_handle
+ * @return
+ */
+static uint32_t test_services_read_otp_illegal(char *p_test_name,
+                                               uint32_t services_handle)
+{
+  uint32_t error_code = SERVICES_REQ_SUCCESS;
+  uint32_t service_error_code;
+  uint32_t otp_value;
 
   /**
-   * Read ALIF part number identifier (ASCII)
-   * @note REV_B0: OTP Word Address = 0x5B, Length = 16 bytes
+   * Read an illegal (no permission) offset you should not be trying
    */
-  for (otp_row=OTP_MANUFACTURE_INFO_PART_NUMBER_START,j=0;
-       otp_row<=OTP_MANUFACTURE_INFO_PART_NUMBER_END; otp_row++,j++)
-  {
-
-    error_code = SERVICES_system_read_otp(services_handle,
-                                          otp_row,
-                                          (uint32_t*)&words[j],
+  error_code = SERVICES_system_read_otp(services_handle,
+                                          0x00,
+                                          &otp_value,
                                           &service_error_code);
-    part_string[next_pos++] = words[j] >> 0;
-    part_string[next_pos++] = words[j] >> 8;
-    part_string[next_pos++] = words[j] >> 16;
-    part_string[next_pos++] = words[j] >> 24;
-  }
-
-  TEST_print(services_handle,
-             "** TEST %s error_code=%s Part num = %s service_resp=0x%08X\n",
-             p_test_name,
-             SERVICES_error_to_string(error_code),
-             part_string,
-             service_error_code);
+  PRINT_TEST_RESULT;
 
   return (error_code);
 }
@@ -573,42 +595,6 @@ static uint32_t test_services_gettoc(char *p_test_name,
  * @param services_handle
  * @return
  */
-static uint32_t test_services_read_otp(char *p_test_name,
-                                       uint32_t services_handle)
-{
-  uint32_t error_code = SERVICES_REQ_SUCCESS;
-  uint32_t service_error_code;
-  uint32_t otp_value;
-  int otp_row;
-
-  /**
-   * start with an illegal offset you should not be trying
-   */
-  error_code = SERVICES_system_read_otp(services_handle,
-                                        0x00,
-                                        &otp_value,
-                                        &service_error_code);
-  PRINT_TEST_RESULT;
-
-   /**
-    * Programmable Device Serial Number. Sequential Device serial number
-    * OTP Word Address = 0x0005C, Size = 8 bytes
-    */
-   for (otp_row=OTP_MANUFACTURE_INFO_SERIAL_NUMBER_START;
-        otp_row<=OTP_MANUFACTURE_INFO_SERIAL_NUMBER_END; otp_row++)
-   {
-     error_code = SERVICES_system_read_otp(services_handle,
-                                           otp_row,
-                                           &otp_value,
-                                           &service_error_code);
-     TEST_print(services_handle,
-                "    ** OTP offset 0x%0x OTP Value = 0x%08X\n",
-                otp_row,
-                otp_value);
-   }
-   return error_code;
-}
-
 /**
  * @brief TOC Test - get all TOC data
  *
@@ -933,7 +919,7 @@ static uint32_t test_services_get_device_data(char *p_test_name,
 {
   uint32_t error_code = SERVICES_REQ_SUCCESS;
   uint32_t service_error_code;
-  static uint8_t print_buffer[33] = {0};
+  static uint8_t print_buffer[65] = {0}; /*Prefix + 32 character data*/
 
   error_code = SERVICES_system_get_device_data(services_handle,
                                                &device_data,
@@ -1178,7 +1164,7 @@ static uint32_t test_services_boot_release_extsys0(char *p_test_name,
  * @return
  */
 static uint32_t test_services_mbedtls_aes(char *p_test_name,
-                                  uint32_t services_handle)
+                                          uint32_t services_handle)
 {
   /*
    * In C++, const really means const and can be used to declare static array sizes
@@ -1291,6 +1277,51 @@ static uint32_t test_services_mbedtls_aes(char *p_test_name,
              service_error_code);
 
   return error_code;
+}
+
+static uint32_t test_services_mbedtls_sha(char *p_test_name,
+                                          uint32_t services_handle)
+{
+  (void)(p_test_name);
+
+#define SHA256_BYTES         32  // 256 bits
+#define SHA256_PRINT         64  // 256 bits is 64 characters
+
+  char * test_payload = "SHA 256";
+  uint32_t error_code = SERVICES_REQ_SUCCESS;
+  uint32_t sha_ctx[60]={0};
+  uint8_t sha256sum[SHA256_BYTES];
+
+  SERVICES_cryptocell_mbedtls_sha_starts(services_handle,
+                                         &error_code,
+                                         (uint32_t)sha_ctx,
+                                         MBEDTLS_HASH_SHA256);
+  SERVICES_cryptocell_mbedtls_sha_update(services_handle,
+                                         &error_code,
+                                         (uint32_t)sha_ctx,
+                                         MBEDTLS_HASH_SHA256,
+                                         (uint32_t)test_payload,
+                                         strlen(test_payload));
+  SERVICES_cryptocell_mbedtls_sha_finish(services_handle,
+                                         &error_code,
+                                         (uint32_t)sha_ctx,
+                                         MBEDTLS_HASH_SHA256,
+                                         (uint32_t)sha256sum);
+
+  uint8_t buf[10] = {0};
+  uint8_t print_buf[SHA256_PRINT] = {0};
+  for (uint32_t i = 0; i < SHA256_BYTES; i++)
+  {
+    sprintf((void *)buf, "%02X", sha256sum[i]);
+    strcat((void *)print_buf, (void *)buf);
+  }
+  TEST_print(services_handle,
+             "** TEST SERVICES_cryptocell_mbedtls_sha   service_resp=0x%08X\n",
+             error_code);
+
+  TEST_print(services_handle, "SHA256 sum: %s\n", print_buf);
+
+  return 0;
 }
 
 /**
@@ -1824,6 +1855,60 @@ static uint32_t test_services_ldo_voltage(char *p_test_name,
   return error_code;
 }
 
+static uint32_t test_services_get_bus_frequencies(char *p_test_name, uint32_t services_handle)
+{
+  uint32_t error_code = SERVICES_REQ_SUCCESS;
+  uint32_t service_error_code;
+
+  uint32_t frequency;
+  error_code = SERVICES_clocks_get_refclk_frequency(services_handle,
+                                                    &frequency,
+                                                    &service_error_code);
+
+  TEST_print(services_handle,
+              "** TEST %s error_code=%s service_resp=0x%08X\n",
+              p_test_name,
+              SERVICES_error_to_string(error_code),
+              service_error_code);
+  TEST_print(services_handle, "REFCLK frequency %d\n", frequency);
+
+  error_code = SERVICES_clocks_get_apb_frequency(services_handle,
+                                                 &frequency,
+                                                 &service_error_code);
+  TEST_print(services_handle, "APB frequency %d\n", frequency);
+
+  return error_code;
+}
+
+/**
+ * @brief Generate 24/40 bit unique extensions for EUI-48 and EUI-64
+ */
+static uint32_t test_services_get_eui(char *p_test_name, uint32_t services_handle)
+{
+  uint32_t error_code = SERVICES_REQ_SUCCESS;
+  uint32_t service_error_code;
+
+  uint8_t eui[5];
+  error_code = SERVICES_system_get_eui_extension(services_handle,
+                                                 true,
+                                                 eui,
+                                                 &service_error_code);
+  TEST_print(services_handle,
+              "** TEST %s error_code=%s service_resp=0x%08X\n",
+              p_test_name,
+              SERVICES_error_to_string(error_code),
+              service_error_code);
+
+  TEST_print(services_handle, "EUI-48 extension: %02X-%02X-%02X\n",
+                              eui[0], eui[1], eui[2]);
+
+  SERVICES_system_get_eui_extension(services_handle, false, eui, &service_error_code);
+  TEST_print(services_handle, "EUI-64 extension: %02X-%02X-%02X-%02X-%02X\n",
+                              eui[0], eui[1], eui[2], eui[3], eui[4]);
+
+  return error_code;
+}
+
 /**
  * @fn    void setup_tests(void)
  * @brief enable/disable individual tests based on configuration
@@ -1930,7 +2015,14 @@ void SERVICES_test(uint32_t services_handle)
 
   /* keep sending heartbeat services requests until one succeeds */
   retry_count = SERVICES_synchronize_with_se(services_handle);
-  TEST_print(services_handle, "SERVICES_synchronize_with_se() returned %d\n", retry_count);
+  if (retry_count < 0)
+  {
+    TEST_print(services_handle, "SERVICES_synchronize_with_se() FAILED after %d heartbeat attempts\n", -retry_count);
+  }
+  else
+  {
+    TEST_print(services_handle, "SERVICES_synchronize_with_se() returned %d\n", retry_count);
+  }
 
   SERVICES_test_guts(services_handle);
 }

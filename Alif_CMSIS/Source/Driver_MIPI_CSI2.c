@@ -223,9 +223,7 @@ static int32_t CSI2_Initialize (ARM_MIPI_CSI2_SignalEvent_t cb_event,
     CSI2->cb_event = cb_event;
 
     /*DPHY initialization*/
-    ret  = CSI2_DPHY_Initialize(csi_info->frequency,
-                                csi_info->n_lanes,
-                                (DPHY_CLK_MODE) csi_info->clk_mode);
+    ret  = CSI2_DPHY_Initialize(csi_info->frequency, csi_info->n_lanes);
     if(ret != ARM_DRIVER_OK)
     {
         return ret;
@@ -368,7 +366,6 @@ static int32_t CSI2_ConfigureHost (uint32_t intr_event, CSI_RESOURCES *CSI2)
     }
 
     csi_enable_software_reset_state(CSI2->regs);
-    csi_set_n_active_lanes(CSI2->regs, (CSI2->n_lanes - 1));
 
     if(intr_event & CSI2_EVENT_PHY_FATAL)
     {

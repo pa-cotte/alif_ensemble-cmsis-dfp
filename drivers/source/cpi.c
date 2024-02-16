@@ -20,6 +20,21 @@
 #include "cpi.h"
 
 /**
+  \fn          void cpi_software_reset(CPI_Type *cpi)
+  \brief       CPI software reset
+  \param[in]   cpi      Pointer to the CPI register map.
+  \param[in]   mode     Soft reset the CPI
+  \return      none.
+*/
+void cpi_software_reset(CPI_Type *cpi)
+{
+    cpi->CAM_CTRL = 0;
+    cpi->CAM_CTRL |= CAM_CTRL_SW_RESET;
+    cpi->CAM_CTRL = 0;
+    cpi->CAM_CTRL = (CAM_CTRL_START | CAM_CTRL_FIFO_CLK_SEL);
+}
+
+/**
   \fn          void cpi_start_capture(CPI_Type *cpi, CPI_MODE_SELECT mode)
   \brief       Capture frame in snapshot/ continuous capture mode.
                    -Set CAM_CTRL = 0—prepare for soft reset
@@ -59,18 +74,22 @@ void cpi_start_capture(CPI_Type *cpi, CPI_MODE_SELECT mode)
 */
 void cpi_set_config(CPI_Type *cpi, cpi_cfg_info_t *info)
 {
-    cpi->CAM_CFG = (info->sensor_info.interface | (info->sensor_info.vsync_wait << 4) | (info->sensor_info.vsync_mode << 5) |
-                    (info->rw_roundup << 8) | (info->sensor_info.pixelclk_pol << 12) | (info->sensor_info.hsync_pol << 13) |
-                    (info->sensor_info.vsync_pol << 14) | (info->sensor_info.data_mode << 16));
-
-    if(info->sensor_info.data_mode == CPI_DATA_MODE_BIT_8)
-    {
-        cpi->CAM_CFG |= info->sensor_info.code10on8;
-    }
+    cpi->CAM_CFG = (info->sensor_info.interface | (info->sensor_info.vsync_wait << CAM_CFG_VSYNC_WAIT_Pos) |
+                    (info->sensor_info.vsync_mode << CAM_CFG_VSYNC_MODE_Pos) |
+                    (info->rw_roundup << CAM_CFG_ROW_ROUNDUP_Pos) |
+                    (info->sensor_info.pixelclk_pol << CAM_CFG_PIXELCLK_POL_Pos) |
+                    (info->sensor_info.hsync_pol << CAM_CFG_HSYNC_POL_Pos) |
+                    (info->sensor_info.vsync_pol << CAM_CFG_VSYNC_POL_Pos) |
+                    (info->sensor_info.data_mode << CAM_CFG_DATA_MODE_Pos));
 
     if(info->sensor_info.data_mode <= CPI_DATA_MODE_BIT_8)
     {
-        cpi->CAM_CFG |= info->sensor_info.data_endianness;
+        cpi->CAM_CFG |= (info->sensor_info.data_endianness << CAM_CFG_DATA_ENDIANNESS_Pos);
+    }
+
+    if(info->sensor_info.data_mode == CPI_DATA_MODE_BIT_8)
+    {
+        cpi->CAM_CFG |= (info->sensor_info.code10on8 << CAM_CFG_CODE10ON8_Pos);
     }
 
     if(info->sensor_info.data_mode == CPI_DATA_MODE_BIT_16)

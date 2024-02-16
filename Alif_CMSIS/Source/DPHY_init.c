@@ -312,19 +312,18 @@ static DPHY_STOPSTATE MIPI_CSI2_DPHY_Stopstate (void)
 
     if(csi_get_lane_stopstate_status((CSI_Type *)CSI_BASE, CSI_LANE_CLOCK) == CSI_LANE_STOPSTATE_ON)
     {
-        ret |= DPHY_STOPSTATE_LANE0;
+        ret |= DPHY_STOPSTATE_CLOCK;
     }
 
     if(csi_get_lane_stopstate_status((CSI_Type *)CSI_BASE, CSI_LANE_0) == CSI_LANE_STOPSTATE_ON)
     {
-        ret |= DPHY_STOPSTATE_LANE1;
+        ret |= DPHY_STOPSTATE_LANE0;
     }
 
     if(csi_get_lane_stopstate_status((CSI_Type *)CSI_BASE, CSI_LANE_1) == CSI_LANE_STOPSTATE_ON)
     {
-        ret |= DPHY_STOPSTATE_CLOCK;
+        ret |= DPHY_STOPSTATE_LANE1;
     }
-
 
     return ret;
 }
@@ -464,17 +463,17 @@ static DPHY_STOPSTATE MIPI_DSI_DPHY_Stopstate (void)
 
     if(dsi_get_lane_stopstate_status((DSI_Type *)DSI_BASE, DSI_LANE_CLOCK) == DSI_LANE_STOPSTATE_ON)
     {
-        ret |= DPHY_STOPSTATE_LANE0;
+        ret |= DPHY_STOPSTATE_CLOCK;
     }
 
     if(dsi_get_lane_stopstate_status((DSI_Type *)DSI_BASE, DSI_LANE_0) == DSI_LANE_STOPSTATE_ON)
     {
-        ret |= DPHY_STOPSTATE_LANE1;
+        ret |= DPHY_STOPSTATE_LANE0;
     }
 
     if(dsi_get_lane_stopstate_status((DSI_Type *)DSI_BASE, DSI_LANE_1) == DSI_LANE_STOPSTATE_ON)
     {
-        ret |= DPHY_STOPSTATE_CLOCK;
+        ret |= DPHY_STOPSTATE_LANE1;
     }
 
     return ret;
@@ -639,16 +638,13 @@ static int32_t DPHY_ConfigurePLL(uint32_t clock_frequency)
 }
 
 /**
-  \fn          int32_t DPHY_MasterSetup (uint32_t clock_frequency,  uint8_t n_lanes,
-                                         DPHY_CLK_MODE clk_mode)
+  \fn          int32_t DPHY_MasterSetup (uint32_t clock_frequency,  uint8_t n_lanes)
   \brief       MIPI DPHY Tx startup sequence.
   \param[in]   clock_frequency DPHY clock frequency.
   \param[in]   n_lanes number of lanes.
-  \param[in]   clk_mode select DPHY clock mode \ref DPHY_CLK_MODE.
   \return      \ref execution_status
 */
-static int32_t DPHY_MasterSetup (uint32_t clock_frequency, uint8_t n_lanes,
-                                 DPHY_CLK_MODE clk_mode)
+static int32_t DPHY_MasterSetup (uint32_t clock_frequency, uint8_t n_lanes)
 {
     uint32_t bitrate_mbps = (clock_frequency * 2)/1000000;
     uint8_t hsfreqrange = 0;
@@ -754,12 +750,7 @@ static int32_t DPHY_MasterSetup (uint32_t clock_frequency, uint8_t n_lanes,
         }
     }
 
-    if(clk_mode == DPHY_CLK_MODE_NON_CONTINUOUS)
-    {
-        stopstate_check |= DPHY_STOPSTATE_CLOCK;
-    }
-
-    stopstate_check |= (n_lanes == 1 ? (DPHY_STOPSTATE_LANE0) :
+    stopstate_check = DPHY_STOPSTATE_CLOCK | (n_lanes == 1 ? (DPHY_STOPSTATE_LANE0) :
                                              (DPHY_STOPSTATE_LANE0) | (DPHY_STOPSTATE_LANE1) );
 
     lp_count = 0;
@@ -782,16 +773,13 @@ static int32_t DPHY_MasterSetup (uint32_t clock_frequency, uint8_t n_lanes,
 
 #if (RTE_MIPI_DSI)
 /**
-  \fn          int32_t DSI_DPHY_Initialize (uint32_t frequency,  uint8_t n_lanes,
-                                            DPHY_CLK_MODE clk_mode)
+  \fn          int32_t DSI_DPHY_Initialize (uint32_t frequency,  uint8_t n_lanes)
   \brief       Initialize MIPI DSI DPHY Interface.
   \param[in]   frequency to configure DPHY PLL.
   \param[in]   n_lanes number of lanes.
-  \param[in]   clk_mode select DPHY clock mode \ref DPHY_CLK_MODE.
   \return      \ref execution_status
   */
-int32_t DSI_DPHY_Initialize (uint32_t frequency,  uint8_t n_lanes,
-                             DPHY_CLK_MODE clk_mode)
+int32_t DSI_DPHY_Initialize (uint32_t frequency,  uint8_t n_lanes)
 {
     int32_t ret = ARM_DRIVER_OK;
 
@@ -805,7 +793,7 @@ int32_t DSI_DPHY_Initialize (uint32_t frequency,  uint8_t n_lanes,
         DPHY_PowerEnable();
     }
 
-    ret = DPHY_MasterSetup(frequency, n_lanes, clk_mode);
+    ret = DPHY_MasterSetup(frequency, n_lanes);
     if(ret != ARM_DRIVER_OK)
     {
         return ret;
@@ -830,6 +818,9 @@ int32_t DSI_DPHY_Uninitialize (void)
 
     if(csi2_init_status == DPHY_INIT_STATUS_UNINITIALIZED)
     {
+        MIPI_DSI_DPHY_Rst(DISABLE);
+        MIPI_DSI_DPHY_Shutdown(DISABLE);
+        MIPI_DSI_DPHY_Enableclk(DISABLE);
         DPHY_PowerDisable();
     }
 
@@ -842,14 +833,13 @@ int32_t DSI_DPHY_Uninitialize (void)
 
 #if (RTE_MIPI_CSI2)
 /**
-  \fn          int32_t DPHY_SlaveSetup (uint32_t clock_frequency, uint8_t n_lanes, DPHY_CLK_MODE hsclk_mode)
+  \fn          int32_t DPHY_SlaveSetup (uint32_t clock_frequency, uint8_t n_lanes)
   \brief       MIPI DPHY Rx startup sequence.
   \param[in]   clock_frequency DPHY clock frequency.
   \param[in]   n_lanes number of lanes.
-  \param[in]   clk_mode select DPHY clock mode \ref DPHY_CLK_MODE.
   \return      \ref execution_status
 */
-static int32_t DPHY_SlaveSetup (uint32_t clock_frequency, uint8_t n_lanes, DPHY_CLK_MODE clk_mode)
+static int32_t DPHY_SlaveSetup (uint32_t clock_frequency, uint8_t n_lanes)
 {
     uint32_t bitrate = (clock_frequency * 2);
     uint8_t hsfreqrange = 0;
@@ -858,6 +848,8 @@ static int32_t DPHY_SlaveSetup (uint32_t clock_frequency, uint8_t n_lanes, DPHY_
     uint8_t range = 0;
     uint8_t stopstate_check =0;
     uint32_t lp_count = 0;
+
+    csi_set_n_active_lanes((CSI_Type *)CSI_BASE, (n_lanes - 1));
 
     for(range = 0; (range < ARRAY_SIZE(frequency_range) - 1) &&
         ((bitrate/1000000) > frequency_range[range].bitrate_in_mbps);
@@ -923,13 +915,8 @@ static int32_t DPHY_SlaveSetup (uint32_t clock_frequency, uint8_t n_lanes, DPHY_
 
     MIPI_CSI2_DPHY_Rst(ENABLE);
 
-    if(clk_mode == DPHY_CLK_MODE_NON_CONTINUOUS)
-    {
-        stopstate_check |= DPHY_STOPSTATE_CLOCK;
-    }
-
-    stopstate_check |= (n_lanes == 1 ? (DPHY_STOPSTATE_LANE0) :
-                                                (DPHY_STOPSTATE_LANE0) | (DPHY_STOPSTATE_LANE1) );
+    stopstate_check |= DPHY_STOPSTATE_CLOCK | (n_lanes == 1 ? (DPHY_STOPSTATE_LANE0) :
+                                              (DPHY_STOPSTATE_LANE0) | (DPHY_STOPSTATE_LANE1) );
 
     while(MIPI_CSI2_DPHY_Stopstate() != stopstate_check)
     {
@@ -949,16 +936,13 @@ static int32_t DPHY_SlaveSetup (uint32_t clock_frequency, uint8_t n_lanes, DPHY_
 }
 
 /**
-  \fn          int32_t CSI2_DPHY_Initialize (uint32_t frequency, uint8_t n_lanes,
-                                             DPHY_CLK_MODE clk_mode)
+  \fn          int32_t CSI2_DPHY_Initialize (uint32_t frequency, uint8_t n_lanes)
   \brief       Initialize MIPI CSI2 DPHY Interface.
   \param[in]   frequency to configure DPHY PLL.
   \param[in]   n_lanes number of lanes.
-  \param[in]   clk_mode select DPHY clock mode \ref DPHY_CLK_MODE.
   \return      \ref execution_status
   */
-int32_t CSI2_DPHY_Initialize (uint32_t frequency, uint8_t n_lanes,
-                              DPHY_CLK_MODE clk_mode)
+int32_t CSI2_DPHY_Initialize (uint32_t frequency, uint8_t n_lanes)
 {
     int32_t ret = ARM_DRIVER_OK;
     uint32_t pixclk, htotal, vtotal;
@@ -1026,14 +1010,13 @@ int32_t CSI2_DPHY_Initialize (uint32_t frequency, uint8_t n_lanes,
             return ARM_DRIVER_ERROR_PARAMETER;
         }
 #endif
-        ret = DSI_DPHY_Initialize(dsi_freq, display_panel->dsi_info->n_lanes,
-                                  display_panel->dsi_info->clk_mode);
+        ret = DSI_DPHY_Initialize(dsi_freq, display_panel->dsi_info->n_lanes);
         if(ret != ARM_DRIVER_OK)
         {
             return ret;
         }
 #else
-        ret = DPHY_MasterSetup(DPHY_MINIMUM_FREQUENCY, n_lanes, clk_mode);
+        ret = DPHY_MasterSetup(DPHY_MINIMUM_FREQUENCY, 1);
         if(ret != ARM_DRIVER_OK)
         {
             return ret;
@@ -1041,7 +1024,7 @@ int32_t CSI2_DPHY_Initialize (uint32_t frequency, uint8_t n_lanes,
 #endif
     }
 
-    ret = DPHY_SlaveSetup(frequency, n_lanes, clk_mode);
+    ret = DPHY_SlaveSetup(frequency, n_lanes);
     if(ret != ARM_DRIVER_OK)
     {
         return ret;
@@ -1064,8 +1047,14 @@ int32_t CSI2_DPHY_Uninitialize (void)
         return ARM_DRIVER_OK;
     }
 
+    MIPI_CSI2_DPHY_Rst(DISABLE);
+    MIPI_CSI2_DPHY_Shutdown(DISABLE);
+
     if(dsi_init_status  == DPHY_INIT_STATUS_UNINITIALIZED)
     {
+        MIPI_DSI_DPHY_Rst(DISABLE);
+        MIPI_DSI_DPHY_Shutdown(DISABLE);
+        MIPI_DSI_DPHY_Enableclk(DISABLE);
         DPHY_PowerDisable();
     }
 
@@ -1206,7 +1195,7 @@ int32_t DPHY_External_Loopback_Test (uint32_t frequency, uint32_t loopback_test_
     DPHY_PowerEnable();
 
     /* Configuring Master */
-    ret = DPHY_MasterSetup(frequency, 2, DPHY_CLK_MODE_NON_CONTINUOUS);
+    ret = DPHY_MasterSetup(frequency, 2);
     if(ret != ARM_DRIVER_OK)
     {
         goto error_Power_disable;
@@ -1220,7 +1209,7 @@ int32_t DPHY_External_Loopback_Test (uint32_t frequency, uint32_t loopback_test_
     }
 
     /* Configuring Slave*/
-    ret = DPHY_SlaveSetup(frequency, 2, DPHY_CLK_MODE_NON_CONTINUOUS);
+    ret = DPHY_SlaveSetup(frequency, 2);
     if(ret != ARM_DRIVER_OK)
     {
         goto error_Power_disable;

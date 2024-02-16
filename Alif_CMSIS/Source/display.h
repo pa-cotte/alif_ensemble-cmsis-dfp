@@ -28,7 +28,6 @@ extern "C"
 
 #include "dsi.h"
 #include "cdc.h"
-#include "DPHY_init.h"
 
 #define DISPLAY_PANEL(panel) \
 DISPLAY_PANEL_DEVICE *Get_Display_Panel(void) \
@@ -58,7 +57,6 @@ typedef struct _DSI_INFO
     uint32_t            max_bitrate;        /* Maximum bitrate Panel supports */
     uint8_t             n_lanes;            /* Number of lanes */
     DSI_VC_ID           vc_id;              /* Virtual channel ID */
-    DPHY_CLK_MODE       clk_mode;           /* DSI DPHY clock mode */
     DSI_COLOR_CODING    color_coding;       /* color coding */
 } DSI_INFO;
 

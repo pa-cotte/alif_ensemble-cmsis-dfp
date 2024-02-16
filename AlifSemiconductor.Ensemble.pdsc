@@ -12,8 +12,12 @@
   -->
 
   <releases>
-    <release version="1.0.0" tag="v1.0.0" url="https://github.com/alifsemi/b0-cmsis-dfp_DEV/releases/download/v1.0.0/AlifSemiconductor.Ensemble.1.0.0.pack" date="2023-11-14">
-      First release with support for Ensemble Generation 2 devices.
+    <release version="1.1.0-rc5" date="2024-02-15">
+      - Update drivers and testapps
+      - Rename HSCMP component as CMP
+    </release>
+  <release version="1.0.0" date="2023-11-15">
+      Initial release
     </release>
   </releases>
 
@@ -413,7 +417,7 @@
         </device>
        <device Dname="AE302F80F5582AE">
             <!-- DebugConfig for E3 -->
-          <debugconfig sdf="Debug/SDF/E3/Ensemble E3.sdf" dormant="true"/>   
+          <debugconfig sdf="Debug/SDF/E3/Ensemble E3.sdf" dormant="true"/>
                    <!-- On-chip NVM Region -->
           <memory name="MRAM" start="0x80000000" size="0x00580000" access="rx" default="1"/>
 
@@ -464,7 +468,7 @@
 
         <device Dname="AE302F80F5582LE">
           <!-- DebugConfig for E3 -->
-          <debugconfig sdf="Debug/SDF/E3/Ensemble E3.sdf" dormant="true"/>  
+          <debugconfig sdf="Debug/SDF/E3/Ensemble E3.sdf" dormant="true"/>
 		  <!-- On-chip NVM Region -->
           <memory name="MRAM" start="0x80000000" size="0x00580000" access="rx" default="1"/>
 
@@ -487,7 +491,7 @@
 
         <device Dname="AE302F80C1557LE">
             <!-- DebugConfig for E3(1.5MiB MRAM) -->
-          <debugconfig sdf="Debug/SDF/E3 (1.5MiB MRAM)/Ensemble E3 (1.5MiB MRAM).sdf" dormant="true"/>  
+          <debugconfig sdf="Debug/SDF/E3 (1.5MiB MRAM)/Ensemble E3 (1.5MiB MRAM).sdf" dormant="true"/>
 		  <!-- On-chip NVM Region -->
           <memory name="MRAM" start="0x80000000" size="0x00180000" access="rx" default="1"/>
 
@@ -507,7 +511,7 @@
         </device>
 	<device Dname="AE302F40C1537LE">
 	    <!-- DebugConfig for E3(1.5MiB MRAM) -->
-          <debugconfig sdf="Debug/SDF/E3 (1.5MiB MRAM)/Ensemble E3 (1.5MiB MRAM).sdf" dormant="true"/>  
+          <debugconfig sdf="Debug/SDF/E3 (1.5MiB MRAM)/Ensemble E3 (1.5MiB MRAM).sdf" dormant="true"/>
 		  <!-- On-chip NVM Region -->
           <memory name="MRAM" start="0x80000000" size="0x00180000" access="rx" default="1"/>
 
@@ -841,6 +845,19 @@
       <require Cclass="Device" Cgroup="SOC Peripherals" Csub="GPIO"/>
       <require Cclass="Device" Cgroup="SOC Peripherals" Csub="MIPI CSI2"/>
     </condition>
+    <condition id="Camera Sensor AR0144 Driver">
+      <description>Requirement for AR0144 SENSOR Driver</description>
+      <require condition="Ensemble"/>
+      <require Cclass="CMSIS" Cgroup="CORE"/>
+      <require Cclass="Device" Cgroup="Startup"/>
+      <require Cclass="Device" Cgroup="SOC Peripherals" Csub="PINCONF"/>
+      <accept Cclass="Device" Cgroup="SOC Peripherals" Csub="I3C"/>
+      <accept Cclass="Device" Cgroup="SOC Peripherals" Csub="I2C_I3C"/>
+      <accept Cclass="Device" Cgroup="SOC Peripherals" Csub="I2C"/>
+      <require Cclass="Device" Cgroup="SOC Peripherals" Csub="CPI"/>
+      <require Cclass="Device" Cgroup="SOC Peripherals" Csub="GPIO"/>
+      <require Cclass="Device" Cgroup="SOC Peripherals" Csub="MIPI CSI2"/>
+    </condition>
     <condition id="SE SERVICES MHU">
       <description>Requirement SE SERVICES MHU </description>
       <require condition="Ensemble"/>
@@ -903,7 +920,8 @@
         <file category="header" name="Device/core/M55_HP/include/M55_HP_map.h" version="1.0.0" attr="config"/>
         <file category="header" name="Device/core/M55_HP/config/M55_HP_Config.h" version="1.0.0" attr="config"/>
         <file category="header" name="Device/common/include/global_map.h" version="1.0.0" attr="config"/>
-        <file category="header" name="Device/common/include/app_map.h" version="1.0.0" attr="config"/>
+        <file category="header" name="Device/common/config/app_map.h" version="1.0.0" attr="config"/>
+        <file category="sourceC" name="Device/common/source/clk.c"/>
         <file category="sourceC" name="Device/common/source/system_utils.c"/>
         <file category="sourceC" name="Device/common/source/tgu_M55.c"/>
         <file category="sourceC" name="Device/common/source/mpu_M55.c"/>
@@ -941,6 +959,7 @@
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/LVGL_baremetal.c" attr="template" select="LVGL Baremetal Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/lv_port_disp.c" attr="template" select="LVGL Baremetal Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/MRAM_Baremetal.c" attr="template" select="MRAM Baremetal Demo"/>
+        <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/MW_Baremetal.c" attr="template" select="Microwire Baremetal Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/FLASH_ISSI_Baremetal.c" attr="template" select="OSPI FLASH Baremetal Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/ospi_hyperram_xip_demo.c" attr="template" select="OSPI Hyperram XIP Baremetal Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/Parallel_Display_Baremetal.c" attr="template" select="Parallel Display Baremetal Demo"/>
@@ -969,6 +988,7 @@
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/CANFD_NormalMode.c" attr="template" select="CANFD Data transfer FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/CANFD_Ext_Loopback.c" attr="template" select="CANFD External Loopback FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/CANFD_Int_Loopback.c" attr="template" select="CANFD Internal Loopback FreeRTOS Demo"/>
+        <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/cdc_testApp.c" attr="template" select="CDC200 FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/CMP_testApp.c" attr="template" select="CMP FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/CRC_testApp.c" attr="template" select="CRC FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/DAC_testapp.c" attr="template" select="DAC FreeRTOS Demo"/>
@@ -977,15 +997,19 @@
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/i2c_testApp.c" attr="template" select="I2C FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/i2c_using_i3c_testApp.c" attr="template" select="I2C using I3C FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/mix_bus_i2c_i3c_testApp.c" attr="template" select="I2C I3C Mix Bus FreeRTOS Demo"/>
+        <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/i3c_masterside_testapp.c" attr="template" select="I3C Master FreeRTOS Demo"/>
+	    <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/i3c_slaveside_testapp.c" attr="template" select="I3C Slave FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/LED_Blinky_testapp.c" attr="template" select="LED Blinky FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/LED_Breathe_app.c" attr="template" select="LED PWM FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/LPTimer_testApp.c" attr="template" select="LPTIMER FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/MRAM_FreeRTOS.c" attr="template" select="MRAM FreeRTOS Demo"/>
+        <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/MW_app.c" attr="template" select="Microwire FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/mt9m114_camera_sensor_testapp.c" attr="template" select="MT9M114 Camera Sensor FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/bayer2rgb/bayer2rgb.c" attr="template" select="MT9M114 Camera Sensor FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/bayer2rgb/bayer.c" attr="template" select="MT9M114 Camera Sensor FreeRTOS Demo"/>
         <file category="header" name="Boards/DevKit-e7/Templates/bayer2rgb/bayer.h" attr="template" select="MT9M114 Camera Sensor FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/Flash_ISSI_FreeRTOS_app.c" attr="template" select="OSPI Flash FreeRTOS Demo"/>
+        <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/parallel_display_testApp.c" attr="template" select="Parallel Display FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/PDM_testApp.c" attr="template" select="PDM FreeRTOS Demo"/>
         <!--<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/QEC_app.c" attr="template" select="QEC FreeRTOS Demo"/>-->
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/rtc_testApp.c" attr="template" select="RTC FreeRTOS Demo"/>
@@ -1016,10 +1040,11 @@
 	    <file category="header" name="Device/core/M55_HE/include/M55_HE_map.h" version="1.0.0" attr="config"/>
 	    <file category="header" name="Device/core/M55_HE/config/M55_HE_Config.h" version="1.0.0" attr="config"/>
 	    <file category="header" name="Device/common/include/global_map.h" version="1.0.0" attr="config"/>
-	    <file category="header" name="Device/common/include/app_map.h" version="1.0.0" attr="config"/>
-        <file category="sourceC" name="Device/common/source/system_utils.c"/>
+	    <file category="header" name="Device/common/config/app_map.h" version="1.0.0" attr="config"/>
+        <file category="sourceC" name="Device/common/source/clk.c"/>
+	    <file category="sourceC" name="Device/common/source/system_utils.c"/>
         <file category="sourceC" name="Device/common/source/tgu_M55.c"/>
-	<file category="sourceC" name="Device/common/source/mpu_M55.c"/>
+	    <file category="sourceC" name="Device/common/source/mpu_M55.c"/>
 
         <!-- SAU configuration -->
         <file category="header" name="Device/core/M55_HE/config/partition_M55_HE.h" version="1.0.0" attr="config"/>
@@ -1058,6 +1083,7 @@
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/LVGL_baremetal.c" attr="template" select="LVGL Baremetal Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/lv_port_disp.c" attr="template" select="LVGL Baremetal Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/MRAM_Baremetal.c" attr="template" select="MRAM Baremetal Demo"/>
+        <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/MW_Baremetal.c" attr="template" select="Microwire Baremetal Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/FLASH_ISSI_Baremetal.c" attr="template" select="OSPI FLASH Baremetal Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/ospi_hyperram_xip_demo.c" attr="template" select="OSPI Hyperram XIP Baremetal Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/Baremetal/Parallel_Display_Baremetal.c" attr="template" select="Parallel Display Baremetal Demo"/>
@@ -1088,6 +1114,7 @@
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/CANFD_NormalMode.c" attr="template" select="CANFD Data transfer FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/CANFD_Ext_Loopback.c" attr="template" select="CANFD External Loopback FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/CANFD_Int_Loopback.c" attr="template" select="CANFD Internal Loopback FreeRTOS Demo"/>
+        <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/cdc_testApp.c" attr="template" select="CDC200 FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/CMP_testApp.c" attr="template" select="CMP FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/CRC_testApp.c" attr="template" select="CRC FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/DAC_testapp.c" attr="template" select="DAC FreeRTOS Demo"/>
@@ -1096,6 +1123,8 @@
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/i2c_testApp.c" attr="template" select="I2C FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/i2c_using_i3c_testApp.c" attr="template" select="I2C using I3C FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/mix_bus_i2c_i3c_testApp.c" attr="template" select="I2C I3C Mix Bus FreeRTOS Demo"/>
+        <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/i3c_masterside_testapp.c" attr="template" select="I3C Master FreeRTOS Demo"/>
+	    <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/i3c_slaveside_testapp.c" attr="template" select="I3C Slave FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/LED_Blinky_testapp.c" attr="template" select="LED Blinky FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/LED_Breathe_app.c" attr="template" select="LED PWM FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/LPPDM_testApp.c" attr="template" select="LPPDM FreeRTOS Demo"/>
@@ -1103,11 +1132,13 @@
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/LPTimer_testApp.c" attr="template" select="LPTIMER FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/LPUART_testapp.c" attr="template" select="LPUART FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/MRAM_FreeRTOS.c" attr="template" select="MRAM FreeRTOS Demo"/>
+        <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/MW_app.c" attr="template" select="Microwire FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/mt9m114_camera_sensor_testapp.c" attr="template" select="MT9M114 Camera Sensor FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/bayer2rgb/bayer2rgb.c" attr="template" select="MT9M114 Camera Sensor FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/bayer2rgb/bayer.c" attr="template" select="MT9M114 Camera Sensor FreeRTOS Demo"/>
         <file category="header" name="Boards/DevKit-e7/Templates/bayer2rgb/bayer.h" attr="template" select="MT9M114 Camera Sensor FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/Flash_ISSI_FreeRTOS_app.c" attr="template" select="OSPI Flash FreeRTOS Demo"/>
+        <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/parallel_display_testApp.c" attr="template" select="Parallel Display FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/PDM_testApp.c" attr="template" select="PDM FreeRTOS Demo"/>
         <!--<file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/QEC_app.c" attr="template" select="QEC FreeRTOS Demo"/>-->
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/rtc_testApp.c" attr="template" select="RTC FreeRTOS Demo"/>
@@ -1351,13 +1382,23 @@
       </files>
     </component>
 
-<component Cclass="BSP" Cgroup="External peripherals" Csub="CAMERA Sensor ARX3A0" Cversion="1.0.0" condition="Camera Sensor ARX3A0 Driver">
+    <component Cclass="BSP" Cgroup="External peripherals" Csub="CAMERA Sensor ARX3A0" Cversion="1.0.0" condition="Camera Sensor ARX3A0 Driver">
       <description>CAMERA Sensor Driver for ARX3A0</description>
       <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
         #define RTE_Drivers_CAMERA_SENSOR_ARX3A0			1           /* Driver CAMERA Sensor */
       </RTE_Components_h>
       <files>
         <file category="source" name="components/Source/arx3A0_camera_sensor.c"/>
+      </files>
+    </component>
+
+    <component Cclass="BSP" Cgroup="External peripherals" Csub="CAMERA Sensor AR0144" Cversion="1.0.0" condition="Camera Sensor AR0144 Driver">
+      <description>CAMERA Sensor Driver for AR0144</description>
+      <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
+        #define RTE_Drivers_CAMERA_SENSOR_AR0144			1           /* Driver CAMERA Sensor */
+      </RTE_Components_h>
+      <files>
+        <file category="source" name="components/Source/ar0144_camera_sensor.c"/>
       </files>
     </component>
 
@@ -1508,10 +1549,10 @@
      </files>
     </component>
 
-	 <component Cclass="Device" Cgroup="SOC Peripherals" Csub="HSCMP" Cversion="1.0.0" condition="Analog Components Driver">
-      <description>HSCMP Driver for Alif Semiconductor SOC</description>
+	 <component Cclass="Device" Cgroup="SOC Peripherals" Csub="CMP" Cversion="1.0.0" condition="Analog Components Driver">
+      <description>CMP Driver for Alif Semiconductor SOC</description>
       <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
-        #define RTE_Drivers_HSCMP	1   /* Driver COMPARATOR*/
+        #define RTE_Drivers_CMP	1   /* Driver COMPARATOR*/
       </RTE_Components_h>
       <files>
 	   <file category="source" name="Alif_CMSIS/Source/Driver_CMP.c"/>
@@ -1693,7 +1734,7 @@
       </files>
     </component>
 
-    <component Cclass="Device" Cgroup="SOC Peripherals" Csub="MHU" Cversion="1.0.0" condition="SE SERVICES MHU">
+    <component Cclass="Device" Cgroup="SOC Peripherals" Csub="MHU" Cversion="1.0.90" condition="SE SERVICES MHU">
       <description>Message Handling Unit driver for Alif Soc</description>
       <files>
         <file category="header" name="drivers/include/drivers_common.h"/>
@@ -1715,10 +1756,10 @@
       </files>
     </component> -->
 
-    <component Cclass="Device" Cgroup="SE runtime Services" Csub="core" Cvariant="Source" Cversion="1.0.0" condition="SE SERVICES SRC">
+    <component Cclass="Device" Cgroup="SE runtime Services" Csub="core" Cvariant="Source" Cversion="1.0.90" condition="SE SERVICES SRC">
       <description>SE runtime Services for RTSS cores</description>
       <files>
-        <file category="doc" name="se_services/document/SE_Host_Services_API_v0.42.0.pdf"/>
+        <file category="doc" name="se_services/document/SE_Host_Services_API_v1.0.90.pdf"/>
         <file category="include" name="se_services/include/"/>
         <file category="source" name="se_services/source/services_host_application.c"/>
         <file category="source" name="se_services/source/services_host_boot.c"/>
@@ -1731,6 +1772,7 @@
         <file category="source" name="se_services/source/services_host_power.c"/>
         <file category="source" name="se_services/source/services_host_system.c"/>
         <file category="source" name="se_services/source/services_host_clocks.c"/>
+        <file category="source" name="se_services/source/services_host_extsys0.c"/>
          <!--se services example-->
         <file category="source" name="se_services/templates/m55_services_main.c" attr="template" select="SE Services Example"/>
         <file category="header" name="se_services/templates/services_lib_interface.h" attr="template" select="SE Services Example"/>
@@ -1745,6 +1787,7 @@
       <files>
         <file category="include" name="se_services/port/include/"/>
         <file category="source" name="se_services/port/se_services_port.c"/>
+        <file category="source" name="se_services/port/clock_runtime.c"/>
       </files>
     </component>
 

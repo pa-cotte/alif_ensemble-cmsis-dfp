@@ -27,6 +27,9 @@ extern "C"
 {
 #endif
 
+#include "pinconf.h"
+#include "RTE_Device.h"
+
 //-------- <<< Use Configuration Wizard in Context Menu >>> --------------------
 
 // <o PRINTF_UART_CONSOLE> UART Console
@@ -41,16 +44,23 @@ extern "C"
 //     <7=>   UART7
 //     <LP=>  LPUART
 // <i> Default: 4
-#define PRINTF_UART_CONSOLE                 4
+#define PRINTF_UART_CONSOLE                                     4
 
 // <o> UART Baudrate
 // <i> Select UART Baudrate
 // <i> Default: 115200
-#define PRINTF_UART_CONSOLE_BAUD_RATE       115200
+#define PRINTF_UART_CONSOLE_BAUD_RATE                           115200
 
 /* UART Related Macros */
-#define _UART_BASE_(n)                                          UART##n##_BASE
-#define UART_BASE(n)                                            _UART_BASE_(n)
+#define _UART_BLOCKING_(n)                                      RTE_UART##n##_BLOCKING_MODE_ENABLE
+#define UART_BLOCKING(n)                                        _UART_BLOCKING_(n)
+#define STR(x)                                                  #x
+#define XSTR(x)                                                 STR(x)
+
+#if (UART_BLOCKING(PRINTF_UART_CONSOLE) == 0)
+    #pragma  message("Selected UART : UART" XSTR(PRINTF_UART_CONSOLE))
+    #error " ***** [RETARGET-FAILED] POLLING MODE IS NOT ENABLED (Enable Polling mode in RTE_Device.h) !!! ****** \n"
+#endif
 
 #if (PRINTF_UART_CONSOLE == LP)     /* Instance A */
     #define PRINTF_UART_CONSOLE_PORT_NUM                        PORT_7

@@ -57,8 +57,13 @@ static int32_t ARM_LPTIMER_Initialize (LPTIMER_RESOURCES *LPTIMER_RES, uint8_t c
 
     LPTIMER_RES->ch_info[channel].CB_function_ptr = cb_event;
 
-    if (!((LPTIMER_RES->ch_info[channel].clk_src >= LPTIMER_CLK_SOURCE_32K) &&
-          (LPTIMER_RES->ch_info[channel].clk_src <= LPTIMER_CLK_SOURCE_CASCADE)))
+    if (((channel == LPTIMER_CHANNEL_0) || (channel == LPTIMER_CHANNEL_2)) &&
+        (LPTIMER_RES->ch_info[channel].clk_src > LPTIMER_CLK_EXT_SOURCE))
+    {
+        /* channel 0 & 2 does not support cascaded input */
+        return ARM_DRIVER_ERROR;
+    }
+    else if (LPTIMER_RES->ch_info[channel].clk_src > LPTIMER_CLK_SOURCE_CASCADE)
     {
         return ARM_DRIVER_ERROR;
     }

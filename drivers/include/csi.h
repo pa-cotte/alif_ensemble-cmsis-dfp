@@ -615,7 +615,7 @@ static inline void csi_set_ipi_data_type(CSI_Type *csi, uint8_t data_type)
 */
 static inline void csi_set_ipi_mem_flush_manual(CSI_Type *csi)
 {
-    csi->CSI_IPI_MODE |= CSI_IPI_FLUSH;
+    csi->CSI_IPI_MEM_FLUSH |= CSI_IPI_FLUSH;
 }
 
 /**
@@ -626,7 +626,7 @@ static inline void csi_set_ipi_mem_flush_manual(CSI_Type *csi)
 */
 static inline void csi_enable_ipi_mem_flush_auto(CSI_Type *csi)
 {
-    csi->CSI_IPI_MODE |= CSI_IPI_AUTO_FLUSH;
+    csi->CSI_IPI_MEM_FLUSH |= CSI_IPI_AUTO_FLUSH;
 }
 
 /**
@@ -637,7 +637,7 @@ static inline void csi_enable_ipi_mem_flush_auto(CSI_Type *csi)
 */
 static inline void csi_disable_ipi_mem_flush_auto(CSI_Type *csi)
 {
-    csi->CSI_IPI_MODE &= ~CSI_IPI_AUTO_FLUSH;
+    csi->CSI_IPI_MEM_FLUSH &= ~CSI_IPI_AUTO_FLUSH;
 }
 
 /**

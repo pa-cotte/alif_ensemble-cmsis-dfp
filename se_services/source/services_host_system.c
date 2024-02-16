@@ -102,16 +102,10 @@ uint32_t SERVICES_system_get_toc_via_name(uint32_t services_handle,
                                           const uint8_t * cpu_name,
                                           uint32_t * error_code)
 {
-  get_toc_via_name_svc_t * p_svc = (get_toc_via_name_svc_t *)
-      SERVICES_prepare_packet_buffer(sizeof(get_toc_via_name_svc_t));
-
-  memcpy((void *)p_svc->send_cpu_name, cpu_name, IMAGE_NAME_LENGTH);
-
-  uint32_t ret = SERVICES_send_request(services_handle,
-                               SERVICE_SYSTEM_MGMT_GET_TOC_VIA_CPU_NAME, 
-                               NULL);
-  *error_code = p_svc->resp_error_code;
-  return ret;
+  UNUSED(services_handle);
+  UNUSED(cpu_name);
+  *error_code = 0;
+  return SERVICE_SUCCESS;
 }
 
 /**
@@ -126,22 +120,39 @@ uint32_t SERVICES_system_get_toc_via_cpuid(uint32_t services_handle,
                                            SERVICES_toc_data_t *toc_info,
                                            uint32_t *error_code)
 {
-  get_toc_data_t *p_svc = (get_toc_data_t *)
-     SERVICES_prepare_packet_buffer(sizeof(get_toc_data_t)); /* Packet bucket */
-  uint32_t return_code; /* returned error from SERVICES */
+  uint32_t toc_number = 0;
+  uint32_t return_code = SERVICES_system_get_toc_number(services_handle,
+                                                        &toc_number,
+                                                        error_code);
+  if (SERVICE_SUCCESS != return_code)
+  {
+    return return_code;
+  }
 
-  p_svc->send_cpu_id = cpuid;  /* which CPU do we want */
+  toc_info->number_of_toc_entries = 0;
 
- return_code = SERVICES_send_request(services_handle,
-                                     SERVICE_SYSTEM_MGMT_GET_TOC_VIA_CPU_ID,
-                                     NULL);
+  get_toc_data_t *p_svc;
+  for (uint32_t i = 0; i < toc_number; i++)
+  {
+    p_svc = (get_toc_data_t *)
+      SERVICES_prepare_packet_buffer(sizeof(get_toc_data_t));
 
- /* Unpack results */
- toc_info->number_of_toc_entries = p_svc->resp_number_of_toc_entries;
- memcpy((SERVICES_toc_data_t*)&toc_info->toc_entry[0],
-        (get_toc_data_t *)&p_svc->resp_toc_entry[0],
-        sizeof(p_svc->resp_toc_entry));
-  *error_code = p_svc->resp_error_code;
+    p_svc->send_entry_idx = i;
+    if (SERVICE_SUCCESS == SERVICES_send_request(
+                                              services_handle,
+                                              SERVICE_SYSTEM_MGMT_GET_TOC_INFO,
+                                              NULL))
+    {
+      if (cpuid == p_svc->resp_toc_entry.cpu)
+      {
+
+        memcpy(&toc_info->toc_entry[toc_info->number_of_toc_entries],
+               &p_svc->resp_toc_entry,
+               sizeof(get_toc_entry_t));
+        toc_info->number_of_toc_entries++;
+      }
+    }
+  }
 
   return return_code;
 }
@@ -157,19 +168,34 @@ uint32_t SERVICES_system_get_toc_data (uint32_t services_handle,
                                        SERVICES_toc_data_t *toc_info,
                                        uint32_t * error_code)
 {
-  get_toc_data_t *p_svc = (get_toc_data_t *)
+  uint32_t toc_number = 0;
+  uint32_t return_code = SERVICES_system_get_toc_number(services_handle,
+                                                        &toc_number,
+                                                        error_code);
+  if (SERVICE_SUCCESS != return_code)
+  {
+    return return_code;
+  }
+
+  toc_info->number_of_toc_entries = toc_number;
+
+  get_toc_data_t *p_svc;
+  for (uint32_t i = 0; i < toc_number; i++)
+  {
+    p_svc = (get_toc_data_t *)
       SERVICES_prepare_packet_buffer(sizeof(get_toc_data_t));
-  uint32_t return_code;
 
- return_code = SERVICES_send_request(services_handle,
-                                     SERVICE_SYSTEM_MGMT_GET_TOC_INFO,
-                                     NULL);
-
- toc_info->number_of_toc_entries = p_svc->resp_number_of_toc_entries;
- memcpy((SERVICES_toc_data_t*)&toc_info->toc_entry[0],
-        (get_toc_data_t *)&p_svc->resp_toc_entry[0],
-        sizeof(p_svc->resp_toc_entry));
-  *error_code = p_svc->resp_error_code;
+    p_svc->send_entry_idx = i;
+    if (SERVICE_SUCCESS == SERVICES_send_request(
+                                              services_handle,
+                                              SERVICE_SYSTEM_MGMT_GET_TOC_INFO,
+                                              NULL))
+    {
+      memcpy(&toc_info->toc_entry[i],
+             &p_svc->resp_toc_entry,
+             sizeof(get_toc_entry_t));
+    }
+  }
 
   return return_code;
 }
@@ -358,4 +384,148 @@ uint32_t SERVICES_system_write_otp(uint32_t services_handle,
 
  *error_code = p_svc->resp_error_code;
   return return_code;
+}
+
+#if 1 // REV_B2
+typedef struct
+{
+  uint8_t x_loc  : 7;
+  uint8_t y_loc  : 7;
+  uint8_t wfr_id : 5;
+  uint8_t year   : 6;
+  uint8_t fab_id : 1;
+  uint8_t week   : 6;
+  uint8_t lot_no : 8;
+} mfg_data_t;
+
+#else // REV_B3, maybe SPARK as well
+typedef struct
+{
+  uint8_t x_loc  : 7;
+  uint8_t zero_1 : 1;
+  uint8_t y_loc  : 7;
+  uint8_t zero_2 : 1;
+  uint8_t wfr_id : 5;
+  uint8_t zero_3 : 2;
+  uint8_t fab_id : 1;
+  uint8_t year   : 6;
+  uint8_t zero_4 : 2;
+  uint8_t week   : 6;
+  uint8_t zero_5 : 2;
+  uint8_t lot_no : 8;
+} mfg_data_t;
+#endif
+
+/*
+void init_test_mgf_data(uint8_t * p_data_in)
+{
+  mfg_data_t * p_data = (mfg_data_t *)p_data_in;
+  p_data->x_loc = 0x4F;
+  p_data->y_loc = 0x6A;
+  p_data->wfr_id = 0x1C;
+  p_data->fab_id = 0x1;
+  p_data->year = 0x2A;
+  p_data->week = 0x33;
+  p_data->lot_no = 0x81;
+
+  // Expected output -
+  // EUI-48: {0x3E, 0xAE, 0x73}
+  // EUI-64: {0x9F, 0xAB, 0x9A, 0xB3, 0x81}
+}
+*/
+
+/**
+ * @brief   Pack manufacturing data into 40 bits for EUI-64
+ */
+static void get_eui64_extension(uint8_t * p_data_in, uint8_t * p_data_out)
+{
+  mfg_data_t * p_mfg_data = (mfg_data_t *)p_data_in;
+
+  uint8_t seven_bits_1 = p_mfg_data->x_loc;
+  uint8_t seven_bits_2 = p_mfg_data->y_loc;
+  uint8_t six_bits_3   = (p_mfg_data->wfr_id << 1) | p_mfg_data->fab_id;
+  uint8_t six_bits_4   = p_mfg_data->year;
+  uint8_t six_bits_5   = p_mfg_data->week;
+  uint8_t eight_bits   = p_mfg_data->lot_no;
+
+  // x x x x x x x y
+  *p_data_out = (seven_bits_1 << 1) | ((seven_bits_2 & 0x40) >> 6);
+  p_data_out++;
+  // y y y y y y wf wf
+  *p_data_out = ((seven_bits_2 & 0x3F) << 2) | ((six_bits_3 & 0x30) >> 4);
+  p_data_out++;
+  // wf wf wf f yr yr yr yr
+  *p_data_out = ((six_bits_3 & 0x0F) << 4) | ((six_bits_4 & 0x3C) >> 2);
+  p_data_out++;
+  // yr yr wk wk wk wk wk wk
+  *p_data_out = ((six_bits_4 & 0x03) << 6) | six_bits_5;
+  p_data_out++;
+  *p_data_out = eight_bits;
+
+  //memcpy(p_data_out, p_data_in, 8);
+}
+
+/**
+ * @brief   Pack manufacturing data into 24 bits for EUI-48
+ */
+static void get_eui48_extension(uint8_t * p_data_in, uint8_t * p_data_out)
+{
+  mfg_data_t * p_mfg_data = (mfg_data_t *)p_data_in;
+
+  uint8_t six_bits_1 = p_mfg_data->x_loc & 0x3F;
+  uint8_t six_bits_2 = p_mfg_data->y_loc & 0x3F;
+  uint8_t six_bits_3 = (p_mfg_data->wfr_id << 1) | (p_mfg_data->lot_no & 0x1);
+  uint8_t six_bits_4 = p_mfg_data->week;
+
+  // x x x x x x y y
+  *p_data_out = (six_bits_1 << 2) | ((six_bits_2 & 0x30) >> 4);
+  p_data_out++;
+  // y y y y wf wf wf wf
+  *p_data_out = ((six_bits_2 & 0x0F) << 4) | ((six_bits_3 & 0x3C) >> 2);
+  p_data_out++;
+  // wf lt wk wk wk wk wk wk
+  *p_data_out = ((six_bits_3 & 0x03) << 6) | six_bits_4;
+}
+
+/**
+ * @brief Calculate unique extension values for EUI-48 or EUI-64
+ *
+ * @fn    uint32_t SERVICES_system_get_eui_extension(
+ *                                uint32_t services_handle,
+ *                                bool is_eui48,
+ *                                uint8_t * eui_extension,
+                                  uint32_t * error_code)
+ *
+ * @param services_handle
+ * @param is_eui48       Specify whether EUI-48 or EUI-64 extension is requested
+ * @param eui_extension  Buffer to store the calculated extension
+ * @param error_code
+ * @return
+ */
+uint32_t SERVICES_system_get_eui_extension(uint32_t services_handle,
+                                           bool is_eui48,
+                                           uint8_t * eui_extension,
+                                           uint32_t * error_code)
+{
+  SERVICES_version_data_t device_data;
+  uint32_t ret = SERVICES_system_get_device_data(services_handle,
+                                               &device_data,
+                                               error_code);
+  if (ret != SERVICES_REQ_SUCCESS)
+  {
+    return ret;
+  }
+
+  //init_test_mgf_data(device_data.MfgData);
+
+  if (is_eui48)
+  {
+    get_eui48_extension(device_data.MfgData, eui_extension);
+  }
+  else
+  {
+    get_eui64_extension(device_data.MfgData, eui_extension);
+  }
+
+  return SERVICES_REQ_SUCCESS;
 }

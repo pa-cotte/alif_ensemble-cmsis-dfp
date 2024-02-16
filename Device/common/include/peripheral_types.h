@@ -623,6 +623,8 @@ typedef struct {                                /*!< (@ 0x400E2000) EVTRTR1 Stru
   * @{
   */
 
+#define REFCLK_CNTControl           ((CNTControlBase_Type*)    REFCLK_CNTControl_BASE)
+#define REFCLK_CNTRead              ((CNTReadBase_Type*)       REFCLK_CNTRead_BASE)
 #define S32K_CNTControl             ((CNTControlBase_Type*)    S32K_CNTControl_BASE)
 #define S32K_CNTRead                ((CNTReadBase_Type*)       S32K_CNTRead_BASE)
 #define CGU                         ((CGU_Type*)               CGU_BASE)

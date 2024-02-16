@@ -72,6 +72,18 @@
 #define  SYSTEM_CLOCK    (160U * MHZ)
 #endif
 
+/*----------------------------------------------------------------------------
+  WICCONTROL register
+ *----------------------------------------------------------------------------*/
+/* WIC bit positions in WICCONTROL */
+#define WICCONTROL_WIC_Pos          (8U)
+#define WICCONTROL_WIC_Msk          (1U << WICCONTROL_WIC_Pos)
+
+#if defined(M55_HP)
+#define WICCONTROL                  (AON->RTSS_HP_CTRL)
+#elif defined(M55_HE)
+#define WICCONTROL                  (AON->RTSS_HE_CTRL)
+#endif
 
 /*----------------------------------------------------------------------------
   Exception / Interrupt Vector table
@@ -102,6 +114,18 @@ uint32_t GetSystemCoreClock (void)
 }
 
 /*----------------------------------------------------------------------------
+  Default Handler for Spurious wakeup
+ *----------------------------------------------------------------------------*/
+__attribute__ ((weak))
+void System_HandleSpuriousWakeup (void)
+{
+/*
+ * pm.c has the implementation to handle the spurious wakeup.
+ * User may override and can have their own implementation.
+ */
+}
+
+/*----------------------------------------------------------------------------
   System initialization function
  *----------------------------------------------------------------------------*/
 void SystemInit (void)
@@ -118,6 +142,14 @@ void SystemInit (void)
   /* Otherwise all you see is HardFault, even in the debugger */
   SCB->SHCSR |= SCB_SHCSR_USGFAULTENA_Msk | SCB_SHCSR_BUSFAULTENA_Msk |
                 SCB_SHCSR_MEMFAULTENA_Msk | SCB_SHCSR_SECUREFAULTENA_Msk;
+
+  /*
+   * Handle Spurious Wakeup
+   */
+  System_HandleSpuriousWakeup();
+
+  /* Clear the WIC Sleep */
+  WICCONTROL &= ~WICCONTROL_WIC_Msk;
 
 #if (defined (__FPU_USED) && (__FPU_USED == 1U)) || \
     (defined (__ARM_FEATURE_MVE) && (__ARM_FEATURE_MVE > 0U))

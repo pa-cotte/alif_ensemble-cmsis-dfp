@@ -83,9 +83,9 @@ typedef enum _CANFD_FRAME
 }CANFD_FRAME;
 
 /* Define for FreeRTOS notification objects */
-#define CANFD_TX_SUCCESS                    0x01
-#define CANFD_RX_SUCCESS                    0x02
-#define CANFD_ERROR                         0x04
+#define CANFD_TX_SUCCESS                    0x01U
+#define CANFD_RX_SUCCESS                    0x02U
+#define CANFD_ERROR                         0x04U
 #define CANFD_ALL_NOTIFICATIONS             (CANFD_TX_SUCCESS |            \
                                              CANFD_RX_SUCCESS | CANFD_ERROR)
 
@@ -94,13 +94,13 @@ typedef enum _CANFD_FRAME
 #define TIMER_SERVICE_TASK_STACK_SIZE       configTIMER_TASK_STACK_DEPTH
 #define IDLE_TASK_STACK_SIZE                configMINIMAL_STACK_SIZE
 
-StackType_t IdleStack[2 * IDLE_TASK_STACK_SIZE];
-StaticTask_t IdleTcb;
-StackType_t TimerStack[2 * TIMER_SERVICE_TASK_STACK_SIZE];
-StaticTask_t TimerTcb;
+static StackType_t IdleStack[2 * IDLE_TASK_STACK_SIZE];
+static StaticTask_t IdleTcb;
+static StackType_t TimerStack[2 * TIMER_SERVICE_TASK_STACK_SIZE];
+static StaticTask_t TimerTcb;
 
 /* Task handle */
-TaskHandle_t canfd_xHandle;
+static TaskHandle_t canfd_xHandle;
 
 /****************************** FreeRTOS functions **********************/
 
@@ -113,7 +113,8 @@ void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
 
 void vApplicationStackOverflowHook(TaskHandle_t pxTask, char *pcTaskName)
 {
-   (void) pxTask;
+   ARG_UNUSED(pxTask);
+   ARG_UNUSED(pcTaskName);
 
    for (;;);
 }
@@ -133,26 +134,28 @@ void vApplicationIdleHook(void)
 
 /* CANFD instance object */
 extern ARM_DRIVER_CAN  Driver_CANFD;
-static ARM_DRIVER_CAN* CANFD_instance    = &Driver_CANFD;
+static ARM_DRIVER_CAN* CANFD_instance           = &Driver_CANFD;
 
 /* File Global variables */
-volatile bool bus_error                  = false;
-volatile bool passive_mode               = false;
-volatile bool rx_buf_overrun             = false;
-bool          stop_execution             = false;
-volatile bool rx_msg_error               = false;
-uint8_t       tx_obj_id                  = 255U;
-uint8_t       rx_obj_id                  = 255U;
-ARM_CAN_MSG_INFO tx_msg_header;
-ARM_CAN_MSG_INFO rx_msg_header;
-uint8_t          tx_msg_size             = 0U;
-volatile uint8_t rx_msg_size             = 8U;
-uint8_t tx_data[CANFD_MAX_MSG_SIZE + 1U] = "!!!!!!***** CANFD TESTAPP Message Communication Test *****!!!!!!";
-uint8_t rx_data[CANFD_MAX_MSG_SIZE + 1U];
+static volatile bool bus_error                  = false;
+static volatile bool passive_mode               = false;
+static volatile bool rx_buf_overrun             = false;
+static bool          stop_execution             = false;
+static volatile bool rx_msg_error               = false;
+static uint8_t       tx_obj_id                  = 255U;
+static uint8_t       rx_obj_id                  = 255U;
+static ARM_CAN_MSG_INFO tx_msg_header;
+static ARM_CAN_MSG_INFO rx_msg_header;
+static uint8_t          tx_msg_size             = 0U;
+static volatile uint8_t rx_msg_size             = 8U;
+static uint8_t tx_data[CANFD_MAX_MSG_SIZE + 1U] =
+               "!!!!!!***** CANFD TESTAPP Message Communication Test *****!!!!!!";
+static uint8_t rx_data[CANFD_MAX_MSG_SIZE + 1U];
 
 /* A map between Data length code to the payload size */
-const uint8_t canfd_len_dlc_map[0x10U] =
-              {0U, 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U, 12U, 16U, 20U, 24U, 32U, 48U, 64U};
+static const uint8_t canfd_len_dlc_map[0x10U] =
+                     {0U, 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U,
+                      12U, 16U, 20U, 24U, 32U, 48U, 64U};
 
 /* Support functions */
 static void canfd_process_rx_message(void);
@@ -192,13 +195,13 @@ static int32_t pinmux_config(void)
 }
 
 /**
- * @fn      void cb_unit_event(uint32_t event)
+ * @fn      static void cb_unit_event(uint32_t event)
  * @brief   CANFD Callback function for events
  * @note    none
  * @param   event: CANFD event
  * @retval  none
  */
-void cb_unit_event(uint32_t event)
+static void cb_unit_event(uint32_t event)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE, xResult = pdFALSE;
 
@@ -236,18 +239,19 @@ void cb_unit_event(uint32_t event)
 }
 
 /**
- * @fn      void cb_object_event(uint32_t obj_idx, uint32_t event)
+ * @fn      static void cb_object_event(uint32_t obj_idx, uint32_t event)
  * @brief   CANFD Callback function for particular object events
  * @note    none
  * @param   obj_idx : Object ID
  * @param   event   : CANFD event
  * @retval  none
  */
-void cb_object_event(uint32_t obj_idx, uint32_t event)
+static void cb_object_event(uint32_t obj_idx, uint32_t event)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE, xResult = pdFALSE;
 
-    if((event & ARM_CAN_EVENT_RECEIVE) || (event & ARM_CAN_EVENT_RECEIVE_OVERRUN))
+    if((event & ARM_CAN_EVENT_RECEIVE) ||
+       (event & ARM_CAN_EVENT_RECEIVE_OVERRUN))
     {
         /* Invokes Message Read function if the Receive Object matches */
         if(obj_idx == rx_obj_id)
@@ -288,13 +292,13 @@ void cb_object_event(uint32_t obj_idx, uint32_t event)
 }
 
 /**
- * @fn      void canfd_demo_task(void *pvParameters)
+ * @fn      static void canfd_demo_task(void *pvParameters)
  * @brief   CANFD Demo function
  * @note    none
  * @param   pvParameters : Task parameter
  * @retval  none
  */
-void canfd_demo_task(void* pvParameters)
+static void canfd_demo_task(void* pvParameters)
 {
     CANFD_FRAME msg_type            = CANFD_FRAME_STD_ID_CLASSIC_DATA;
     int32_t ret_val                = ARM_DRIVER_OK;
@@ -304,6 +308,8 @@ void canfd_demo_task(void* pvParameters)
     uint32_t task_notified_value   = 0U;
     uint32_t error_code            = 0U;
     uint32_t service_error_code    = 0U;
+
+    ARG_UNUSED(pvParameters);
 
     /* Initialize the SE services */
     se_services_port_init();
@@ -573,7 +579,8 @@ int main()
    /* Create application main thread */
    BaseType_t xReturned = xTaskCreate(canfd_demo_task, "CANFD_Task",
                                       CANFD_TASK_STACK_SIZE, NULL,
-                                      (configMAX_PRIORITIES - 1U), &canfd_xHandle);
+                                      (configMAX_PRIORITIES - 1U),
+                                      &canfd_xHandle);
    if(xReturned != pdPASS)
    {
       vTaskDelete(canfd_xHandle);
@@ -587,13 +594,13 @@ int main()
 }
 
 /**
- * @fn      void canfd_check_error(void)
+ * @fn      static void canfd_check_error(void)
  * @brief   Checks for the errors in CANFD
  * @note    none
  * @param   none
  * @retval  none
  */
-void canfd_check_error(void)
+static void canfd_check_error(void)
 {
     ARM_CAN_STATUS cur_sts;
 
@@ -618,13 +625,13 @@ void canfd_check_error(void)
 }
 
 /**
- * @fn      void canfd_process_rx_message(void)
+ * @fn      static void canfd_process_rx_message(void)
  * @brief   Processes the received messages
  * @note    none
  * @param   none
  * @retval  none
  */
-void canfd_process_rx_message(void)
+static void canfd_process_rx_message(void)
 {
     uint8_t iter = 0U;
 
@@ -681,19 +688,17 @@ void canfd_process_rx_message(void)
 }
 
 /**
- * @fn      bool canfd_transmit_message(CANFD_FRAME msg_type)
+ * @fn      static bool canfd_transmit_message(CANFD_FRAME msg_type)
  * @brief   Prepares and sends message
  * @note    none
  * @param   msg_type : Type of msg to send
  * @retval  none
  */
-bool canfd_transmit_message(const CANFD_FRAME msg_type)
+static bool canfd_transmit_message(const CANFD_FRAME msg_type)
 {
-    uint32_t status = ARM_DRIVER_OK;
-    uint8_t iter;
+    int32_t status = ARM_DRIVER_OK;
+    uint8_t iter   = 0U;
 
-    /* If the previous message is successfully sent,
-     * then prepare and transmit next message */
     switch(msg_type)
     {
         case CANFD_FRAME_STD_ID_CLASSIC_DATA:

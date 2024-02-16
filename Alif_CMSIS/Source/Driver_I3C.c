@@ -576,6 +576,16 @@ static int I3Cx_MasterReceive(I3C_RESOURCES *i3c,  uint8_t  addr,
   return ARM_DRIVER_OK;
 }
 
+/*
+ * Note for I3C DMA:
+ * For proper Master and Slave communication,
+ *  There should be fix protocol between Master and Slave,
+ *  in which both should be knowing well in advanced that
+ *  how much data is going to transmit/receive from both the sides.
+ *  (currently different-different transfer data length from
+ *   Master and Slave is not supported.)
+ */
+
 /**
   \fn           int I3Cx_SlaveTransmit(I3C_RESOURCES *i3c,
                                        const uint8_t *data,
@@ -591,6 +601,10 @@ static int I3Cx_SlaveTransmit(I3C_RESOURCES *i3c,
                               const uint8_t *data,
                               uint16_t       len)
 {
+#if I3C_DMA_ENABLE
+  int32_t ret;
+#endif
+
   /* Checking for power done initialization */
   if (i3c->state.powered == 0U)
       return ARM_DRIVER_ERROR;
@@ -608,12 +622,22 @@ static int I3Cx_SlaveTransmit(I3C_RESOURCES *i3c,
 
   i3c->status.busy = 1;
 
+#if (!I3C_DMA_ENABLE) /* update only if DMA disable */
   i3c->xfer.tx_buf = data;
   i3c->xfer.tx_len = len;
   i3c->xfer.rx_buf = NULL;
   i3c->xfer.rx_len = 0;
+#endif
 
   i3c_slave_tx(i3c->regs, &(i3c->xfer), len);
+
+#if I3C_DMA_ENABLE
+  ret = I3C_DMA_Start_TX(i3c, data, len);
+  if(ret)
+  {
+    return ARM_DRIVER_ERROR;
+  }
+#endif
 
   return ARM_DRIVER_OK;
 }
@@ -633,6 +657,10 @@ static int I3Cx_SlaveReceive(I3C_RESOURCES *i3c,
                              uint8_t       *data,
                              uint32_t       len)
 {
+#if I3C_DMA_ENABLE
+  int32_t ret;
+#endif
+
   /* Checking for power done initialization */
   if (i3c->state.powered == 0U)
       return ARM_DRIVER_ERROR;
@@ -649,13 +677,23 @@ static int I3Cx_SlaveReceive(I3C_RESOURCES *i3c,
 
   i3c->status.busy = 1;
 
+#if (!I3C_DMA_ENABLE) /* update only if DMA disable */
   /* Buffer initialization for TX/RX */
   i3c->xfer.rx_buf = data;
   i3c->xfer.rx_len = len;
   i3c->xfer.tx_buf = NULL;
   i3c->xfer.tx_len = 0;
+#endif
 
   i3c_slave_rx(i3c->regs, &(i3c->xfer));
+
+#if I3C_DMA_ENABLE
+  ret = I3C_DMA_Start_RX(i3c, data, len);
+  if(ret)
+  {
+    return ARM_DRIVER_ERROR;
+  }
+#endif
 
   return ARM_DRIVER_OK;
 }
@@ -877,11 +915,6 @@ static int32_t I3Cx_Control(I3C_RESOURCES *i3c,
 
   case I3C_SLAVE_SET_ADDR:
 
-#if I3C_DMA_ENABLE
-    /* currently, I3C DMA for Slave is not supported. */
-    return ARM_DRIVER_ERROR_UNSUPPORTED;
-#endif
-
       i3c->datp    = i3c_get_dat_addr(i3c->regs);
       i3c->maxdevs = i3c_get_dat_depth(i3c->regs);
       i3c->freepos = GENMASK(i3c->maxdevs - 1, 0);
@@ -934,6 +967,8 @@ static int32_t I3Cx_Initialize(I3C_RESOURCES         *i3c,
   if(I3C_DMA_Initialize(&i3c->dma_cfg->dma_rx) != ARM_DRIVER_OK)
     return ARM_DRIVER_ERROR;
 #endif
+
+  i3c->core_clk = GetSystemAPBClock();
 
   /* set the state as initialized. */
   i3c->state.initialized = 1;
@@ -1174,7 +1209,6 @@ static I3C_RESOURCES i3c =
 {
   .regs         = (I3C_Type *)I3C_BASE,
   .cb_event     = NULL,
-  .core_clk     = SYST_PCLK,
   .xfer         = {0},
   .status       = {0},
   .state        = {0},

@@ -18,7 +18,6 @@
 extern "C" {
 #endif
 
-#include <stdbool.h>
 #include "services_lib_api.h"
 
 /*******************************************************************************
@@ -34,8 +33,7 @@ extern "C" {
 /**
  * @struct services_lib_t
  */
-typedef struct
-{
+typedef struct {
   uint32_t             packet_buffer_address;
   print_msg_t          fn_print_msg;
 } services_lib_t;
@@ -49,7 +47,7 @@ typedef struct
  ******************************************************************************/
 
 // Services infrastructure APIs
-void SERVICES_initialize(services_lib_t * init_params);
+void SERVICES_initialize(services_lib_t *init_params);
 int  SERVICES_synchronize_with_se(uint32_t services_handle);
 
 #define SERVICES_LIB_ERROR   0xFFFFFFFFul

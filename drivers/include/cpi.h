@@ -81,9 +81,33 @@ typedef struct {                                      /*!< LPCPI/CPI Structure  
 /* Camera Configuration Register (CAM_CFG) bit Definition, Macros, Offsets and Masks
  * these include data mode, data mask etc
  */
+/* CAM_CFG vsync wait bit[4] */
+#define CAM_CFG_VSYNC_WAIT_Pos                         4U
+
+/* CAM_CFG vsync mode bit[5] */
+#define CAM_CFG_VSYNC_MODE_Pos                         5U
+
+/* CAM_CFG row roundup bit[8] */
+#define CAM_CFG_ROW_ROUNDUP_Pos                        8U
+
+/* CAM_CFG pixel clock polarity bit[12] */
+#define CAM_CFG_PIXELCLK_POL_Pos                       12U
+
+/* CAM_CFG hsync polarity bit[13] */
+#define CAM_CFG_HSYNC_POL_Pos                          13U
+
+/* CAM_CFG vsync polarity bit[14] */
+#define CAM_CFG_VSYNC_POL_Pos                          14U
+
 /* CAM_CFG Data Mode bit[18-16] */
 #define CAM_CFG_DATA_MODE_Pos                          16U
 #define CAM_CFG_DATA_MODE_Msk                          (0x7U << CAM_CFG_DATA_MODE_Pos)
+
+/* CAM_CFG Data endianness bit[20] */
+#define CAM_CFG_DATA_ENDIANNESS_Pos                    20U
+
+/* CAM_CFG code10on8 bit[24] */
+#define CAM_CFG_CODE10ON8_Pos                          24U
 
 /* CAM_CFG Data Mask bit[29-28] */
 #define CAM_CFG_DATA_MASK_Pos                          28U
@@ -409,6 +433,15 @@ static inline void cpi_stop_capture(CPI_Type *cpi)
 {
     cpi->CAM_CTRL = 0;
 }
+
+/**
+\fn          void cpi_software_reset(CPI_Type *cpi)
+\brief       CPI software reset
+\param[in]   cpi      Pointer to the CPI register map.
+\param[in]   mode     Soft reset the CPI
+\return      none.
+*/
+void cpi_software_reset(CPI_Type *cpi);
 
 /**
   \fn          void cpi_start_capture(CPI_Type *cpi, CPI_MODE_SELECT mode)

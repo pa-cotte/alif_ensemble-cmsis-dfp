@@ -13,33 +13,12 @@
 
 #include <peripheral_types.h>
 
-#ifndef AXI_CLOCK
-#define AXI_CLOCK 400000000
-#endif
-
-#ifndef AHB_CLOCK
-#define AHB_CLOCK 200000000
-#endif
-
-#ifndef APB_CLOCK
-#define APB_CLOCK 100000000
-#endif
-
-#ifndef RTSS_HE_CLK
-#define RTSS_HE_CLK 160000000
-#endif
+#define PLL_CLK1    800000000
+#define PLL_CLK3    480000000
 
 #ifndef HFOSC_CLK
-#define HFOSC_CLK 38400000
+#define HFOSC_CLK   38400000
 #endif
-
-#define SYST_PCLK               APB_CLOCK
-#define I2C_PERIPHERAL_CLOCK    APB_CLOCK
-
-#define PLL_CLK1                800000000
-#define PLL_CLK3                480000000
-
-#define CDC200_PIXCLK           AXI_CLOCK
 
 static inline void enable_force_peripheral_functional_clk(void)
 {
@@ -129,5 +108,54 @@ static inline void disable_usb_periph_clk(void)
 {
     CLKCTL_PER_MST->PERIPH_CLK_ENA &= ~PERIPH_CLK_ENA_USB_CKEN;
 }
+
+/**
+  \brief System AXI Clock Frequency (AXI Clock)
+*/
+extern uint32_t SystemAXIClock;
+
+/**
+  \brief System AHB Clock Frequency (AHB Clock)
+*/
+extern uint32_t SystemAHBClock;
+
+/**
+  \brief System APB Clock Frequency (APB Clock)
+*/
+extern uint32_t SystemAPBClock;
+
+/**
+  \brief System REF Clock Frequency (REF Clock)
+*/
+extern uint32_t SystemREFClock;
+
+
+/**
+  \brief  Get System AXI Clock value.
+
+   returns the currently configured AXI clock value.
+ */
+uint32_t GetSystemAXIClock(void);
+
+/**
+  \brief  Get System AHB Clock value.
+
+   returns the currently configured AHB clock value.
+ */
+uint32_t GetSystemAHBClock(void);
+
+/**
+  \brief  Get System APB Clock value.
+
+   returns the currently configured APB clock value.
+ */
+uint32_t GetSystemAPBClock(void);
+
+/**
+  \brief  Get System REF Clock value.
+
+   returns the currently configured REF clock value.
+ */
+uint32_t GetSystemREFClock(void);
 
 #endif /* CLK_H_ */

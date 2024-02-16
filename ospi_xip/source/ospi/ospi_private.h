@@ -78,11 +78,6 @@ typedef struct {
     volatile uint32_t  aes_rxds_delay;               /*!< (@ 0x00000020) AES RXDS Delay Register                                    */
 } aes_regs_t;
 
-/* CLK */
-#ifndef AXI_CLOCK
-#define AXI_CLOCK                                       400000000UL
-#endif
-
 /* OSPI Address Map */
 #ifndef OSPI0_BASE
 #define OSPI0_BASE                                      0x83000000UL

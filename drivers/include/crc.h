@@ -431,7 +431,7 @@ static inline void crc_disable_reflect(CRC_Type *crc)
 */
 static inline void* crc_get_8bit_datain_addr(CRC_Type *crc)
 {
-    return ((void*)crc + CRC_DATA_IN_8BIT_REG_OFFSET);
+    return ((uint8_t *)crc + CRC_DATA_IN_8BIT_REG_OFFSET);
 }
 
 /**
@@ -442,7 +442,7 @@ static inline void* crc_get_8bit_datain_addr(CRC_Type *crc)
 */
 static inline void* crc_get_32bit_datain_addr(CRC_Type *crc)
 {
-    return ((void*)crc + CRC_DATA_IN_32BIT_REG_OFFSET);
+    return ((uint8_t *)crc + CRC_DATA_IN_32BIT_REG_OFFSET);
 }
 
 /**

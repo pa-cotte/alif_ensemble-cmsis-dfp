@@ -518,6 +518,12 @@ static int32_t CPIx_Control(CPI_RESOURCES *CPI, CAMERA_SENSOR_DEVICE *camera_sen
 
     switch(control)
     {
+        case CPI_SOFTRESET:
+        {
+            cpi_software_reset(CPI->regs);
+            break;
+        }
+
         case CPI_CONFIGURE:
         {
             /* Set all CPI Configurations. */

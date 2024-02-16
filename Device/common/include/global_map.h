@@ -22,6 +22,8 @@
   */
 
 #define CLKCTL_SYS_BASE             0x1A010000UL
+#define REFCLK_CNTControl_BASE      0x1A200000UL
+#define REFCLK_CNTRead_BASE         0x1A210000UL
 #define WDT_AP_CTRL_BASE            0x1A300000UL
 #define WDT_AP_REFRESH_BASE         0x1A310000UL
 #define WDT_AP_S_CTRL_BASE          0x1A320000UL

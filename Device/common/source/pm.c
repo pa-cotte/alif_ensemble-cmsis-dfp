@@ -430,6 +430,100 @@ void pm_core_enter_deep_sleep_request_subsys_off(void)
 }
 
 /**
+  @fn       void pm_core_request_subsys_off_from_spurious_wakeup(void)
+  @brief    Routine to go back to subsystem off from spurious wakeups
+
+            This is essentially a subset of the function
+            pm_core_enter_deep_sleep_request_subsys_off().
+
+            This should be called in the very boot up state before enabling the
+            caches.
+
+            This should be part of the root_sections in the linker
+  @return   None
+*/
+void pm_core_request_subsys_off_from_spurious_wakeup(void)
+{
+    uint32_t orig_mscr;
+#if (defined (__FPU_USED) && (__FPU_USED == 1U)) || \
+    (defined (__ARM_FEATURE_MVE) && (__ARM_FEATURE_MVE > 0U))
+    uint32_t   orig_cppwr;
+#endif
+    /* We attempt to power off the subsystem by turning off all active
+     * indications from the CPU, taking its power domains PDCORE, PDEPU,
+     * PDRAMS and PDDEBUG to OFF. See Power chapter of M55 TRM for details.
+     *
+     * We assume all the LPSTATE indications are OFF as at boot, which will
+     * permit everything to go off. We assume that if it's set higher, it's
+     * because someone wants to block this. If they have modified it, and
+     * don't intend to block this, they should put it back to OFF before
+     * calling this.
+     */
+
+#if (defined (__FPU_USED) && (__FPU_USED == 1U)) || \
+    (defined (__ARM_FEATURE_MVE) && (__ARM_FEATURE_MVE > 0U))
+    /* PDEPU OFF requires that we set the State Unknown 10 flag indicating it's
+     * okay to forget the FP/MVE state (S/D/Q registers, FPSR and VPR)
+     */
+    orig_cppwr = ICB->CPPWR;
+    if (!(orig_cppwr & ICB_CPPWR_SU10_Msk)) {
+        /* Indicate we're okay to lose MVE/FP state. Note that MVE/FP instructions
+         * will fault after this, so we hope we're not doing anything that
+         * prompts the compiler to generate MVE/FP code during this function.
+         */
+        ICB->CPPWR = orig_cppwr | (ICB_CPPWR_SU11_Msk | ICB_CPPWR_SU10_Msk);
+    }
+#endif
+    /* Check cache status */
+    orig_mscr = MEMSYSCTL->MSCR;
+    /*
+     * Make Caches Inactive. Restore FORCEWT now.
+     */
+    MEMSYSCTL->MSCR = (MEMSYSCTL->MSCR &~
+                      (MEMSYSCTL_MSCR_ICACTIVE_Msk  |
+                       MEMSYSCTL_MSCR_DCACTIVE_Msk  |
+                       MEMSYSCTL_MSCR_FORCEWT_Msk)) |
+                      (orig_mscr & MEMSYSCTL_MSCR_FORCEWT_Msk);
+
+    /* Trigger the EWIC sleep - may or may not return*/
+    /* Set up WICCONTROL so that deep sleep is the required WIC sleep type */
+    WICCONTROL = _VAL2FLD(WICCONTROL_WIC, 1) | _VAL2FLD(WICCONTROL_IWIC, PM_WIC_IS_EWIC);
+
+    /* Setting DEEPSLEEP bit */
+    SCB->SCR       |=  SCB_SCR_SLEEPDEEP_Msk;
+
+    /*Data Synchronization Barrier completes all instructions before this */
+    __DSB();
+
+    /* Instruction Synchronization Barrier flushes the pipeline in the
+     * processor, so that all instructions following the ISB are fetched from
+     * cache or memory */
+    __ISB();
+
+    /* Put System into sleep mode */
+    pm_core_enter_normal_sleep();
+
+    /* Clearing DEEPSLEEP bit */
+    SCB->SCR       &=  ~SCB_SCR_SLEEPDEEP_Msk;
+
+    /* Clear WICCONTROL to disable WIC sleep */
+    WICCONTROL = _VAL2FLD(WICCONTROL_WIC, 0);
+
+    /* If we return, restore enables */
+    MEMSYSCTL->MSCR |= orig_mscr &
+                       (MEMSYSCTL_MSCR_ICACTIVE_Msk | MEMSYSCTL_MSCR_DCACTIVE_Msk);
+
+#if (defined (__FPU_USED) && (__FPU_USED == 1U)) || \
+    (defined (__ARM_FEATURE_MVE) && (__ARM_FEATURE_MVE > 0U))
+    ICB->CPPWR = orig_cppwr;
+#endif
+
+    /* Make sure enables are synchronized */
+    __DSB();
+    __ISB();
+}
+
+/**
   @fn       uint32_t pm_peek_subsystem reset_status(void)
   @brief    Peek reset status
             Returns the value of the current subsystem's reset status register,
@@ -460,3 +554,152 @@ uint32_t pm_get_subsystem_reset_status(void)
 
     return reason;
 }
+
+/**
+  @fn       bool pm_core_wakeup_is_spurious(void)
+  @brief    Check if the wakeup reason is due to spurious wakeup
+            RTSS domain can wake-up if any of the peripherals inside the
+            domain are accessed from outside.
+
+  @note     Should be called before pm_get_subsystem_reset_status()
+
+  @note     Usage:
+
+            if (pm_core_wakeup_is_spurious())
+            {
+                pm_core_enable_manual_pd_sequencing();
+                pm_core_request_subsys_off_from_spurious_wakeup();
+            }
+            else
+            {
+                pm_core_enable_automatic_pd_sequencing();
+            }
+
+  @return   Returns false if the reason for wakeup is due to pending interrupt,
+            else return true
+*/
+bool pm_core_wakeup_is_spurious(void)
+{
+    uint16_t num_events, count = 0;
+
+    /* Read the last reason to confirm that it is not spurious */
+    if (RESET_STATUS_REG != 0)
+    {
+        return false;
+    }
+
+    /*
+     * Check if the WIC is enabled at this point.
+     * If it is not enabled, then the cause of wakeup must be NVIC_SystemReset
+     * or local WDT Reset. Both are not spurious ones. So return false
+     */
+    if (!(WICCONTROL & WICCONTROL_WIC_Msk))
+    {
+        return false;
+    }
+
+    /*
+     * Compare the NVIC pending status and the EWIC Mask.
+     * If any of the interrupt is in pending state, return false.
+     */
+    num_events = ((_EWIC->EWIC_NUMID - 3) + 31) / 32;
+    for (count = 0; count < num_events; count++)
+    {
+        if (_EWIC->EWIC_MASKn[count]
+                              && (NVIC->ISPR[count] & _EWIC->EWIC_MASKn[count]))
+            return false;
+    }
+
+    /*
+     * Now we have confirmed that no interrupt is pending and we have woken up
+     * for unknown reason.
+     */
+    return true;
+
+}
+
+/**
+  @fn       void pm_core_enable_automatic_pd_sequencing(void)
+  @brief    Enable automatic power sequence on entry to low-power state by EWIC
+            If this is enabled, all the NVIC enabled status will be propagated
+            to EWIC automatically.
+  @note     At reset, this is enabled.
+  @return   None
+*/
+void pm_core_enable_automatic_pd_sequencing(void)
+{
+    _EWIC->EWIC_ASCR |= EWIC_EWIC_ASCR_ASPD_Msk;
+}
+
+/**
+  @fn       void pm_core_enable_manual_pd_sequencing(void)
+  @brief    Disable automatic sequence on entry to low-power state by EWIC.
+            Application should take care of enabling the EWIC mask before entering
+            to low-power state.
+  @return   None
+*/
+void pm_core_enable_manual_pd_sequencing(void)
+{
+    uint16_t num_events, count = 0;
+
+    _EWIC->EWIC_ASCR &= ~EWIC_EWIC_ASCR_ASPD_Msk;
+    _EWIC->EWIC_CR |= EWIC_EWIC_CR_EN_Msk;
+
+    /*
+     * Copy NVIC pending registers to EWIC pending regs
+     */
+    num_events = ((_EWIC->EWIC_NUMID - 3) + 31) / 32;
+    for (count = 0; count < num_events; count++)
+    {
+        _EWIC->EWIC_PENDn[count] = NVIC->ISPR[count];
+    }
+}
+
+/**
+  @fn       void pm_core_enable_automatic_pu_sequencing(void)
+  @brief    Enable automatic sequence on power-up by EWIC
+            If this is enabled, all the EWIC pending status will be propagated
+            to NVIC automatically.
+  @note     At reset, this is enabled.
+  @return   None
+*/
+void pm_core_enable_automatic_pu_sequencing(void)
+{
+    _EWIC->EWIC_ASCR |= EWIC_EWIC_ASCR_ASPU_Msk;
+}
+
+/**
+  @fn       void pm_core_enable_manual_pu_sequencing(void)
+  @brief    Disable automatic sequence on power-up by EWIC.
+            Application should take care of verifying the pending EWIC status
+            and act accordingly.
+  @return   None
+*/
+void pm_core_enable_manual_pu_sequencing(void)
+{
+    _EWIC->EWIC_ASCR &= ~EWIC_EWIC_ASCR_ASPU_Msk;
+    _EWIC->EWIC_CR |= EWIC_EWIC_CR_EN_Msk;
+}
+
+#if PM_HANDLE_SPURIOUS_WAKEUP
+/**
+  @fn       void System_HandleSpuriousWakeup(void)
+  @brief    Handle the spurious wakeup
+            See if the core booted due to spurious wakeup.
+            If yes, try requesting subsystem_off.
+  @return   None
+*/
+void System_HandleSpuriousWakeup(void)
+{
+    if (pm_core_wakeup_is_spurious())
+    {
+        pm_core_enable_manual_pd_sequencing();
+        pm_core_request_subsys_off_from_spurious_wakeup();
+    }
+    else
+    {
+        pm_core_enable_automatic_pd_sequencing();
+    }
+
+}
+#endif /* PM_HANDLE_SPURIOUS_WAKEUP */

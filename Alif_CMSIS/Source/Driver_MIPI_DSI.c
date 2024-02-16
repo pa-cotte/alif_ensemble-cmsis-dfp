@@ -204,8 +204,7 @@ static int32_t DSI_Initialize (ARM_MIPI_DSI_SignalEvent_t cb_event,
     dsi->cb_event = cb_event;
 
     /*DPHY initialization*/
-    ret  = DSI_DPHY_Initialize(frequency, dsi_info->n_lanes,
-                               (DPHY_CLK_MODE) dsi_info->clk_mode);
+    ret  = DSI_DPHY_Initialize(frequency, dsi_info->n_lanes);
     if(ret != ARM_DRIVER_OK)
     {
         return ret;

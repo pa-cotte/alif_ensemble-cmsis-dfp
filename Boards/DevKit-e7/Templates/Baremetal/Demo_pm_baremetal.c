@@ -31,6 +31,7 @@
 #include <RTE_Components.h>
 #include CMSIS_device_header
 #include "se_services_port.h"
+#include "clock_runtime.h"
 
 #if defined(RTE_Compiler_IO_STDIN)
 #include "retarget_stdin.h"
@@ -499,12 +500,11 @@ int main(void)
         while(1);
     }
 
-    runp.run_clk_src   = CLK_SRC_PLL;
 #if defined(M55_HP)
     runp.memory_blocks = SRAM2_MASK | SRAM3_MASK | MRAM_MASK;
 #else
     runp.memory_blocks = SRAM4_1_MASK | SRAM4_2_MASK
-                         | SRAM5_1_MASK | SRAM5_2_MASK | MRAM_MASK;
+                         | SRAM5_1_MASK | SRAM5_2_MASK;
 #endif
 
     /* Set the new run configuration */
@@ -525,6 +525,9 @@ int main(void)
     {
         while(1);
     }
+
+    /* Update the system clock information */
+    system_update_clock_values();
 
     /* Log Retargeting Initialization */
 
@@ -564,8 +567,8 @@ int main(void)
         /* Add Delay of 1sec so that uart can show up */
         delay_count = 1;
 #else
-        /* Add Delay of 5sec so that external FTDI USB-UART can show up */
-        delay_count = 5;
+        /* Add Delay of 10sec so that external FTDI USB-UART can show up */
+        delay_count = 10;
 #endif
 
         for(uint32_t count = 0; count < (delay_count * 10); count++)

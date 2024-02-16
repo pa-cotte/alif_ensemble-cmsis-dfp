@@ -82,7 +82,9 @@ extern ARM_DRIVER_ADC Driver_ADC24;
 static ARM_DRIVER_ADC *ADCdrv = &Driver_ADC24;
 #endif
 
-#define NUM_CHANNELS      8
+#define NUM_CHANNELS          8
+#define NUM_TEST_SAMPLES      3
+#define NUM_PULSE_GENERATE    3
 
 /* Demo purpose adc_sample*/
 uint32_t adc_sample[NUM_CHANNELS];
@@ -240,7 +242,7 @@ static void utimer_compare_mode_app(void)
         goto error_compare_mode_poweroff;
     }
 
-    for (int index = 0; index < 3; index++)
+    for (int index = 0; index < NUM_PULSE_GENERATE; index++)
     {
         while(1)
         {
@@ -326,22 +328,38 @@ void adc_ext_trigger_demo()
         goto error_poweroff;
     }
 
-    /* Start ADC from External trigger pulse */
+    printf(">>> Allocated memory buffer Address is 0x%X <<<\n",(uint32_t)adc_sample);
+
+    /* Enable ADC from External trigger pulse */
     ret = ADCdrv->Control(ARM_ADC_EXTERNAL_TRIGGER_ENABLE, ARM_ADC_EXTERNAL_TRIGGER_SRC_0);
     if (ret != ARM_DRIVER_OK) {
         printf("\r\n Error: ADC External trigger enable failed\n");
         goto error_poweroff;
     }
 
+    /* Start ADC */
+    ret = ADCdrv->Start();
+    if(ret != ARM_DRIVER_OK){
+        printf("\r\n Error: ADC Start failed\n");
+        goto error_poweroff;
+    }
+
     /* Generating pulse from Utimer */
     utimer_compare_mode_app();
 
-    while (num_samples != 3);
+    while (num_samples != NUM_TEST_SAMPLES);
 
-    /* Stop ADC external trigger conversion */
+    /* Disable ADC external trigger conversion */
     ret = ADCdrv->Control(ARM_ADC_EXTERNAL_TRIGGER_DISABLE, ARM_ADC_EXTERNAL_TRIGGER_SRC_0);
     if (ret != ARM_DRIVER_OK) {
         printf("\r\n Error: ADC External trigger disable failed\n");
+        goto error_poweroff;
+    }
+
+    /* Stop ADC */
+    ret = ADCdrv->Stop();
+    if(ret != ARM_DRIVER_OK){
+        printf("\r\n Error: ADC Stop failed\n");
         goto error_poweroff;
     }
 

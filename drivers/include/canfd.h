@@ -169,8 +169,19 @@ typedef struct _CANFD_Type
 #define CANFD_LIMIT_ERR_WARN_LMT(x)              ((x << CANFD_LIMIT_ERR_WARN_LMT_Pos) & (CANFD_LIMIT_ERR_WARN_LMT_Msk))
 
 /* Macros for Error and Arbitration Lost Capture Register */
-#define CANFD_EALCAP_KIND_OF_ERROR_Pos           (5U)
-#define CANFD_EALCAP_KIND_OF_ERROR_Msk           (7U << CANFD_EALCAP_KIND_OF_ERROR_Pos)
+#define CANFD_EALCAP_KOER_Pos                    (5U)
+#define CANFD_EALCAP_KOER_Msk                    (7U << CANFD_EALCAP_KOER_Pos)
+
+/* Macros for Kind Errors */
+#define CANFD_EALCAP_KOER_NONE                   (0U)
+#define CANFD_EALCAP_KOER_BIT                    (1U)
+#define CANFD_EALCAP_KOER_FORM                   (2U)
+#define CANFD_EALCAP_KOER_STUFF                  (3U)
+#define CANFD_EALCAP_KOER_ACK                    (4U)
+#define CANFD_EALCAP_KOER_CRC                    (5U)
+#define CANFD_EALCAP_KOER_OTHER                  (6U)
+
+/* Macros for Arbitration Lost Capture Register */
 #define CANFD_EALCAP_ARBTR_LOST_CAPTURE_Pos      (0U)
 #define CANFD_EALCAP_ARBTR_LOST_CAPTURE_Msk      (31U << CANFD_EALCAP_ARBTR_LOST_CAPTURE_Pos)
 
@@ -263,10 +274,10 @@ typedef struct _CANFD_Type
 #define CANFD_MSG_DLC(x)                         (x & CANFD_MSG_DLC_Msk)
 
 /* Macros for Bit time segments */
-#define CANFD_BIT_PROP_SEG_Pos                   0U
-#define CANFD_BIT_PHASE_SEG1_Pos                 8U
-#define CANFD_BIT_PHASE_SEG2_Pos                 16
-#define CANFD_BIT_SJW_Pos                        24U
+#define CANFD_BIT_PROP_SEG_Pos                   (0U)
+#define CANFD_BIT_PHASE_SEG1_Pos                 (8U)
+#define CANFD_BIT_PHASE_SEG2_Pos                 (16)
+#define CANFD_BIT_SJW_Pos                        (24U)
 
 /* Macros for Interrupt events */
 #define CANFD_TX_ABORT_EVENT                     (1U << 0U)
@@ -327,7 +338,7 @@ typedef struct _tbuf_regs_t
 
 /* CANFD Receive Buffer Registers' structure:
  * for Hardware register access */
-typedef struct _rbuf_regs_t
+typedef volatile const struct _rbuf_regs_t
 {
     uint32_t    can_id;
     uint8_t     control;
@@ -390,12 +401,19 @@ static inline void canfd_reset(CANFD_Type* canfd)
   \fn          static inline CANFD_BUS_STATUS canfd_get_bus_status(CANFD_Type* canfd)
   \brief       Fetches the current bus status
   \param[in]   canfd : Pointer to the CANFD register map
-  \return      bus state - CANFD_BUS_STATUS_ON/CANFD_BUS_STATUS_OFF
+  \return      bus status - CANFD_BUS_STATUS_ON/CANFD_BUS_STATUS_OFF
 */
 static inline CANFD_BUS_STATUS canfd_get_bus_status(CANFD_Type* canfd)
 {
     /* Returns current bus status*/
-    return (canfd->CANFD_CFG_STAT & CANFD_CFG_STAT_BUS_OFF_STATUS);
+    if(canfd->CANFD_CFG_STAT & CANFD_CFG_STAT_BUS_OFF_STATUS)
+    {
+        return CANFD_BUS_STATUS_OFF;
+    }
+    else
+    {
+        return CANFD_BUS_STATUS_ON;
+    }
 }
 
 /**
@@ -417,7 +435,8 @@ static inline bool canfd_tx_active(CANFD_Type* canfd)
 */
 static inline bool canfd_comm_active(CANFD_Type* canfd)
 {
-    return (canfd->CANFD_CFG_STAT & (CANFD_CFG_STAT_TACTIVE_STATUS | CANFD_CFG_STAT_RACTIVE_STATUS));
+    return (canfd->CANFD_CFG_STAT & (CANFD_CFG_STAT_TACTIVE_STATUS |
+                                     CANFD_CFG_STAT_RACTIVE_STATUS));
 }
 
 /**
@@ -440,18 +459,6 @@ static inline uint8_t canfd_get_tx_error_count(CANFD_Type* canfd)
 static inline uint8_t canfd_get_rx_error_count(CANFD_Type* canfd)
 {
     return canfd->CANFD_RECNT;
-}
-
-/**
-  \fn          static inline CANFD_MSG_ERROR canfd_get_last_error_code(CANFD_Type* canfd)
-  \brief       Fetches the latest error occurred
-  \param[in]   canfd : Pointer to the CANFD register map
-  \return      last found error type
-*/
-static inline CANFD_MSG_ERROR canfd_get_last_error_code(CANFD_Type* canfd)
-{
-    return ((canfd->CANFD_EALCAP & CANFD_EALCAP_KIND_OF_ERROR_Msk)
-                                    >> CANFD_EALCAP_KIND_OF_ERROR_Pos);
 }
 
 /**
@@ -523,13 +530,15 @@ static inline bool canfd_acpt_fltr_configured(CANFD_Type* canfd)
 }
 
 /**
-  \fn          static inline void canfd_disable_acpt_fltr(CANFD_Type* canfd, const uint8_t filter)
+  \fn          static inline void canfd_disable_acpt_fltr(CANFD_Type* canfd,
+                                                          const uint8_t filter)
   \brief       Resets and disables the particular acceptance filter
   \param[in]   canfd  : Pointer to the CANFD register map
   \param[in]   filter : Acceptance filter number
   \return      none
 */
-static inline void canfd_disable_acpt_fltr(CANFD_Type* canfd, const uint8_t filter)
+static inline void canfd_disable_acpt_fltr(CANFD_Type* canfd,
+                                           const uint8_t filter)
 {
     /* Disable filter */
     canfd->CANFD_ACF_EN_0 &= ~(1U << filter);
@@ -646,8 +655,9 @@ static inline void canfd_clear_interrupts(CANFD_Type* canfd)
 static inline void canfd_enable_normal_mode(CANFD_Type* canfd)
 {
     /* Disables the CANFD reset, Internal and External loopback*/
-    canfd->CANFD_CFG_STAT &= ~(CANFD_CFG_STAT_RESET | CANFD_CFG_STAT_LOOPBACK_MODE_INTERNAL |
-                              CANFD_CFG_STAT_LOOPBACK_MODE_EXTERNAL);
+    canfd->CANFD_CFG_STAT &= ~(CANFD_CFG_STAT_RESET                     |
+                               CANFD_CFG_STAT_LOOPBACK_MODE_INTERNAL    |
+                               CANFD_CFG_STAT_LOOPBACK_MODE_EXTERNAL);
 
     /* Disables Listen only mode */
     canfd->CANFD_TCMD     &= ~CANFD_TCMD_LISTEN_ONLY_MODE;
@@ -667,7 +677,8 @@ static inline void canfd_enable_normal_mode(CANFD_Type* canfd)
 static inline void canfd_enable_external_loop_back_mode(CANFD_Type* canfd)
 {
     /* Disables the CANFD reset, Internal and External loopback*/
-    canfd->CANFD_CFG_STAT &= ~(CANFD_CFG_STAT_RESET | CANFD_CFG_STAT_LOOPBACK_MODE_INTERNAL);
+    canfd->CANFD_CFG_STAT &= ~(CANFD_CFG_STAT_RESET                     |
+                               CANFD_CFG_STAT_LOOPBACK_MODE_INTERNAL);
 
     /* Disables Listen only mode */
     canfd->CANFD_TCMD     &= ~CANFD_TCMD_LISTEN_ONLY_MODE;
@@ -691,7 +702,8 @@ static inline void canfd_enable_external_loop_back_mode(CANFD_Type* canfd)
 static inline void canfd_enable_internal_loop_back_mode(CANFD_Type* canfd)
 {
     /* Disables the CANFD reset, Internal and External loopback*/
-    canfd->CANFD_CFG_STAT  &= ~(CANFD_CFG_STAT_RESET | CANFD_CFG_STAT_LOOPBACK_MODE_EXTERNAL);
+    canfd->CANFD_CFG_STAT  &= ~(CANFD_CFG_STAT_RESET                    |
+                                CANFD_CFG_STAT_LOOPBACK_MODE_EXTERNAL);
 
     /* Disables Listen only mode */
     canfd->CANFD_TCMD      &= ~CANFD_TCMD_LISTEN_ONLY_MODE;
@@ -714,7 +726,8 @@ static inline void canfd_enable_internal_loop_back_mode(CANFD_Type* canfd)
 static inline void canfd_enable_listen_only_mode(CANFD_Type* canfd)
 {
     /* Disables the CANFD reset, Internal and External loopback*/
-    canfd->CANFD_CFG_STAT &= ~(CANFD_CFG_STAT_RESET | CANFD_CFG_STAT_LOOPBACK_MODE_INTERNAL |
+    canfd->CANFD_CFG_STAT &= ~(CANFD_CFG_STAT_RESET                     |
+                               CANFD_CFG_STAT_LOOPBACK_MODE_INTERNAL    |
                                CANFD_CFG_STAT_LOOPBACK_MODE_EXTERNAL);
 
     /* Disables CANFD Tx interrupts */
@@ -730,7 +743,8 @@ static inline void canfd_enable_listen_only_mode(CANFD_Type* canfd)
 
 /**
   \fn          void canfd_set_nominal_bit_time(CANFD_Type* canfd,
-  \                       const uint32_t bitrate_seg, const uint8_t prescaler)
+  \                                            const uint32_t bitrate_seg,
+  \                                            const uint8_t prescaler)
   \brief       Sets the slow speed bit-timing of CANFD instance.
   \param[in]   canfd       : Pointer to the CANFD register map
   \param[in]   bitrate_seg : Segments - Propagation, Sampling
@@ -738,11 +752,13 @@ static inline void canfd_enable_listen_only_mode(CANFD_Type* canfd)
   \return      none
 */
 void canfd_set_nominal_bit_time(CANFD_Type* canfd,
-               const uint32_t bitrate_seg, const uint8_t prescaler);
+                                const uint32_t bitrate_seg,
+                                const uint8_t prescaler);
 
 /**
   \fn          void canfd_set_fd_bit_time(CANFD_Type* canfd,
-  \                  const uint32_t bitrate_seg, const uint8_t prescaler)
+  \                                       const uint32_t bitrate_seg,
+  \                                       const uint8_t prescaler)
   \brief       Sets the fast speed bit-timing of CANFD instance.
   \param[in]   canfd       : Pointer to the CANFD register map
   \param[in]   bitrate_seg : Segments - Propagation, Sampling
@@ -750,11 +766,15 @@ void canfd_set_nominal_bit_time(CANFD_Type* canfd,
   \return      none
 */
 void canfd_set_fd_bit_time(CANFD_Type* canfd,
-          const uint32_t bitrate_seg, const uint8_t prescaler);
+                           const uint32_t bitrate_seg,
+                           const uint8_t prescaler);
 
 /**
-  \fn          void canfd_enable_acpt_fltr(CANFD_Type* canfd, const uint8_t filter,
-                                     const uint32_t ac_code, uint32_t ac_mask, const CANFD_ACPT_FLTR_OP op_code
+  \fn          void canfd_enable_acpt_fltr(CANFD_Type* canfd,
+  \                                        const uint8_t filter,
+  \                                        const uint32_t ac_code,
+  \                                        uint32_t ac_mask,
+  \                                        const CANFD_ACPT_FLTR_OP op_code
   \brief       Configures and enables the particular acceptance filter.
   \param[in]   canfd   : Pointer to the CANFD register map
   \param[in]   filter  : Acceptance filter number
@@ -764,7 +784,8 @@ void canfd_set_fd_bit_time(CANFD_Type* canfd,
   \return      none
 */
 void canfd_enable_acpt_fltr(CANFD_Type* canfd, const uint8_t filter,
-                            const uint32_t ac_code, uint32_t ac_mask, const CANFD_ACPT_FLTR_OP op_code);
+                            const uint32_t ac_code, uint32_t ac_mask,
+                            const CANFD_ACPT_FLTR_OP op_code);
 
 /**
   \fn          CANFD_ACPT_FLTR_STATUS canfd_get_acpt_fltr_status(CANFD_Type* canfd,
@@ -774,11 +795,15 @@ void canfd_enable_acpt_fltr(CANFD_Type* canfd, const uint8_t filter,
   \param[in]   filter : Acceptance filter number
   \return      status of the filter (Free/Occupied)
 */
-CANFD_ACPT_FLTR_STATUS canfd_get_acpt_fltr_status(CANFD_Type* canfd, const uint8_t filter);
+CANFD_ACPT_FLTR_STATUS canfd_get_acpt_fltr_status(CANFD_Type* canfd,
+                                                  const uint8_t filter);
 
 /**
-  \fn          void canfd_get_acpt_fltr_data(CANFD_Type* canfd, const uint8_t filter,
-                                             uint32_t *ac_code, uint32_t *ac_mask, const CANFD_ACPT_FLTR_OP op_code)
+  \fn          void canfd_get_acpt_fltr_data(CANFD_Type* canfd,
+  \                                          const uint8_t filter,
+  \                                          uint32_t *ac_code,
+  \                                          uint32_t *ac_mask,
+  \                                          const CANFD_ACPT_FLTR_OP op_code)
   \brief       Retrieves the acceptance filter data.
   \param[in]   canfd   : Pointer to the CANFD register map
   \param[in]   filter  : Acceptance filter number
@@ -788,7 +813,8 @@ CANFD_ACPT_FLTR_STATUS canfd_get_acpt_fltr_status(CANFD_Type* canfd, const uint8
   \return      none
 */
 void canfd_get_acpt_fltr_data(CANFD_Type* canfd, const uint8_t filter,
-                              uint32_t *ac_code, uint32_t *ac_mask, const CANFD_ACPT_FLTR_OP op_code);
+                              uint32_t *ac_code, uint32_t *ac_mask,
+                              const CANFD_ACPT_FLTR_OP op_code);
 
 /**
   \fn          void canfd_setup_tx_retrans(CANFD_Type* canfd, const bool enable)
@@ -801,7 +827,8 @@ void canfd_setup_tx_retrans(CANFD_Type* canfd, const bool enable);
 
 /**
   \fn          void canfd_setup_tx_delay_comp(CANFD_Type* canfd,
-                            const uint8_t offset, const bool enable)
+  \                                           const uint8_t offset,
+  \                                           const bool enable)
   \brief       Enables/Disables the Tx delay compensation
   \param[in]   canfd  : Pointer to the CANFD register map
   \param[in]   offset : Secondary sampling point offest value
@@ -809,17 +836,26 @@ void canfd_setup_tx_retrans(CANFD_Type* canfd, const bool enable);
   \return      none
 */
 void canfd_setup_tx_delay_comp(CANFD_Type* canfd,
-                      const uint8_t offset, const bool enable);
+                               const uint8_t offset,
+                               const bool enable);
 
 /**
   \fn          void canfd_set_err_warn_limit(CANFD_Type* canfd,
-                                             const uint8_t ewl)
+  \                                          const uint8_t ewl)
   \brief       Configures Warning limits for errors
   \param[in]   canfd : Pointer to the CANFD register map
   \param[in]   ewl   : Limit value for Error warning
   \return      none
 */
 void canfd_set_err_warn_limit(CANFD_Type* canfd, const uint8_t ewl);
+
+/**
+  \fn          CANFD_MSG_ERROR canfd_get_last_error_code(CANFD_Type* canfd)
+  \brief       Fetches the latest error occurred
+  \param[in]   canfd : Pointer to the CANFD register map
+  \return      last found error type
+*/
+CANFD_MSG_ERROR canfd_get_last_error_code(CANFD_Type* canfd);
 
 /**
   \fn          void canfd_send(CANFD_Type* canfd, canfd_tx_info_t tx_header,
@@ -831,11 +867,11 @@ void canfd_set_err_warn_limit(CANFD_Type* canfd, const uint8_t ewl);
   \return      none
 */
 void canfd_send(CANFD_Type* canfd, const canfd_tx_info_t tx_header,
-                          const uint8_t *data, const uint8_t size);
+                const uint8_t *data, const uint8_t size);
 
 /**
   \fn          void canfd_receive(CANFD_Type* canfd,
-  \                             canfd_data_transfer_t *dest_data))
+  \                               canfd_data_transfer_t *dest_data))
   \brief       Fetches the data from Rx buffer
   \param[in]   canfd         : Pointer to the CANFD register map
   \param[in]   dest_data     : Destination Data pointer

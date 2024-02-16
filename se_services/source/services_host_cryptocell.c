@@ -25,7 +25,11 @@
 #include "services_lib_api.h"
 #include "services_lib_protocol.h"
 #include "services_lib_ids.h"
+#if defined(A32_LINUX)
+#include "a32_linux.h"
+#else
 #include "system_utils.h"
+#endif
 
 /*******************************************************************************
  *  M A C R O   D E F I N E S
@@ -122,7 +126,7 @@ uint32_t SERVICES_cryptocell_mbedtls_aes_init(uint32_t services_handle,
   uint32_t err = SERVICES_send_request(services_handle, 
                                        SERVICE_CRYPTOCELL_MBEDTLS_AES_INIT, 
                                        NULL);
-  UNUSED(error_code);
+  *error_code = 0;
   return err;
 }
 

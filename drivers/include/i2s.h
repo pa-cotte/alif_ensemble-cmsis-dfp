@@ -85,6 +85,7 @@ typedef struct {                                      /*!< I2S Structure        
 
 /*!< FIFO Depth for Tx & Rx  */
 #define I2S_FIFO_DEPTH                  16
+#define I2S_FIFO_TRIGGER_LEVEL_MAX      15
 
 /* Register fields and masks */
 
@@ -222,45 +223,22 @@ typedef enum _I2S_WLEN {
 } I2S_WLEN;
 
 /**
- * enum I2S_FIFO_TRIGGER_LEVEL
- * I2S FIFO Trigger level
- */
-typedef enum _I2S_FIFO_TRIGGER_LEVEL {
-    I2S_FIFO_TRIGGER_LEVEL_1,       /*!< I2S FIFO Trigger level 1  */
-    I2S_FIFO_TRIGGER_LEVEL_2,       /*!< I2S FIFO Trigger level 2  */
-    I2S_FIFO_TRIGGER_LEVEL_3,       /*!< I2S FIFO Trigger level 3  */
-    I2S_FIFO_TRIGGER_LEVEL_4,       /*!< I2S FIFO Trigger level 4  */
-    I2S_FIFO_TRIGGER_LEVEL_5,       /*!< I2S FIFO Trigger level 5  */
-    I2S_FIFO_TRIGGER_LEVEL_6,       /*!< I2S FIFO Trigger level 6  */
-    I2S_FIFO_TRIGGER_LEVEL_7,       /*!< I2S FIFO Trigger level 8  */
-    I2S_FIFO_TRIGGER_LEVEL_8,       /*!< I2S FIFO Trigger level 9  */
-    I2S_FIFO_TRIGGER_LEVEL_9,       /*!< I2S FIFO Trigger level 10 */
-    I2S_FIFO_TRIGGER_LEVEL_10,      /*!< I2S FIFO Trigger level 11 */
-    I2S_FIFO_TRIGGER_LEVEL_11,      /*!< I2S FIFO Trigger level 12 */
-    I2S_FIFO_TRIGGER_LEVEL_12,      /*!< I2S FIFO Trigger level 13 */
-    I2S_FIFO_TRIGGER_LEVEL_13,      /*!< I2S FIFO Trigger level 14 */
-    I2S_FIFO_TRIGGER_LEVEL_14,      /*!< I2S FIFO Trigger level 15 */
-    I2S_FIFO_TRIGGER_LEVEL_15,      /*!< I2S FIFO Trigger level 16 */
-    I2S_FIFO_TRIGGER_LEVEL_16,      /*!< I2S FIFO Trigger level 17 */
-
-    I2S_FIFO_TRIGGER_LEVEL_MAX
-} I2S_FIFO_TRIGGER_LEVEL;
-
-/**
  * enum I2S_TRANSFER_STATUS.
  * Status of an ongoing I2S transfer.
  */
 typedef enum _I2S_TRANSFER_STATUS {
-    I2S_TRANSFER_STATUS_NONE          = (0U),  /**< Transfer status none         */
-    I2S_TRANSFER_STATUS_COMPLETE      = (1U << 0),  /**< Transfer status complete     */
-    I2S_TRANSFER_STATUS_RX_OVERFLOW   = (1U << 1),  /**< Transfer status Rx overflow  */
-    I2S_TRANSFER_STATUS_TX_OVERFLOW   = (1U << 2)   /**< Transfer status Rx overflow  */
+    I2S_TRANSFER_STATUS_NONE          = (0U),       /**< Transfer status none         */
+    I2S_TRANSFER_STATUS_TX_COMPLETE   = (1U << 0),  /**< TX Transfer status complete  */
+    I2S_TRANSFER_STATUS_RX_COMPLETE   = (1U << 1),  /**< RX Transfer status complete  */
+    I2S_TRANSFER_STATUS_RX_OVERFLOW   = (1U << 2),  /**< Transfer status Rx overflow  */
+    I2S_TRANSFER_STATUS_TX_OVERFLOW   = (1U << 3)   /**< Transfer status Rx overflow  */
 } I2S_TRANSFER_STATUS;
 
 typedef struct _i2s_transfer_t {
     volatile uint32_t               tx_current_cnt;     /**< Current Tx Transfer count                                  */
     volatile uint32_t               rx_current_cnt;     /**< Current Rx Transfer count                                  */
-    uint32_t                        total_cnt;          /**< Total count to transfer                                    */
+    uint32_t                        tx_total_cnt;       /**< Tx Total count to transfer                                 */
+    uint32_t                        rx_total_cnt;       /**< Rx Total count to transfer                                 */
     const void                      *tx_buff;           /**< Pointer to TX buffer                                       */
     void                            *rx_buff;           /**< Pointer to Rx buffer                                       */
     volatile uint32_t               status;             /**< I2S_TRANSFER_STATUS Transfer status                        */
@@ -442,26 +420,26 @@ static inline void i2s_clear_tx_overrun(I2S_Type *i2s)
 
 /**
   \fn          void i2s_set_rx_triggerLevel(I2S_Type *i2s,
-                                            I2S_FIFO_TRIGGER_LEVEL trigger_level)
+                                            uint8_t trigger_level)
   \brief       Set the Trigger Level in RxFIFO
                The channel must be disabled before doing this
   \param[in]   i2s  Pointer to I2S register map
 */
 static inline void i2s_set_rx_triggerLevel(I2S_Type *i2s,
-                                           I2S_FIFO_TRIGGER_LEVEL trigger_level)
+                                           uint8_t trigger_level)
 {
     i2s->I2S_RFCR0 = trigger_level;
 }
 
 /**
   \fn          void i2s_set_tx_triggerLevel(I2S_Type *i2s
-                                            I2S_FIFO_TRIGGER_LEVEL trigger_level)
+                                            uint8_t trigger_level)
   \brief       Set the Trigger Level in TxFIFO
                The channel must be disabled before doing this
   \param[in]   i2s  Pointer to I2S register map
 */
 static inline void i2s_set_tx_triggerLevel(I2S_Type *i2s,
-                                           I2S_FIFO_TRIGGER_LEVEL trigger_level)
+                                           uint8_t trigger_level)
 {
     i2s->I2S_TFCR0 = trigger_level;
 }

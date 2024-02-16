@@ -402,7 +402,7 @@ static int32_t ARM_USART_PowerControl (ARM_POWER_STATE   state,
             if (uart->instance == UART_INSTANCE_LP) /* LPUART */
             {
                 /* update peripheral clock frequency. */
-                uart->clk = (uint32_t)RTSS_HE_CLK;
+                uart->clk = GetSystemCoreClock();
 
                 /* enable LPUART clock. */
                 enable_lpuart_clock();
@@ -422,7 +422,7 @@ static int32_t ARM_USART_PowerControl (ARM_POWER_STATE   state,
                     select_uart_clock_syst_pclk(uart->instance);
 
                     /* update peripheral clock frequency. */
-                    uart->clk = (uint32_t)SYST_PCLK;
+                    uart->clk = GetSystemAPBClock();
                 }
 
                 /* enable UART Clock. */
@@ -652,9 +652,6 @@ static int32_t ARM_USART_Uninitialize (UART_RESOURCES *uart)
     /* reset TX fifo */
     uart_reset_txfifo(uart->regs);
 
-    /* flush-out RX fifo */
-    uart_flush_rxfifo(uart->regs, &(uart->transfer));
-
     /* Reset RX fifo */
     uart_reset_rxfifo(uart->regs);
 
@@ -763,20 +760,6 @@ static int32_t ARM_USART_Send (const void       *data,
     uart->transfer.tx_total_num = num;
     uart->transfer.tx_curr_cnt  = 0U;
 
-    /* No user callback? then use Blocking(Polling) Method. */
-    if(uart->cb_event == NULL)
-    {
-        /* Blocking call(Polling Method),
-         *  this will block till uart sends all the data. */
-        uart_send_blocking(uart->regs, &uart->transfer);
-
-        /* clear TX busy flag */
-        uart->status.tx_busy   = UART_STATUS_FREE;
-
-        /* return from here for Polling Method. */
-        return ARM_DRIVER_OK;
-    }
-
 #if UART_DMA_ENABLE
     /* DMA enable? */
     if(uart->dma_enable)
@@ -811,8 +794,23 @@ static int32_t ARM_USART_Send (const void       *data,
     else
 #endif /* UART_DMA_ENABLE */
     {
-        /* enable transmitter interrupt */
-        uart_enable_tx_irq(uart->regs);
+#if UART_BLOCKING_MODE_ENABLE
+        /* Blocking(Polling) mode enable? */
+        if(uart->blocking_mode)
+        {
+            /* Blocking call(Polling Method),
+             *  this will block till uart sends all the data. */
+            uart_send_blocking(uart->regs, &uart->transfer);
+
+            /* clear TX busy flag */
+            uart->status.tx_busy   = UART_STATUS_FREE;
+        }
+        else
+#endif /* UART_BLOCKING_MODE_ENABLE */
+        {
+            /* enable transmitter interrupt */
+            uart_enable_tx_irq(uart->regs);
+        }
     }
 
     return ARM_DRIVER_OK;
@@ -874,20 +872,6 @@ static int32_t ARM_USART_Receive (void             *data,
     uart->transfer.rx_total_num    = num;
     uart->transfer.rx_curr_cnt     = 0U;
 
-    /* No user callback? then use Blocking(Polling) Method. */
-    if(uart->cb_event == NULL)
-    {
-        /* Blocking call(Polling Method),
-         *  this will block till uart receives all the data. */
-        uart_receive_blocking(uart->regs, &uart->transfer);
-
-        /* clear RX busy flag */
-        uart->status.rx_busy   = UART_STATUS_FREE;
-
-        /* return from here for Polling Method. */
-        return ARM_DRIVER_OK;
-    }
-
 #if UART_DMA_ENABLE
     /* DMA enable? */
     if(uart->dma_enable)
@@ -922,8 +906,23 @@ static int32_t ARM_USART_Receive (void             *data,
     else
 #endif /* UART_DMA_ENABLE */
     {
-        /* enable receiver interrupt */
-        uart_enable_rx_irq(uart->regs);
+#if UART_BLOCKING_MODE_ENABLE
+        /* Blocking(Polling) mode enable? */
+        if(uart->blocking_mode)
+        {
+            /* Blocking call(Polling Method),
+             *  this will block till uart receives all the data. */
+            uart_receive_blocking(uart->regs, &uart->transfer);
+
+            /* clear RX busy flag */
+            uart->status.rx_busy   = UART_STATUS_FREE;
+        }
+        else
+#endif /* UART_BLOCKING_MODE_ENABLE */
+        {
+            /* enable receiver interrupt */
+            uart_enable_rx_irq(uart->regs);
+        }
     }
 
     return ARM_DRIVER_OK;
@@ -972,11 +971,8 @@ static uint32_t ARM_USART_GetTxCount (UART_RESOURCES *uart)
 #if UART_DMA_ENABLE
     uint32_t tx_current_cnt = 0;
 
-    /* for only DMA case
-     *  not required for Polling(callback=Null)/Interrupt
-     */
     /* DMA enable? */
-    if( (uart->dma_enable) && (uart->cb_event) )
+    if(uart->dma_enable)
     {
         /* Get the current transfer count */
         UART_DMA_GetStatus(&uart->dma_cfg->dma_tx, &tx_current_cnt);
@@ -1001,11 +997,8 @@ static uint32_t ARM_USART_GetRxCount (UART_RESOURCES *uart)
 #if UART_DMA_ENABLE
     uint32_t rx_current_cnt = 0;
 
-    /* for only DMA case
-     *  not required for Polling(callback=Null)/Interrupt
-     */
     /* DMA enable? */
-    if( (uart->dma_enable) && (uart->cb_event) )
+    if(uart->dma_enable)
     {
         /* Get the current transfer count */
         UART_DMA_GetStatus(&uart->dma_cfg->dma_rx, &rx_current_cnt);
@@ -1332,9 +1325,6 @@ static int32_t ARM_USART_Control (uint32_t         control,
             /* disable receiver interrupt */
             uart_disable_rx_irq(uart->regs);
 
-            /* flush-out rx fifo */
-            uart_flush_rxfifo(uart->regs, &(uart->transfer));
-
             /* Reset rx fifo */
             uart_reset_rxfifo(uart->regs);
 
@@ -1635,6 +1625,10 @@ static UART_RESOURCES UART0 =
     .dma_cfg          = &UART0_DMA_HW_CONFIG,
 #endif
 
+#if UART_BLOCKING_MODE_ENABLE
+    .blocking_mode    = RTE_UART0_BLOCKING_MODE_ENABLE,
+#endif
+
 #if RS485_SUPPORT /* UART0 does not support RS485 */
     .rs485_cfg        = {0},
 #endif /* END of RS485_SUPPORT */
@@ -1797,6 +1791,10 @@ static UART_RESOURCES UART1 =
     .dmatx_cb         = UART1_DMATxCallback,
     .dmarx_cb         = UART1_DMARxCallback,
     .dma_cfg          = &UART1_DMA_HW_CONFIG,
+#endif
+
+#if UART_BLOCKING_MODE_ENABLE
+    .blocking_mode    = RTE_UART1_BLOCKING_MODE_ENABLE,
 #endif
 
 #if RS485_SUPPORT /* UART1 does not support RS485 */
@@ -1964,6 +1962,10 @@ static UART_RESOURCES UART2 =
     .dma_cfg          = &UART2_DMA_HW_CONFIG,
 #endif
 
+#if UART_BLOCKING_MODE_ENABLE
+    .blocking_mode    = RTE_UART2_BLOCKING_MODE_ENABLE,
+#endif
+
 #if RS485_SUPPORT /* UART2 does not support RS485 */
     .rs485_cfg        = {0},
 #endif /* END of RS485_SUPPORT */
@@ -2128,6 +2130,10 @@ static UART_RESOURCES UART3 =
     .dma_cfg          = &UART3_DMA_HW_CONFIG,
 #endif
 
+#if UART_BLOCKING_MODE_ENABLE
+    .blocking_mode    = RTE_UART3_BLOCKING_MODE_ENABLE,
+#endif
+
 #if RS485_SUPPORT /* UART3 does not support RS485 */
     .rs485_cfg        = {0},
 #endif /* END of RS485_SUPPORT */
@@ -2290,6 +2296,10 @@ static UART_RESOURCES UART4 =
     .dmatx_cb         = UART4_DMATxCallback,
     .dmarx_cb         = UART4_DMARxCallback,
     .dma_cfg          = &UART4_DMA_HW_CONFIG,
+#endif
+
+#if UART_BLOCKING_MODE_ENABLE
+    .blocking_mode    = RTE_UART4_BLOCKING_MODE_ENABLE,
 #endif
 
 #if RS485_SUPPORT /* RS485_SUPPORT */
@@ -2467,6 +2477,10 @@ static UART_RESOURCES UART5 =
     .dma_cfg          = &UART5_DMA_HW_CONFIG,
 #endif
 
+#if UART_BLOCKING_MODE_ENABLE
+    .blocking_mode    = RTE_UART5_BLOCKING_MODE_ENABLE,
+#endif
+
 #if RS485_SUPPORT /* RS485_SUPPORT */
 
 #if RTE_UART5_RS485_ENABLE
@@ -2640,6 +2654,10 @@ static UART_RESOURCES UART6 =
     .dmatx_cb         = UART6_DMATxCallback,
     .dmarx_cb         = UART6_DMARxCallback,
     .dma_cfg          = &UART6_DMA_HW_CONFIG,
+#endif
+
+#if UART_BLOCKING_MODE_ENABLE
+    .blocking_mode    = RTE_UART6_BLOCKING_MODE_ENABLE,
 #endif
 
 #if RS485_SUPPORT /* RS485_SUPPORT */
@@ -2817,6 +2835,10 @@ static UART_RESOURCES UART7 =
     .dma_cfg          = &UART7_DMA_HW_CONFIG,
 #endif
 
+#if UART_BLOCKING_MODE_ENABLE
+    .blocking_mode    = RTE_UART7_BLOCKING_MODE_ENABLE,
+#endif
+
 #if RS485_SUPPORT /* RS485_SUPPORT */
 
 #if RTE_UART7_RS485_ENABLE
@@ -2990,6 +3012,10 @@ static UART_RESOURCES LPUART =
     .dmatx_cb         = LPUART_DMATxCallback,
     .dmarx_cb         = LPUART_DMARxCallback,
     .dma_cfg          = &LPUART_DMA_HW_CONFIG,
+#endif
+
+#if UART_BLOCKING_MODE_ENABLE
+    .blocking_mode    = RTE_LPUART_BLOCKING_MODE_ENABLE,
 #endif
 
 #if RS485_SUPPORT /* LPUART does not support RS485 */

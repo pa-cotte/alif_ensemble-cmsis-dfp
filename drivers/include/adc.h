@@ -51,6 +51,7 @@ typedef struct {
 
 /****ADC24 sample width macros****/
 #define ADC24_SAMPLE_HOLD_ENABLE_Pos             (16)          /* ADC24 enable sample hold bit          */
+#define ADC12_SAMPLE_WIDTH_Msk                   (0XFFFF)     /* ADC sample width mask                 */
 
 /****ADC Differential mask macros****/
 #define ADC120_DIFFERENTIAL_ENABLE               (1UL << 1)    /* ADC instance 0 differential enable position */
@@ -91,11 +92,15 @@ typedef struct {
 
 /****limit Macros****/
 #define ADC_CLOCK_DIV_MIN_VALUE                   2           /* ADC Clock divisor minimum value        */
-#define ADC_CLOCK_DIV_MAX_VALUE                   64          /* ADC Clock divisor maximum value        */
+#define ADC_CLOCK_DIV_MAX_VALUE                   16          /* ADC Clock divisor maximum value        */
 #define ADC_AVG_SAMPLES_FOR_AVG_MIN               2           /* ADC Average sample for Avergae minimum */
 #define ADC_AVG_SAMPLES_FOR_AVG_MAX               256         /* ADC Average sample for Avergae maximum */
+#define ADC_24_BIAS_MAX_VALUE                     4           /* ADC24 bias max input value             */
+#define ADC_24_OUPUT_RATE_MAX_VALUE               4           /* ADC24 output rate max input value      */
 #define ADC_SAMPLE_WIDTH_MIN_VALUE                2           /* ADC sample width minimum value         */
 #define ADC_SAMPLE_WIDTH_MAX_VALUE                32          /* ADC sample width maximum value         */
+#define ADC_24_SAMPLE_WIDTH_MAX_VALUE             65536      /* ADC24 sample hold 16th bit             */
+#define ADC_PGA_GAIN_MAX_VALUE                    7           /* ADC pga gain max input value           */
 
 /****Shift bit macro****/
 #define ADC_SHIFT_BIT                             16          /* Shift bit                  */
@@ -281,16 +286,16 @@ static inline void adc_set_avg_sample(ADC_Type *adc, uint32_t average)
  */
 static inline void adc_set_sample_width(ADC_Type *adc, uint32_t width)
 {
-    adc->ADC_SAMPLE_WIDTH = width;
+    adc->ADC_SAMPLE_WIDTH = (adc->ADC_SAMPLE_WIDTH & ~ADC12_SAMPLE_WIDTH_Msk) | width;
 }
 
 /*
- * @func         : void set_adc24_sample_width(ADC_Type *adc)
+ * @func         : void adc24_enable_continous_sample(ADC_Type *adc)
  * @brief        : Set sample hold bit for adc24
  * @parameter[1] : adc   : Pointer to the ADC register map
  * @return       : NONE
  */
-static inline void set_adc24_sample_width(ADC_Type *adc)
+static inline void adc24_enable_continous_sample(ADC_Type *adc)
 {
     adc->ADC_SAMPLE_WIDTH = (1 << ADC24_SAMPLE_HOLD_ENABLE_Pos);
 }

@@ -23,6 +23,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include <stdint.h>
+#include <stdbool.h>
 #include "system_utils.h"
 
 
@@ -187,6 +188,84 @@ uint32_t pm_peek_subsystem_reset_status(void);
   @return   Reset status return (ORred PM_RESET_STATUS values)
 */
 uint32_t pm_get_subsystem_reset_status(void);
+
+/**
+  @fn       bool pm_core_wakeup_is_spurious(void)
+  @brief    Check if the wakeup reason is due to spurious wakeup
+            RTSS domain can wake-up if any of the peripherals inside the
+            domain are accessed from outside.
+
+  @note     Should be called before pm_get_subsystem_reset_status()
+
+  @note     Usage:
+
+            if (pm_core_wakeup_is_spurious())
+            {
+                pm_core_enable_manual_pd_sequencing();
+                pm_core_request_subsys_off_from_spurious_wakeup();
+            }
+            else
+            {
+                pm_core_enable_automatic_pd_sequencing();
+            }
+
+  @return   Returns false if the reason for wakeup is due to pending interrupt,
+            else return true
+*/
+bool pm_core_wakeup_is_spurious(void);
+
+/**
+  @fn       void pm_core_enable_automatic_pd_sequencing(void)
+  @brief    Enable automatic power sequence on entry to low-power state by EWIC
+            If this is enabled, all the NVIC enabled status will be propagated
+            to EWIC automatically.
+  @note     At reset, this is enabled.
+  @return   None
+*/
+void pm_core_enable_automatic_pd_sequencing(void);
+
+/**
+  @fn       void pm_core_enable_manual_pd_sequencing(void)
+  @brief    Disable automatic sequence on entry to low-power state by EWIC.
+            Application should take care of enabling the EWIC mask before entering
+            to low-power state.
+  @return   None
+*/
+void pm_core_enable_manual_pd_sequencing(void);
+
+/**
+  @fn       void pm_core_enable_automatic_pu_sequencing(void)
+  @brief    Enable automatic sequence on power-up by EWIC
+            If this is enabled, all the EWIC pending status will be propagated
+            to NVIC automatically.
+  @note     At reset, this is enabled.
+  @return   None
+*/
+void pm_core_enable_automatic_pu_sequencing(void);
+
+/**
+  @fn       void pm_core_enable_manual_pu_sequencing(void)
+  @brief    Disable automatic sequence on power-up by EWIC.
+            Application should take care of verifying the pending EWIC status
+            and act accordingly.
+  @return   None
+*/
+void pm_core_enable_manual_pu_sequencing(void);
+
+/**
+  @fn       void pm_core_request_subsys_off_from_spurious_wakeup(void)
+  @brief    Routine to go back to subsystem off from spurious wakeups
+
+            This is essentially a subset of the function
+            pm_core_enter_deep_sleep_request_subsys_off().
+
+            This should be called in the very boot up state before enabling the
+            caches.
+
+            This should be part of the root_sections in the linker
+  @return   None
+*/
+void pm_core_request_subsys_off_from_spurious_wakeup(void);
 
 #ifdef  __cplusplus
 }

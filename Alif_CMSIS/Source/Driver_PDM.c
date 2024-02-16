@@ -404,6 +404,31 @@ static int32_t PDMx_Uninitialize(PDM_RESOURCES *PDM)
 }
 
 /**
+ @fn          int32_t PDMx_Channel_Config(PDM_CH_CONFIG *cnfg, PDM_RESOURCES *PDM)
+ @brief       PDM channel configurations
+ @param[in]   PDM : Pointer to PDM resources
+ @param[in]   cngf : Pointer to PDM_CH_CONFIG
+ @return      ARM_DRIVER_OK : if function return successfully
+ */
+static int32_t PDMx_Channel_Config(PDM_CH_CONFIG *cnfg, PDM_RESOURCES *PDM)
+{
+    if(PDM->state.initialized == 0)
+        return ARM_DRIVER_ERROR;
+
+    if(PDM->state.powered == 0)
+        return ARM_DRIVER_ERROR;
+
+    /* Store the fir coefficient values */
+    pdm_set_fir_coeff(PDM->regs, cnfg->ch_num, cnfg->ch_fir_coef);
+
+    /* Store the iir coefficient values */
+    pdm_set_ch_iir_coef(PDM->regs, cnfg->ch_num, cnfg->ch_iir_coef);
+
+    return ARM_DRIVER_OK;
+}
+
+
+/**
  @fn           int32_t PDMx_PowerControl (ARM_POWER_STATE state,
                                           PDM_RESOURCES *PDM)
  @brief        CMSIS-DRIVER PDM power control
@@ -559,19 +584,21 @@ static int32_t PDMx_PowerControl(ARM_POWER_STATE state,
 
 /**
  @fn           int32_t PDMx_Control (uint32_t control,
-                                    uint32_t arg,
+                                    uint32_t arg1, uint32_t arg2,
                                     PDM_RESOURCES *PDM)
  @brief        CMSIS-Driver PDM control.
                Control PDM Interface.
  @param[in]    control : Operation \ref Driver_PDM.h : PDM control codes
- @param[in]    arg     : Argument of operation (optional)
+ @param[in]    arg1     : Argument of operation (optional)
+  @param[in]   arg2     : Argument of operation (optional)
  @param[in]    PDM     : Pointer to PDM resources
  @return       ARM_DRIVER_ERROR_PARAMETER  : if PDM device is invalid
                ARM_DRIVER_OK               : if PDM successfully uninitialized or already not initialized
  */
 static int32_t PDMx_Control (uint32_t control,
-                            uint32_t arg,
-                            PDM_RESOURCES *PDM)
+                             uint32_t arg1,
+                             uint32_t arg2,
+                             PDM_RESOURCES *PDM)
 {
     /* Verify whether the driver is initialized and powered*/
     if(PDM->state.powered == 0)
@@ -583,97 +610,119 @@ static int32_t PDMx_Control (uint32_t control,
     {
     case ARM_PDM_SELECT_RESOLUTION:
 
-        if(arg != ARM_PDM_16BIT_RESOLUTION)
+        if(arg1 != ARM_PDM_16BIT_RESOLUTION)
         {
             return ARM_DRIVER_ERROR_UNSUPPORTED;
         }
 
         break;
 
+    case ARM_PDM_CHANNEL_PHASE:
+
+        if(arg1 > PDM_MAX_CHANNEL || arg2 > PDM_MAX_PHASE_CTRL)
+            return ARM_DRIVER_ERROR_PARAMETER;
+
+        /* Store the channel phase control values */
+        pdm_set_ch_phase(PDM->regs, arg1, arg2 );
+
+        break;
+
+    case ARM_PDM_CHANNEL_GAIN:
+
+        if(arg1 > PDM_MAX_CHANNEL || arg2 > PDM_MAX_GAIN_CTRL)
+            return ARM_DRIVER_ERROR_PARAMETER;
+
+        /* Store the Gain value */
+        pdm_set_ch_gain(PDM->regs, arg1, arg2 );
+
+        break;
+
+    case ARM_PDM_CHANNEL_PEAK_DETECT_TH:
+
+        if(arg1 > PDM_MAX_CHANNEL)
+            return ARM_DRIVER_ERROR_PARAMETER;
+
+        /* Store the Peak Detector Threshold */
+        pdm_set_peak_detect_th(PDM->regs, arg1, arg2 );
+
+        break;
+
+    case ARM_PDM_CHANNEL_PEAK_DETECT_ITV:
+
+        if(arg1 > PDM_MAX_CHANNEL)
+            return ARM_DRIVER_ERROR_PARAMETER;
+
+        /* Store the Peak Detector Interval */
+        pdm_set_peak_detect_itv(PDM->regs, arg1, arg2 );
+
+        break;
+
     case ARM_PDM_SELECT_CHANNEL:
+
+        if(arg2 != NULL)
+            return ARM_DRIVER_ERROR_PARAMETER;
 
         /* Clear PDM channels */
         pdm_clear_channel(PDM->regs);
 
         /* Enable PDM multi channel */
-        pdm_enable_multi_ch(PDM->regs, arg);
+        pdm_enable_multi_ch(PDM->regs, arg1);
 
         break;
 
     case ARM_PDM_MODE:
 
+        if(arg2 != NULL)
+            return ARM_DRIVER_ERROR_PARAMETER;
+
         /* Clear the PDM modes */
         pdm_clear_modes(PDM->regs);
 
         /* Select the PDM modes */
-        pdm_enable_modes(PDM->regs, arg);
+        pdm_enable_modes(PDM->regs, arg1);
 
         break;
 
     case  ARM_PDM_BYPASS_IIR_FILTER:
 
+        if(arg2 != NULL)
+            return ARM_DRIVER_ERROR_PARAMETER;
+
         /* To select the Bypass IIR filter */
-        pdm_bypass_iir(PDM->regs, arg);
+        pdm_bypass_iir(PDM->regs, arg1);
 
         break;
 
     case ARM_PDM_BYPASS_FIR_FILTER:
 
+        if(arg2 != NULL)
+            return ARM_DRIVER_ERROR_PARAMETER;
+
         /* To select the Bypass FIR filter */
-        pdm_bypass_fir(PDM->regs, arg);
+        pdm_bypass_fir(PDM->regs, arg1);
 
         break;
 
     case ARM_PDM_PEAK_DETECTION_NODE:
 
+        if(arg2 != NULL)
+            return ARM_DRIVER_ERROR_PARAMETER;
+
         /* To select the peak detect node */
-        pdm_peak_detect(PDM->regs, arg);
+        pdm_peak_detect(PDM->regs, arg1);
 
         break;
 
     case ARM_PDM_SAMPLE_ADVANCE:
 
+        if(arg2 != NULL)
+            return ARM_DRIVER_ERROR_PARAMETER;
+
         /* To select the sample advance */
-        pdm_sample_advance(PDM->regs, arg);
+        pdm_sample_advance(PDM->regs, arg1);
 
         break;
     }
-    return ARM_DRIVER_OK;
-}
-
-/**
- @fn          int32_t PDMx_Channel_Config(PDM_CH_CONFIG *cnfg, PDM_RESOURCES *PDM)
- @brief       PDM channel configurations
- @param[in]   PDM : Pointer to PDM resources
- @param[in]   cngf : Pointer to PDM_CH_CONFIG
- @return      ARM_DRIVER_OK : if function return successfully
- */
-static int32_t PDMx_Channel_Config(PDM_CH_CONFIG *cnfg, PDM_RESOURCES *PDM)
-{
-    if(PDM->state.initialized == 0)
-        return ARM_DRIVER_ERROR;
-
-    if(PDM->state.powered == 0)
-        return ARM_DRIVER_ERROR;
-
-    /* Store the fir coefficient values */
-    pdm_set_fir_coeff(PDM->regs, cnfg->ch_num, cnfg->ch_fir_coef);
-
-    /* Store the iirr coefficient values */
-    pdm_set_ch_iir_coef(PDM->regs, cnfg->ch_num, cnfg->ch_iir_coef );
-
-    /* Store the channel phase control values */
-    pdm_set_ch_phase(PDM->regs, cnfg->ch_num, cnfg->ch_phase );
-
-    /* Store the Gain value */
-    pdm_set_ch_gain(PDM->regs, cnfg->ch_num, cnfg->ch_gain );
-
-    /* Store the Peak Detector Threshold */
-    pdm_set_peak_detect_th(PDM->regs, cnfg->ch_num, cnfg->ch_peak_detect_th);
-
-    /* Store the Peak Detector Interval */
-    pdm_set_peak_detect_itv(PDM->regs, cnfg->ch_num, cnfg->ch_peak_detect_itv);
-
     return ARM_DRIVER_OK;
 }
 
@@ -832,16 +881,16 @@ static int32_t PDM_PowerControl(ARM_POWER_STATE state)
     return (PDMx_PowerControl(state, &PDM));
 }
 
-/* Function Name: PDM_Control */
-static int32_t PDM_Control(uint32_t control, uint32_t arg)
+/* Function Name: PDM_Channel_Config */
+static int32_t PDM_Channel_Config(PDM_CH_CONFIG *cnfg)
 {
-    return (PDMx_Control(control, arg, &PDM));
+    return (PDMx_Channel_Config(cnfg, &PDM));
 }
 
-/* Function Name: PDM_Channel_Config */
-static int32_t PDM_Channel_Config(PDM_CH_CONFIG *cap_cnfg)
+/* Function Name: PDM_Control */
+static int32_t PDM_Control(uint32_t control, uint32_t arg1, uint32_t arg2)
 {
-    return (PDMx_Channel_Config(cap_cnfg, &PDM));
+    return (PDMx_Control(control, arg1, arg2, &PDM));
 }
 
 /* Function Name: PDM_Receive */
@@ -946,9 +995,9 @@ static int32_t LPPDM_PowerControl(ARM_POWER_STATE status)
 }
 
 /* Function Name: LPPDM_Control */
-static int32_t LPPDM_Control(uint32_t control, uint32_t arg)
+static int32_t LPPDM_Control(uint32_t control, uint32_t arg1, uint32_t arg2)
 {
-    return (PDMx_Control(control, arg, &LPPDM));
+    return (PDMx_Control(control, arg1, arg2, &LPPDM));
 }
 
 /* Function Name: LPPDM_Capture */

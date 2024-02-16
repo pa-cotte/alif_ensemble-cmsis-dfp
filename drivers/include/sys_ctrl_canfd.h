@@ -25,9 +25,9 @@
 #include <stdbool.h>
 #include "peripheral_types.h"
 
-#define CANFD_CLK_SRC_38P4MHZ_CLK           38400000U                             /* 38.4 MHz */
-#define CANFD_CLK_SRC_160MHZ_CLK            160000000U                            /* 160 MHz  */
-#define CANFD_MAX_CLK_SPEED                 (CANFD_CLK_SRC_160MHZ_CLK / 2U)       /* 80 MHz   */
+#define CANFD_CLK_SRC_38P4MHZ_CLK           38400000U                        /* 38.4 MHz */
+#define CANFD_CLK_SRC_160MHZ_CLK            160000000U                       /* 160 MHz  */
+#define CANFD_MAX_CLK_SPEED                 (CANFD_CLK_SRC_160MHZ_CLK / 2U)  /* 80 MHz   */
 
 #define CANFD_FD_EN                         (1U << 20U)
 #define CANFD_CLK_SEL_Pos                   (16U)
@@ -35,13 +35,15 @@
 #define CANFD_CLK_DIVISOR_Pos               (0U)
 
 /**
-  \fn          static inline void canfd_clock_enable(const bool clk_sel, const uint8_t clk_div)
+  \fn          static inline void canfd_clock_enable(const bool clk_sel,
+  \                                                  const uint8_t clk_div)
   \brief       Enables CANFD clock
   \param[in]   clk_sel : Clock selection (160 MHz / 38.4 MHz)
   \param[in]   clk_div : clock divider value
   \return      none
 */
-static inline void canfd_clock_enable(const bool clk_sel, const uint8_t clk_div)
+static inline void canfd_clock_enable(const bool clk_sel,
+                                      const uint8_t clk_div)
 {
     /* Enables clock for CANFD module */
     CLKCTL_PER_SLV->CANFD_CTRL = (CANFD_CLK_EN                       |

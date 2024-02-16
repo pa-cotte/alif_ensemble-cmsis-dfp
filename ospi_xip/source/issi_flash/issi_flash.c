@@ -37,7 +37,7 @@ static void issi_write_enable(ospi_flash_cfg_t *ospi_cfg)
 
 /**
   \fn         static uint8_t issi_decode_id(ospi_flash_cfg_t *ospi_cfg, uint8_t *buffer)
-  \brief      Decode ID if read in SDR mode
+  \brief      Decode the Device ID sent by the flash in single mode but read in octal mode.
   \param[in]  ospi_cfg : OSPI configuration structure
   \param[in]  buffer : ID read in SDR mode
   \return     ID of NOR flash
@@ -48,7 +48,6 @@ static uint8_t issi_decode_id(ospi_flash_cfg_t *ospi_cfg, uint8_t *buffer)
 
     for (iter = 0 ; iter < 8; iter++)
     {
-        /* Since SPI controller supports octal mode only, so 1 byte of data sent by flash will be distributed over 8 byte data read */
         if (*buffer & 0x2)
         {
             id |= 1;

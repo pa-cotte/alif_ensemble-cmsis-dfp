@@ -134,6 +134,7 @@ typedef struct {
   uint32_t rx_desc_id;               /**< Index of the current Rx DMA descriptor */
   uint32_t tx_desc_id;               /**< Index of the current Tx DMA descriptor */
   IRQn_Type irq;                     /**< IRQ number of the Ethernet MAC instance */
+  uint8_t irq_priority;              /**< priority of the ETH MAC IRQ */
   uint8_t flags;                     /**< MAC driver flags */
   uint8_t *frame_end;                /**< Current frame address, to support fragments */
 } MAC_DEV;

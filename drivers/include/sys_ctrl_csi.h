@@ -80,7 +80,7 @@ static inline void set_csi_pixel_clk(CSI_PIX_CLKSEL clksel, uint32_t div)
 
         case CSI_PIX_CLKSEL_480MZ:
         {
-            CLKCTL_PER_MST->CSI_PIXCLK_CTRL |= ~CSI_PIXCLK_CTRL_CLK_SEL;
+            CLKCTL_PER_MST->CSI_PIXCLK_CTRL |= CSI_PIXCLK_CTRL_CLK_SEL;
             break;
         }
 
