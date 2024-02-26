@@ -374,7 +374,7 @@ static int32_t CDC200_control (uint32_t control, uint32_t arg,
 
             cdc_info.sh_rld                  = CDC_SHADOW_RELOAD_IMR;
 
-            layer_info.fb_addr               = LocalToGlobal(arg);
+            layer_info.fb_addr               = LocalToGlobal((void*)arg);
             layer_info.line_length_in_pixels = display_panel->hactive_time;
             layer_info.const_alpha           = cdc->const_alpha;
             layer_info.blend_factor          = cdc->blend_factor;
@@ -439,7 +439,7 @@ static int32_t CDC200_control (uint32_t control, uint32_t arg,
             }
 
             /*Update the buffer start address for new buffer content*/
-            cdc_set_layer_fb_addr (cdc->regs, CDC_LAYER_1, CDC_SHADOW_RELOAD_IMR, LocalToGlobal(arg));
+            cdc_set_layer_fb_addr (cdc->regs, CDC_LAYER_1, CDC_SHADOW_RELOAD_IMR, LocalToGlobal((void*)arg));
             break;
         }
 
@@ -480,7 +480,7 @@ static int32_t CDC200_control (uint32_t control, uint32_t arg,
             layer_info.pix_format = (CDC_PIXEL_FORMAT)cdc200_layer_info->pix_format;
             layer_info.const_alpha = cdc200_layer_info->const_alpha;
             layer_info.blend_factor = (CDC_BLEND_FACTOR)cdc200_layer_info->blend_factor;
-            layer_info.fb_addr = LocalToGlobal(cdc200_layer_info->fb_addr);
+            layer_info.fb_addr = LocalToGlobal((void*)cdc200_layer_info->fb_addr);
             layer_info.line_length_in_pixels = cdc200_layer_info->line_length_in_pixels;
             layer_info.num_lines = cdc200_layer_info->num_lines;
 

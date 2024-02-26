@@ -325,7 +325,7 @@ static int32_t ARM_SPI_Initialize(SPI_RESOURCES *SPI, ARM_SPI_SignalEvent_t cb_e
 
     bool blocking_mode = false;
 #if SPI_BLOCKING_MODE_ENABLE
-    if (!SPI->blocking_mode)
+    if (SPI->blocking_mode)
          blocking_mode = true;
 #endif
 

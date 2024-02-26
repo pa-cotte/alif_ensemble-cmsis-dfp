@@ -379,9 +379,11 @@ void i2c_clk_cfg(I3C_Type           *i3c,
                  uint32_t            core_clk,
                  I3C_I2C_SPEED_MODE  i2c_speed_mode)
 {
-  unsigned long core_rate, core_period;
-  uint16_t hcnt, lcnt;
-  uint32_t scl_timing;
+  unsigned long core_rate   = 0U;
+  unsigned long core_period = 0U;
+  uint16_t hcnt             = 0U;
+  uint16_t lcnt             = 0U;
+  uint32_t scl_timing       = 0U;
 
   core_rate = core_clk;
 
