@@ -80,28 +80,30 @@ typedef enum _CANFD_FRAME
 
 /* CANFD instance object */
 extern ARM_DRIVER_CAN  Driver_CANFD;
-static ARM_DRIVER_CAN* CANFD_instance    = &Driver_CANFD;
+static ARM_DRIVER_CAN* CANFD_instance           = &Driver_CANFD;
 
 /* File Global variables */
-volatile bool msg_rx_complete            = false;
-volatile bool msg_tx_complete            = true;
-volatile bool bus_error                  = false;
-volatile bool passive_mode               = false;
-volatile bool rx_buf_overrun             = false;
-bool          stop_execution             = false;
-volatile bool rx_msg_error               = false;
-uint8_t       tx_obj_id                  = 255U;
-uint8_t       rx_obj_id                  = 255U;
-ARM_CAN_MSG_INFO tx_msg_header;
-ARM_CAN_MSG_INFO rx_msg_header;
-uint8_t          tx_msg_size             = 0U;
-volatile uint8_t rx_msg_size             = 8U;
-uint8_t tx_data[CANFD_MAX_MSG_SIZE + 1U] = "!!!!!!***** CANFD TESTAPP Message Communication Test *****!!!!!!";
-uint8_t rx_data[CANFD_MAX_MSG_SIZE + 1U];
+static volatile bool msg_rx_complete            = false;
+static volatile bool msg_tx_complete            = true;
+static volatile bool bus_error                  = false;
+static volatile bool passive_mode               = false;
+static volatile bool rx_buf_overrun             = false;
+static bool          stop_execution             = false;
+static volatile bool rx_msg_error               = false;
+static uint8_t       tx_obj_id                  = 255U;
+static uint8_t       rx_obj_id                  = 255U;
+static ARM_CAN_MSG_INFO tx_msg_header;
+static ARM_CAN_MSG_INFO rx_msg_header;
+static uint8_t          tx_msg_size             = 0U;
+static volatile uint8_t rx_msg_size             = 8U;
+static uint8_t tx_data[CANFD_MAX_MSG_SIZE + 1U] =
+               "!!!!!!***** CANFD TESTAPP Message Communication Test *****!!!!!!";
+static uint8_t rx_data[CANFD_MAX_MSG_SIZE + 1U];
 
 /* A map between Data length code to the payload size */
-const uint8_t canfd_len_dlc_map[0x10U] =
-              {0U, 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U, 12U, 16U, 20U, 24U, 32U, 48U, 64U};
+static const uint8_t canfd_len_dlc_map[0x10U] =
+                     {0U, 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U,
+                      12U, 16U, 20U, 24U, 32U, 48U, 64U};
 
 /* Support functions */
 static void canfd_process_rx_message(void);
@@ -141,13 +143,13 @@ static int32_t pinmux_config(void)
 }
 
 /**
- * @fn      void cb_unit_event(uint32_t event)
+ * @fn      static void cb_unit_event(uint32_t event)
  * @brief   CANFD Callback function for events
  * @note    none
  * @param   event: CANFD event
  * @retval  none
  */
-void cb_unit_event(uint32_t event)
+static void cb_unit_event(uint32_t event)
 {
     if(event == ARM_CAN_EVENT_UNIT_ACTIVE)
     {
@@ -171,23 +173,25 @@ void cb_unit_event(uint32_t event)
 }
 
 /**
- * @fn      void cb_object_event(uint32_t obj_idx, uint32_t event)
+ * @fn      static void cb_object_event(uint32_t obj_idx, uint32_t event)
  * @brief   CANFD Callback function for particular object events
  * @note    none
  * @param   obj_idx : Object ID
  * @param   event   : CANFD event
  * @retval  none
  */
-void cb_object_event(uint32_t obj_idx, uint32_t event)
+static void cb_object_event(uint32_t obj_idx, uint32_t event)
 {
-    if((event & ARM_CAN_EVENT_RECEIVE) || (event & ARM_CAN_EVENT_RECEIVE_OVERRUN))
+    if((event & ARM_CAN_EVENT_RECEIVE) ||
+       (event & ARM_CAN_EVENT_RECEIVE_OVERRUN))
     {
         /* Invokes Message Read function if the Receive Object matches */
         if(obj_idx == rx_obj_id)
         {
             /*  Reading arrived CAN Message */
             if(CANFD_instance->MessageRead(obj_idx, &rx_msg_header,
-                                rx_data, rx_msg_size) != ARM_DRIVER_OK)
+                                           rx_data,
+                                           rx_msg_size) != ARM_DRIVER_OK)
             {
                 rx_msg_error = true;
             }
@@ -457,13 +461,13 @@ int main()
 }
 
 /**
- * @fn      void canfd_check_error(void)
+ * @fn      static void canfd_check_error(void)
  * @brief   Checks for the errors in CANFD
  * @note    none
  * @param   none
  * @retval  none
  */
-void canfd_check_error(void)
+static void canfd_check_error(void)
 {
     ARM_CAN_STATUS cur_sts;
 
@@ -488,13 +492,13 @@ void canfd_check_error(void)
 }
 
 /**
- * @fn      void canfd_process_rx_message(void)
+ * @fn      static void canfd_process_rx_message(void)
  * @brief   Processes the received messages
  * @note    none
  * @param   none
  * @retval  none
  */
-void canfd_process_rx_message(void)
+static void canfd_process_rx_message(void)
 {
     uint8_t iter = 0U;
 
@@ -551,16 +555,16 @@ void canfd_process_rx_message(void)
 }
 
 /**
- * @fn      void canfd_transmit_message(void)
+ * @fn      static void canfd_transmit_message(void)
  * @brief   Prepares and sends message
  * @note    none
  * @param   none
  * @retval  none
  */
-void canfd_transmit_message(const CANFD_FRAME msg_type)
+static void canfd_transmit_message(const CANFD_FRAME msg_type)
 {
-    uint32_t status = ARM_DRIVER_OK;
-    uint8_t iter;
+    int32_t status = ARM_DRIVER_OK;
+    uint8_t iter   = 0U;
 
     switch(msg_type)
     {

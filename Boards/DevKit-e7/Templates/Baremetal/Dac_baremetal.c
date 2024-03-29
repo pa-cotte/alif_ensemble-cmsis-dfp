@@ -121,6 +121,20 @@ static void dac_demo(void)
         goto error_uninitialize;
     }
 
+    /* Set DAC IBAIS output current */
+    ret = DACdrv->Control(ARM_DAC_SELECT_IBIAS_OUTPUT, ARM_DAC_1100UA_OUT_CUR);
+    if(ret != ARM_DRIVER_OK){
+        printf("\r\n Error: Setting DAC output current failed failed\n");
+        goto error_uninitialize;
+    }
+
+        /* Set DAC capacitance  */
+    ret = DACdrv->Control(ARM_DAC_CAPACITANCE_HP_MODE, ARM_DAC_8PF_CAPACITANCE);
+    if(ret != ARM_DRIVER_OK){
+        printf("\r\n Error: Setting DAC capacitance failed\n");
+        goto error_uninitialize;
+    }
+
     /* start dac */
     ret = DACdrv->Start();
     if(ret != ARM_DRIVER_OK){

@@ -35,6 +35,7 @@ typedef struct _ADC_RESOURCES
     IRQn_Type               intr_done1_irq_num;        /* ADC all sample taken interrupt number                */
     IRQn_Type               intr_cmpa_irq_num;         /* ADC comparator A interrupt number                    */
     IRQn_Type               intr_cmpb_irq_num;         /* ADC comparator B interrupt number                    */
+    uint8_t                 ext_trig_val;              /* ADC external trigger enable value                    */
     uint8_t                 busy;                      /* ADC conversion busy flag                             */
     uint32_t                intr_done0_irq_priority;   /* ADC done0 Irq Priority                               */
     uint32_t                intr_done1_irq_priority;   /* ADC done1 Irq Priority                               */
@@ -48,7 +49,6 @@ typedef struct _ADC_RESOURCES
     uint32_t                shift_left_or_right;       /* ADC shift bit left or right                          */
     bool                    differential_enable;       /* ADC12 differential enable                            */
     bool                    comparator_enable;         /* ADC12 comparator enable                              */
-    bool                    vcm_rdiv_en;               /* ADC12 Voltage common mode enable                     */
     uint8_t                 comparator_bias;           /* ADC12 comparator bias                                */
     uint32_t                pga_enable;                /* ADC Programmable gain amplifier(PGA) enable          */
     uint32_t                pga_value;                 /* ADC Programmable gain amplifier(PGA)                 */

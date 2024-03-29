@@ -31,12 +31,19 @@ extern "c"
 
 /* Control code for Analog Comparator */
 #define ARM_CMP_POLARITY_CONTROL               (0X01UL)  /* Used to invert the comparator input signal before processing */
-#define ARM_CMP_WINDOW_CONTROL                 (0X02UL)  /* Used to define when to look at the comparator input */
-#define ARM_CMP_FILTER_CONTROL                 (0X03UL)  /* Used to define how many times the comparator input must be sampled */
-#define ARM_CMP_PRESCALER_CONTROL              (0X04UL)  /* comparator input will be sampled for every prescaler value */
+#define ARM_CMP_WINDOW_CONTROL_ENABLE          (0X02UL)  /* Window control used to define when to look at the comparator input */
+#define ARM_CMP_WINDOW_CONTROL_DISABLE         (0X03UL)  /* Disable the window control */
+#define ARM_CMP_FILTER_CONTROL                 (0X04UL)  /* Used to define how many times the comparator input must be sampled */
+#define ARM_CMP_PRESCALER_CONTROL              (0X05UL)  /* comparator input will be sampled for every prescaler value */
 
 /* Comparator event */
-#define ARM_CMP_FILTER_EVENT_OCCURRED       (0x01UL)  /* Filter event occurred */
+#define ARM_CMP_FILTER_EVENT_OCCURRED          (0x01UL)  /* Filter event occurred */
+
+/* CMP window control macros */
+#define ARM_CMP_WINDOW_CONTROL_SRC_0           (0x0UL)   /* ARM CMP Window control SOURCE 0 */
+#define ARM_CMP_WINDOW_CONTROL_SRC_1           (0x01UL)  /* ARM CMP Window control SOURCE 1 */
+#define ARM_CMP_WINDOW_CONTROL_SRC_2           (0x02UL)  /* ARM CMP Window control SOURCE 2 */
+#define ARM_CMP_WINDOW_CONTROL_SRC_3           (0x03UL)  /* ARM CMP Window control SOURCE 3 */
 
 /* Function documentation */
 /**

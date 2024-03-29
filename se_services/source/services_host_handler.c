@@ -33,7 +33,6 @@ static services_lib_t s_services_host = {0};
 static uint32_t s_pkt_buffer_address_global = 0x0;
 static volatile bool s_service_req_ack_received = false;
 static volatile bool s_new_msg_received = false;
-static SERVICES_sender_callback s_callback;
 
 /**
  * @brief Function to initialize the services library
@@ -54,6 +53,8 @@ void SERVICES_initialize(services_lib_t * init_params)
  * @brief  Function to synchronize with SE
  * @param  services_handle Services library handle
  * @return total number of retries
+ *          if nonnegative, success
+ *          if negative, failure
  */
 int SERVICES_synchronize_with_se(uint32_t services_handle)
 {
@@ -71,7 +72,7 @@ int SERVICES_synchronize_with_se(uint32_t services_handle)
     }
     if (retry_count > MAX_RETRY)
     {
-      break;
+      return -retry_count;
     }
   }
 
@@ -148,17 +149,14 @@ void SERVICES_rx_msg_callback(uint32_t receiver_id,
                               uint32_t channel_number, 
                               uint32_t service_data)
 {
+  UNUSED(receiver_id);
+  UNUSED(channel_number);
+
   // Validate response by checking the message
   if (s_pkt_buffer_address_global == service_data)
   {
     s_services_host.fn_print_msg("[SERVICESLIB] rx_msg=0x%x \n", service_data);
     s_new_msg_received = true;
-	
-    if (s_callback)
-    {
-      s_callback(receiver_id, service_data);
-      s_callback = NULL;
-    }	
   }
   else
   {
@@ -166,7 +164,6 @@ void SERVICES_rx_msg_callback(uint32_t receiver_id,
     s_services_host.fn_print_msg("[SERVICESLIB] Invalid msg=0x%x\n",
                                   service_data);
   }
-  UNUSED(channel_number);
 }
 
 /**
@@ -201,19 +198,18 @@ uint32_t SERVICES_send_msg(uint32_t services_handle, uint32_t services_data)
  * @param services_handle
  * @param service_id
  * @param service_data
- * @param callback
+ * @param service_timeout
  * @return
  */
 uint32_t SERVICES_send_request(uint32_t services_handle, 
                                uint16_t service_id, 
-                               SERVICES_sender_callback callback)
+                               uint32_t service_timeout)
 {
   s_services_host.fn_print_msg("[SERVICESLIB] Send service request 0x%x\n", 
                                service_id);
 
   s_new_msg_received = false;
-  s_callback = callback;
-  
+
   /**
    * Initialize the service request common header
    */
@@ -224,23 +220,20 @@ uint32_t SERVICES_send_request(uint32_t services_handle,
   /**
    * Send a message to the SE
    */
-  uint32_t global_address = s_pkt_buffer_address_global;
 
-  SCB_CleanDCache_by_Addr((uint32_t*)global_address, SERVICES_MAX_PACKET_BUFFER_SIZE);
+  RTSS_CleanDCache_by_Addr((uint32_t *)s_services_host.packet_buffer_address,
+                          SERVICES_MAX_PACKET_BUFFER_SIZE);
 
-  uint32_t ret = SERVICES_send_msg(services_handle, global_address);
+  uint32_t ret = SERVICES_send_msg(services_handle, s_pkt_buffer_address_global);
   if (ret != SERVICES_REQ_SUCCESS)
   {
       return ret;
   }
 
-  if (callback) // asynchronous invocation, don't wait for the service response
-  {
-    return 0;  
-  }
-
   // Wait for response from SE
-  uint32_t timeout = s_services_host.wait_timeout;
+  uint32_t timeout = service_timeout != DEFAULT_TIMEOUT
+                     ? service_timeout :
+                     s_services_host.wait_timeout;
   while (!s_new_msg_received)
   {
     timeout--;  
@@ -255,7 +248,7 @@ uint32_t SERVICES_send_request(uint32_t services_handle,
     //}
   }
 
-  SCB_InvalidateDCache_by_Addr((uint32_t*)global_address,
+  RTSS_InvalidateDCache_by_Addr((uint32_t*)s_services_host.packet_buffer_address,
                                 SERVICES_MAX_PACKET_BUFFER_SIZE);
 
   return p_header->hdr_error_code;

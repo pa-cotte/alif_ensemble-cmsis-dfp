@@ -147,7 +147,6 @@ static int32_t ADC_PowerControl(ADC_RESOURCES *ADC, ARM_POWER_STATE state)
 
             /* set differential control for ADC12 */
             adc_set_differential_ctrl(ADC->drv_instance,
-                                      ADC->vcm_rdiv_en,
                                       ADC->differential_enable);
 
             adc_set_comparator_ctrl(ADC->drv_instance,
@@ -176,12 +175,12 @@ static int32_t ADC_PowerControl(ADC_RESOURCES *ADC, ARM_POWER_STATE state)
                 /* Set adc24 bias from control register */
                 set_adc24_bias(ADC->bias);
 
-                /* set Sample width value for ADC24*/
-                set_adc24_sample_width(ADC->regs);
+                /* Enabling continuous sampling */
+                adc24_enable_continous_sample(ADC->regs);
             }
             else
             {
-                /* set Sample width value for ADC12*/
+                /* set Sample width value for ADC12 */
                 adc_set_sample_width(ADC->regs, ADC->sample_width);
             }
 
@@ -301,16 +300,24 @@ static int32_t ADC_Start( ADC_RESOURCES *ADC)
     /* enable the interrupt(unmask the interrupt 0x0)*/
     adc_unmask_interrupt(ADC->regs);
 
-    /* Start the ADC */
-    if (ADC->conv.mode == ADC_CONV_MODE_SINGLE_SHOT)
+    if (ADC->ext_trig_val)
     {
-        /* Enable single shot conversion */
-        adc_enable_single_shot_conv(ADC->regs);
+        /* Enable the trigger */
+        adc_enable_external_trigger(ADC->regs, ADC->ext_trig_val);
     }
     else
     {
-        /* Enable continuous conversion */
-        adc_enable_continuous_conv(ADC->regs);
+        /* Start the ADC conversion mode */
+        if (ADC->conv.mode == ADC_CONV_MODE_SINGLE_SHOT)
+        {
+            /* Enable single shot conversion */
+            adc_enable_single_shot_conv(ADC->regs);
+        }
+        else
+        {
+            /* Enable continuous conversion */
+            adc_enable_continuous_conv(ADC->regs);
+        }
     }
 
     return ARM_DRIVER_OK;
@@ -328,14 +335,26 @@ static int32_t ADC_Stop(ADC_RESOURCES *ADC)
     if (!(ADC->state & ADC_FLAG_DRV_POWER_DONE))
         return ARM_DRIVER_ERROR;
 
-    /* Disable the adc */
-    if (ADC->conv.mode == ADC_CONV_MODE_SINGLE_SHOT)
+
+    /* Disable the interrupt(mask the interrupt 0xF)*/
+    adc_mask_interrupt(ADC->regs);
+
+    if (ADC->ext_trig_val)
     {
-        adc_disable_single_shot_conv(ADC->regs);
+        /* Disable the trigger */
+        adc_disable_external_trigger(ADC->regs, ADC->ext_trig_val);
     }
     else
     {
-        adc_disable_continuous_conv(ADC->regs);
+        /* Disable the adc */
+        if (ADC->conv.mode == ADC_CONV_MODE_SINGLE_SHOT)
+        {
+            adc_disable_single_shot_conv(ADC->regs);
+        }
+        else
+        {
+            adc_disable_continuous_conv(ADC->regs);
+        }
     }
 
     return ARM_DRIVER_OK;
@@ -480,11 +499,7 @@ static int32_t ADC_Control(ADC_RESOURCES *ADC, uint32_t Control, uint32_t arg)
             if(arg > ADC_EXTERNAL_TRIGGER_MAX_VAL)
                 return ARM_DRIVER_ERROR_PARAMETER;
 
-            /* enable the interrupt(unmask the interrupt 0x0)*/
-            adc_unmask_interrupt(ADC->regs);
-
-            /* Enable the trigger */
-            adc_enable_external_trigger(ADC->regs, arg);
+            ADC->ext_trig_val = arg;
         break;
 
         case ARM_ADC_EXTERNAL_TRIGGER_DISABLE:
@@ -492,8 +507,97 @@ static int32_t ADC_Control(ADC_RESOURCES *ADC, uint32_t Control, uint32_t arg)
             if(arg > ADC_EXTERNAL_TRIGGER_MAX_VAL)
                 return ARM_DRIVER_ERROR_PARAMETER;
 
-            /* Disable the trigger */
-            adc_disable_external_trigger(ADC->regs, arg);
+            ADC->ext_trig_val = arg;
+        break;
+
+        case ARM_ADC_HARDWARE_AVERAGING_CTRL:
+
+            /* argument is power of 2 */
+            if ((arg & (arg - 1)) == 0)
+            {
+                /* Check if the value is between 2 to 256 */
+                if (arg < ADC_AVG_SAMPLES_FOR_AVG_MIN || arg > ADC_AVG_SAMPLES_FOR_AVG_MAX)
+                    return ARM_DRIVER_ERROR;
+            }
+
+            /* set average sample number */
+            adc_set_avg_sample(ADC->regs, arg);
+        break;
+
+        case ARM_ADC_INPUT_CLOCK_DIV_CTRL:
+
+            /* check for CLOCK INPUT */
+             if (arg > ADC_CLOCK_DIV_MIN_VALUE || arg < ADC_CLOCK_DIV_MAX_VALUE)
+                 return ARM_DRIVER_ERROR;
+
+            /* set the clock divisor */
+            adc_set_clk_div(ADC->regs, arg);
+        break;
+
+        case ARM_ADC_SAMPLE_WIDTH_CTRL:
+
+            /* check for sample width input */
+            if (ADC->drv_instance != ADC_INSTANCE_ADC24_0)
+            {
+                if ((arg < ADC_SAMPLE_WIDTH_MIN_VALUE || arg > ADC_SAMPLE_WIDTH_MAX_VALUE))
+                     return ARM_DRIVER_ERROR_PARAMETER;
+            }
+
+            /* set Sample width value for ADC12 and ADC24*/
+            adc_set_sample_width(ADC->regs, arg);
+        break;
+
+        case ARM_ADC_DIFFERENTIAL_MODE_CTRL:
+
+            if (arg)
+            {
+                if (ADC->drv_instance != ADC_INSTANCE_ADC24_0)
+                {
+                    adc_set_differential_ctrl(ADC->drv_instance, ENABLE);
+                }
+
+                /* set pga gain */
+                enable_adc_pga_gain(ADC->drv_instance, ADC->pga_value);
+            }
+            else
+            {
+                /* Disable differential */
+                if (ADC->drv_instance != ADC_INSTANCE_ADC24_0)
+                {
+                    adc_set_differential_ctrl(ADC->drv_instance, DISABLE);
+                }
+                /* Disable pga gain */
+                disable_adc_pga_gain(ADC->drv_instance);
+            }
+        break;
+
+        case ARM_ADC_SET_PGA_GAIN_CTRL:
+
+            /* check for pga gain input */
+            if(arg > ADC_PGA_GAIN_MAX_VALUE)
+                return ARM_DRIVER_ERROR_PARAMETER;
+
+            /* set pga gain */
+            enable_adc_pga_gain(ADC->drv_instance, arg);
+        break;
+
+        case ARM_ADC_24_BIAS_CTRL:
+
+            /* check for bias control input */
+            if(arg > ADC_24_BIAS_MAX_VALUE)
+                return ARM_DRIVER_ERROR_PARAMETER;
+
+            set_adc24_bias(arg);
+        break;
+
+        case ARM_ADC_24_OUTPUT_RATE_CTRL:
+
+            /* check for the arg input */
+            if(arg < ADC_24_OUPUT_RATE_MAX_VALUE)
+                return ARM_DRIVER_ERROR_PARAMETER;
+
+            /* set output rate from control register */
+            set_adc24_output_rate(arg);
         break;
 
         default:
@@ -528,7 +632,6 @@ static ADC_RESOURCES ADC120_RES = {
   .differential_enable     = RTE_ADC120_DIFFERENTIAL_EN,
   .comparator_enable       = RTE_ADC120_COMPARATOR_EN,
   .comparator_bias         = RTE_ADC120_COMPARATOR_BIAS,
-  .vcm_rdiv_en             = RTE_ADC120_VCM_RDIV_EN,
   .pga_enable              = RTE_ADC120_PGA_EN,
   .pga_value               = RTE_ADC120_PGA_GAIN
 };
@@ -779,7 +882,6 @@ static ADC_RESOURCES ADC121_RES = {
   .differential_enable     = RTE_ADC121_DIFFERENTIAL_EN,
   .comparator_enable       = RTE_ADC121_COMPARATOR_EN,
   .comparator_bias         = RTE_ADC121_COMPARATOR_BIAS,
-  .vcm_rdiv_en             = RTE_ADC121_VCM_RDIV_EN,
   .pga_enable              = RTE_ADC121_PGA_EN,
   .pga_value               = RTE_ADC121_PGA_GAIN
 };
@@ -1030,7 +1132,6 @@ static ADC_RESOURCES ADC122_RES = {
   .differential_enable     = RTE_ADC122_DIFFERENTIAL_EN,
   .comparator_enable       = RTE_ADC122_COMPARATOR_EN,
   .comparator_bias         = RTE_ADC122_COMPARATOR_BIAS,
-  .vcm_rdiv_en             = RTE_ADC122_VCM_RDIV_EN,
   .pga_enable              = RTE_ADC122_PGA_EN,
   .pga_value               = RTE_ADC122_PGA_GAIN
 };

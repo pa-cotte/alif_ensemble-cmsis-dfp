@@ -293,7 +293,6 @@ static ARM_I2C_STATUS ARM_LPI2C_GetStatus(const LPI2C_RESOURCES *LPI2C)
 static LPI2C_RESOURCES LPI2C_RES =
 {
   .regs         = (LPI2C_TYPE *)LPI2C_BASE,
-  .clk          = (uint32_t)I2C_PERIPHERAL_CLOCK,
   .irq_num      = (IRQn_Type)LPI2C_IRQ_IRQn,
   .irq_priority = (uint32_t)RTE_LPI2C_IRQ_PRIORITY
 };

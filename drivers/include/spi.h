@@ -10,8 +10,8 @@
 
 /**************************************************************************//**
  * @file     spi.h
- * @author   Girish BN
- * @email    girish.bn@alifsemi.com
+ * @author   Girish BN, Manoj A Murudi
+ * @email    girish.bn@alifsemi.com, manoj.murudi@alifsemi.com
  * @version  V1.0.0
  * @date     20-04-2023
  * @brief    Low Level Header file for SPI.
@@ -205,6 +205,19 @@ typedef struct {
 #define LPSPI_CTRLR0_SSTE_ENABLE                        0x1000000U     /* 0x1 SPI slave select toggle enable */
 #define LPSPI_CTRLR0_SSTE_DISABLE                       0x0000000U     /* 0x0 SPI slave select toggle disable */
 
+/* Microwire Control Register (MWCR) bit Definition, Macros */
+/* Microwire Transfer Mode bit[0] */
+#define SPI_MWCR_MWMOD_SEQUENTIAL_MODE                  0x1U
+#define SPI_MWCR_MWMOD_NON_SEQUENTIAL_MODE              0x0U
+
+/* Microwire Direction control bit[1] */
+#define SPI_MWCR_MDD_TRANSMIT                           0x2U
+#define SPI_MWCR_MDD_RECEIVE                            0x0U
+
+/* Microwire Handshake Interface bit[2] */
+#define SPI_MWCR_MHS_ENABLE                             0x4U
+#define SPI_MWCR_MHS_DISABLE                            0x0U
+
 #define SPI_TXFTLR_TFT_SHIFT                            0U
 #define SPI_TXFTLR_TFT_MASK                             (0xFFFFU << SPI_TXFTLR_TFT_SHIFT)
 #define SPI_TXFTLR_TXFTHR_SHIFT                         16U
@@ -219,6 +232,11 @@ typedef struct {
 
 #define SPI_DMACR_RX_DMA_ENABLE                         (0x1U)
 #define SPI_DMACR_TX_DMA_ENABLE                         (0x2U)
+
+#define SPI_SR_TFNF                                     (0x2U)
+#define SPI_SR_RFNE                                     (0x8U)
+#define SPI_SR_TX_FIFO_EMPTY                            (0x4U)
+#define SPI_SR_BUSY                                     (0x1U)
 
 /****** SPI events *****/
 #define SPI_TX_FIFO_EMPTY_EVENT                         (0x01)      /* Transmit fifo empty interrupt mask*/
@@ -289,7 +307,8 @@ typedef enum _SPI_TRANSFER_STATUS
 typedef struct _spi_transfer_t {
     volatile uint32_t               tx_current_cnt;     /**< Current Tx Transfer count        */
     volatile uint32_t               rx_current_cnt;     /**< Current Rx Transfer count        */
-    uint32_t                        total_cnt;          /**< Total count to transfer          */
+    uint32_t                        tx_total_cnt;       /**< Total count to Tx transfer       */
+    uint32_t                        rx_total_cnt;       /**< Total count to Rx transfer       */
     const uint8_t                   *tx_buff;           /**< Pointer to TX buffer             */
     void                            *rx_buff;           /**< Pointer to Rx buffer             */
     uint32_t                        tx_default_val;     /**< Default value to Transfer        */
@@ -489,6 +508,86 @@ static inline void spi_set_rx_sample_delay(SPI_Type *spi, uint8_t rx_sample_dela
 }
 
 /**
+  \fn          static inline void spi_mw_enable_handshake(SPI_Type *spi)
+  \brief       Enable microwire handshake feature
+  \param[in]   spi       Pointer to the SPI register map
+  \return      none
+*/
+static inline void spi_mw_enable_handshake(SPI_Type *spi)
+{
+    spi_disable(spi);
+    spi->SPI_MWCR |= SPI_MWCR_MHS_ENABLE;
+    spi_enable(spi);
+}
+
+/**
+  \fn          static inline void spi_mw_disable_handshake(SPI_Type *spi)
+  \brief       Disable microwire handshake feature
+  \param[in]   spi       Pointer to the SPI register map
+  \return      none
+*/
+static inline void spi_mw_disable_handshake(SPI_Type *spi)
+{
+    spi_disable(spi);
+    spi->SPI_MWCR |= SPI_MWCR_MHS_DISABLE;
+    spi_enable(spi);
+}
+
+/**
+  \fn          static inline void spi_mw_set_sequential_mode(SPI_Type *spi)
+  \brief       config microwire Sequential transfer mode
+  \param[in]   spi       Pointer to the SPI register map
+  \return      none
+*/
+static inline void spi_mw_set_sequential_mode(SPI_Type *spi)
+{
+    spi_disable(spi);
+    spi->SPI_MWCR |= SPI_MWCR_MWMOD_SEQUENTIAL_MODE;
+    spi_enable(spi);
+}
+
+/**
+  \fn          static inline void spi_mw_set_non_sequential_mode(SPI_Type *spi)
+  \brief       config microwire non-sequential transfer mode
+  \param[in]   spi       Pointer to the SPI register map
+  \return      none
+*/
+static inline void spi_mw_set_non_sequential_mode(SPI_Type *spi)
+{
+    spi_disable(spi);
+    spi->SPI_MWCR |= SPI_MWCR_MWMOD_NON_SEQUENTIAL_MODE;
+    spi_enable(spi);
+}
+
+/**
+  \fn          static inline void lpspi_mw_set_cfs(SPI_Type *lpspi, uint8_t cfs)
+  \brief       set microwire control frame size for lpspi
+  \param[in]   lpspi     Pointer to the SPI register map
+  \param[in]   cfs       control frame size
+  \return      none
+*/
+static inline void lpspi_mw_set_cfs(SPI_Type *lpspi, uint8_t cfs)
+{
+    spi_disable(lpspi);
+    lpspi->SPI_CTRLR0 |= ((cfs - 1) << LPSPI_CTRLR0_CFS);
+    spi_enable(lpspi);
+}
+
+/**
+  \fn          static inline void spi_mw_set_cfs(SPI_Type *spi, uint8_t cfs)
+  \brief       set microwire control frame size for spi
+  \param[in]   spi       Pointer to the SPI register map
+  \param[in]   cfs       control frame size
+  \return      none
+*/
+static inline void spi_mw_set_cfs(SPI_Type *spi, uint8_t cfs)
+{
+    spi_disable(spi);
+    spi->SPI_CTRLR0 |= ((cfs - 1) << SPI_CTRLR0_CFS);
+    spi_enable(spi);
+}
+
+/**
   \fn          void spi_set_mode(SPI_Type *spi, SPI_MODE mode)
   \brief       Set the SPI mode for the SPI instance.
   \param[in]   spi     Pointer to the SPI register map
@@ -596,13 +695,39 @@ void spi_send(SPI_Type *spi);
 void spi_receive(SPI_Type *spi, spi_transfer_t *transfer);
 
 /**
-  \fn          void spi_transfer(SPI_Type *spi, uint32_t total_cnt)
+  \fn          void spi_transfer(SPI_Type *spi)
   \brief       Prepare the SPI instance for transfer
   \param[in]   spi       Pointer to the SPI register map
-  \param[in]   total_cnt total number of data count
   \return      none
 */
-void spi_transfer(SPI_Type *spi, uint32_t total_cnt);
+void spi_transfer(SPI_Type *spi);
+
+/**
+  \fn          void spi_send_blocking(SPI_Type *spi, spi_transfer_t *transfer)
+  \brief       Execute a blocking SPI send described by the transfer structure.
+  \param[in]   spi       Pointer to the SPI register map
+  \param[in]   transfer  Pointer to the SPI transfer structure
+  \return      none
+*/
+void spi_send_blocking(SPI_Type *spi, spi_transfer_t *transfer);
+
+/**
+  \fn          void spi_receive_blocking(SPI_Type *spi, spi_transfer_t *transfer)
+  \brief       Execute a blocking SPI receive described by the transfer structure.
+  \param[in]   spi       Pointer to the SPI register map
+  \param[in]   transfer  Pointer to the SPI transfer structure
+  \return      none
+*/
+void spi_receive_blocking(SPI_Type *spi, spi_transfer_t *transfer);
+
+/**
+  \fn          void spi_transfer_blocking(SPI_Type *spi, spi_transfer_t *transfer)
+  \brief       Execute a blocking SPI transfer described by the transfer structure.
+  \param[in]   spi       Pointer to the SPI register map
+  \param[in]   transfer  Pointer to the SPI transfer structure
+  \return      none
+*/
+void spi_transfer_blocking(SPI_Type *spi, spi_transfer_t *transfer);
 
 /**
   \fn          void lpspi_set_mode(SPI_Type *spi, SPI_MODE mode)
@@ -666,13 +791,39 @@ void lpspi_send(SPI_Type *lpspi);
 void lpspi_receive(SPI_Type *lpspi, uint32_t total_cnt);
 
 /**
-  \fn          void lpspi_transfer(SPI_Type *lpspi, uint32_t total_cnt)
+  \fn          void lpspi_transfer(SPI_Type *lpspi)
   \brief       Prepare the LPSPI instance for transfer
   \param[in]   lpspi      Pointer to the LPSPI register map
-  \param[in]   total_cnt  total number of data count
   \return      none
 */
-void lpspi_transfer(SPI_Type *lpspi, uint32_t total_cnt);
+void lpspi_transfer(SPI_Type *lpspi);
+
+/**
+  \fn          void lpspi_set_sste(SPI_Type *lpspi, bool enable)
+  \brief       Enable/Disable Slave Select Toggle for the LPSPI instance
+  \param[in]   lpspi     Pointer to the SPI register map
+  \param[in]   enable    Enable/Disable control
+  \return      none
+*/
+void lpspi_set_sste(SPI_Type *lpspi, bool enable);
+
+/**
+  \fn          void spi_mw_transmit(SPI_Type *spi, bool is_slave)
+  \brief       config microwire in transmit mode
+  \param[in]   spi       Pointer to the SPI register map
+  \param[in]   is_slave  whether config as master/slave
+  \return      none
+*/
+void spi_mw_transmit(SPI_Type *spi, bool is_slave);
+
+/**
+  \fn          void spi_mw_receive(SPI_Type *spi, spi_transfer_t *transfer)
+  \brief       config microwire in receive mode
+  \param[in]   spi       Pointer to the SPI register map
+  \param[in]   transfer  pointer to transfer structure
+  \return      none
+*/
+void spi_mw_receive(SPI_Type *spi, spi_transfer_t *transfer);
 
 /**
   \fn          void spi_dma_send(SPI_Type *spi)
@@ -692,13 +843,12 @@ void spi_dma_send(SPI_Type *spi);
 void spi_dma_receive(SPI_Type *spi, spi_transfer_t *transfer);
 
 /**
-  \fn          void spi_dma_transfer(SPI_Type *spi, uint32_t total_cnt)
+  \fn          void spi_dma_transfer(SPI_Type *spi)
   \brief       Prepare the SPI instance for DMA transfer
   \param[in]   spi       Pointer to the SPI register map
-  \param[in]   total_cnt total number of data count
   \return      none
 */
-void spi_dma_transfer(SPI_Type *spi, uint32_t total_cnt);
+void spi_dma_transfer(SPI_Type *spi);
 
 /**
   \fn          void lpspi_dma_send(SPI_Type *spi)
@@ -709,31 +859,39 @@ void spi_dma_transfer(SPI_Type *spi, uint32_t total_cnt);
 void lpspi_dma_send(SPI_Type *lpspi);
 
 /**
-  \fn          void lpspi_dma_receive(SPI_Type *lpspi, spi_transfer_t *transfer)
+  \fn          void lpspi_dma_receive(SPI_Type *lpspi, uint32_t total_cnt)
   \brief       Prepare the LPSPI instance for DMA reception
   \param[in]   lpspi     Pointer to the LPSPI register map
-  \param[in]   transfer  Pointer to transfer structure
+  \param[in]   total_cnt total number of data count
   \return      none
 */
-void lpspi_dma_receive(SPI_Type *lpspi, spi_transfer_t *transfer);
+void lpspi_dma_receive(SPI_Type *lpspi, uint32_t total_cnt);
 
 /**
-  \fn          void lpspi_dma_transfer(SPI_Type *lpspi, uint32_t total_cnt)
+  \fn          void lpspi_dma_transfer(SPI_Type *lpspi)
   \brief       Prepare the LPSPI instance for DMA transfer
   \param[in]   lpspi      Pointer to the LPSPI register map
-  \param[in]   total_cnt  total number of data count
   \return      none
 */
-void lpspi_dma_transfer(SPI_Type *lpspi, uint32_t total_cnt);
+void lpspi_dma_transfer(SPI_Type *lpspi);
 
 /**
   \fn          void spi_irq_handler(SPI_Type *spi, spi_master_transfer_t *transfer)
   \brief       Handle interrupts for the SPI instance.
-  \param[in]   spi       Pointer to the SPI register map
-  \param[in]   transfer  The transfer structure for the SPI instance
+  \param[in]   spi         Pointer to the SPI register map
+  \param[in]   transfer    The transfer structure for the SPI instance
   \return      none
 */
 void spi_irq_handler(SPI_Type *spi, spi_transfer_t *transfer);
+
+/**
+  \fn          void spi_mw_irq_handler(SPI_Type *spi, spi_master_transfer_t *transfer)
+  \brief       Handle interrupts for the MW frame format.
+  \param[in]   spi         Pointer to the SPI register map
+  \param[in]   transfer    The transfer structure for the SPI instance
+  \return      none
+*/
+void spi_mw_irq_handler(SPI_Type *spi, spi_transfer_t *transfer);
 #ifdef __cplusplus
 }
 #endif

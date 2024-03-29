@@ -67,23 +67,24 @@
 
 /* CANFD instance object */
 extern ARM_DRIVER_CAN  Driver_CANFD;
-static ARM_DRIVER_CAN* CANFD_instance    = &Driver_CANFD;
+static ARM_DRIVER_CAN* CANFD_instance           = &Driver_CANFD;
 
 /* File Global variables */
-volatile bool msg_rx_complete            = false;
-volatile bool is_msg_read                = false;
-volatile bool bus_error                  = false;
-volatile bool bus_off                    = false;
-volatile bool passive_mode               = false;
-bool          stop_execution             = false;
-uint8_t       rx_obj_id                  = 255U;
-ARM_CAN_MSG_INFO rx_msg_header;
-volatile uint8_t rx_msg_size             = 8U;
-uint8_t rx_data[CANFD_MAX_MSG_SIZE + 1U];
+static volatile bool msg_rx_complete            = false;
+static volatile bool is_msg_read                = false;
+static volatile bool bus_error                  = false;
+static volatile bool bus_off                    = false;
+static volatile bool passive_mode               = false;
+static bool          stop_execution             = false;
+static uint8_t       rx_obj_id                  = 255U;
+static ARM_CAN_MSG_INFO rx_msg_header;
+static volatile uint8_t rx_msg_size             = 8U;
+static uint8_t rx_data[CANFD_MAX_MSG_SIZE + 1U];
 
 /* A map between Data length code to the payload size */
-const uint8_t canfd_len_dlc_map[0x10U] =
-              {0U, 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U, 12U, 16U, 20U, 24U, 32U, 48U, 64U};
+static const uint8_t canfd_len_dlc_map[0x10U] =
+                     {0U, 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U,
+                      12U, 16U, 20U, 24U, 32U, 48U, 64U};
 
 /* Support functions */
 static void canfd_process_rx_message(void);
@@ -122,13 +123,13 @@ static int32_t pinmux_config(void)
 }
 
 /**
- * @fn      void cb_unit_event(uint32_t event)
+ * @fn      static void cb_unit_event(uint32_t event)
  * @brief   CANFD Callback function for events
  * @note    none
  * @param   event: CANFD event
  * @retval  none
  */
-void cb_unit_event(uint32_t event)
+static void cb_unit_event(uint32_t event)
 {
     if(event == ARM_CAN_EVENT_UNIT_ACTIVE)
     {
@@ -152,16 +153,17 @@ void cb_unit_event(uint32_t event)
 }
 
 /**
- * @fn      void cb_object_event(uint32_t obj_idx, uint32_t event)
+ * @fn      static void cb_object_event(uint32_t obj_idx, uint32_t event)
  * @brief   CANFD Callback function for particular object events
  * @note    none
  * @param   obj_idx : Object ID
  * @param   event   : CANFD event
  * @retval  none
  */
-void cb_object_event(uint32_t obj_idx, uint32_t event)
+static void cb_object_event(uint32_t obj_idx, uint32_t event)
 {
-    if((event & ARM_CAN_EVENT_RECEIVE) || (event & ARM_CAN_EVENT_RECEIVE_OVERRUN))
+    if((event & ARM_CAN_EVENT_RECEIVE) ||
+       (event & ARM_CAN_EVENT_RECEIVE_OVERRUN))
     {
         /* Sets msg_rx_complete if the Receive Object matches */
         if(obj_idx == rx_obj_id)
@@ -173,13 +175,13 @@ void cb_object_event(uint32_t obj_idx, uint32_t event)
 }
 
 /**
- * @fn      void canfd_lom_demo_thread_entry(void)
+ * @fn      static void canfd_lom_demo_thread_entry(void)
  * @brief   CANFD Listen only mode Demo
  * @note    none.
  * @param   none
  * @retval  none
  */
-void canfd_lom_demo_thread_entry(void)
+static void canfd_lom_demo_thread_entry(void)
 {
     int32_t ret_val                 = ARM_DRIVER_OK;
     ARM_CAN_CAPABILITIES              can_capabilities;
@@ -394,13 +396,13 @@ int main()
 }
 
 /**
- * @fn      void canfd_check_error(void)
+ * @fn      static void canfd_check_error(void)
  * @brief   Checks for the errors in CANFD
  * @note    none
  * @param   none
  * @retval  none
  */
-void canfd_check_error(void)
+static void canfd_check_error(void)
 {
     ARM_CAN_STATUS cur_sts;
 
@@ -426,7 +428,8 @@ void canfd_check_error(void)
         }
         else
         {
-            printf("Error in CANFD-->Error code: %d\r\n", cur_sts.last_error_code);
+            printf("Error in CANFD-->Error code: %d\r\n",
+                    cur_sts.last_error_code);
         }
         bus_error = false;
     }
@@ -444,13 +447,13 @@ void canfd_check_error(void)
 }
 
 /**
- * @fn      void canfd_process_rx_message(void)
+ * @fn      static void canfd_process_rx_message(void)
  * @brief   Processes the received messages
  * @note    none
  * @param   none
  * @retval  none
  */
-void canfd_process_rx_message(void)
+static void canfd_process_rx_message(void)
 {
     uint8_t iter = 0U;
 
@@ -488,7 +491,8 @@ void canfd_process_rx_message(void)
                     return;
                 }
                 printf("Id:%lu, Len:%d:\r\n    Data:",
-                       (rx_msg_header.id & (~ARM_CAN_ID_IDE_Msk)), rx_msg_size);
+                       (rx_msg_header.id & (~ARM_CAN_ID_IDE_Msk)),
+                       rx_msg_size);
                 for(iter = 0; iter < rx_msg_size; iter++)
                 {
                     printf("%c", rx_data[iter]);
@@ -505,4 +509,3 @@ void canfd_process_rx_message(void)
         stop_execution = true;
     }
 }
-

@@ -28,6 +28,7 @@ static MAC_DEV MAC0 = {
     .cb_event = NULL,
     .frame_end = NULL,
     .irq = (IRQn_Type) ETH_SBD_IRQ_IRQn,
+    .irq_priority = RTE_ETH_MAC_IRQ_PRIORITY,
 };
 
 /* area for descriptors */
@@ -357,7 +358,6 @@ static int32_t Uninitialize(MAC_DEV *dev)
 static int32_t PowerControl(ARM_POWER_STATE state, MAC_DEV *dev)
 {
     int32_t ret, val;
-    uint32_t prioritygroup;
 
     switch (state) {
     case ARM_POWER_OFF:
@@ -387,9 +387,8 @@ static int32_t PowerControl(ARM_POWER_STATE state, MAC_DEV *dev)
         if (ret < 0)
             return ARM_DRIVER_ERROR;
 
-        prioritygroup = NVIC_GetPriorityGrouping();
-        NVIC_SetPriority(dev->irq,
-			    NVIC_EncodePriority(prioritygroup, 0, 0));
+        NVIC_ClearPendingIRQ(dev->irq);
+        NVIC_SetPriority(dev->irq, dev->irq_priority);
         NVIC_EnableIRQ(dev->irq);
 
         dev->flags |= ETH_POWER;

@@ -22,13 +22,13 @@
 
 #include <fcntl.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
 
 #define UNUSED(x) (void)(x)
 
 #if 0
 
 #include <linux/rpmsg.h>
+#include <sys/ioctl.h>
 
 #else
 
@@ -39,6 +39,8 @@ struct rpmsg_endpoint_info
   uint32_t unused2;
 };
 
+int ioctl(int fd, unsigned long request, ...);
+//#define RPMSG_CREATE_EPT_IOCTL  _IOW(0xb5, 0x1, struct rpmsg_endpoint_info)
 #define RPMSG_CREATE_EPT_IOCTL  0
 
 #endif
@@ -74,6 +76,8 @@ void SERVICES_initialize(services_lib_t * init_params)
  * @brief  Function to synchronize with SE
  * @param  services_handle Services library handle
  * @return total number of retries
+ *          if nonnegative, success
+ *          if negative, failure
  */
 int SERVICES_synchronize_with_se(uint32_t services_handle)
 {
@@ -85,7 +89,7 @@ int SERVICES_synchronize_with_se(uint32_t services_handle)
     retry_count ++;
     error_code = SERVICES_heartbeat(services_handle);
     if (error_code == SERVICES_REQ_SUCCESS) break;
-    if (retry_count > MAX_RETRY) break;
+    if (retry_count > MAX_RETRY) return -retry_count;
   }
   return retry_count;
 }
@@ -117,7 +121,7 @@ uint32_t SERVICES_register_channel(uint32_t mhu_id,
   }
 
   char buf[40];
-  sprintf(buf, "/dev/rpmsg_ctrl%d", mhu_id);
+  sprintf(buf, "/dev/rpmsg_ctrl%d", (int)mhu_id);
   int fd_ctrl = open(buf, O_RDWR);
   if (fd_ctrl < 0)
   {
@@ -129,7 +133,8 @@ uint32_t SERVICES_register_channel(uint32_t mhu_id,
     close(fd_ctrl);
     return SERVICES_LIB_ERROR;
   }
-  sprintf(buf, "/dev/rpmsg%d", mhu_id);
+
+  sprintf(buf, "/dev/rpmsg%d", (int)mhu_id);
   int fd_msg = open(buf, O_RDWR);
   if (fd_msg < 0)
   {
@@ -174,14 +179,14 @@ void SERVICES_unregister_channel(uint32_t mhu_id,
  * @param services_handle
  * @param service_id
  * @param service_data
- * @param callback
+ * @param service_timeout
  * @return
  */
 uint32_t SERVICES_send_request(uint32_t services_handle, 
                                uint16_t service_id, 
-                               SERVICES_sender_callback callback)
+                               uint32_t service_timeout)
 {
-  UNUSED(callback);
+  UNUSED(service_timeout);
 
   if (services_handle >= MHU_NUMBER) return SERVICES_LIB_ERROR;
 
@@ -190,8 +195,8 @@ uint32_t SERVICES_send_request(uint32_t services_handle,
 
   // Initialize the service request common header
   service_header_t * p_header = (service_header_t *)(uintptr_t)s_services_host.packet_buffer_address;
-  p_header->send_service_id = service_id;
-  p_header->send_flags = 0;
+  p_header->hdr_service_id = service_id;
+  p_header->hdr_flags = 0;
   
   // Send the MHU message
   uint32_t mhu_id = services_handle / MHU_NUMBER_OF_CHANNELS_MAX;
@@ -212,5 +217,5 @@ uint32_t SERVICES_send_request(uint32_t services_handle,
     s_services_host.fn_print_msg("[SERVICESLIB] rx_msg=0x%x \n", rec_phy_addr);
   }
 
-  return p_header->resp_error_code;
+  return p_header->hdr_error_code;
 }

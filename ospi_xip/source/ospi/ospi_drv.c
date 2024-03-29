@@ -15,7 +15,7 @@
  * @bug      None.
  * @Note     None
  ******************************************************************************/
-
+#include "clk.h"
 #include "ospi_drv.h"
 #include "ospi_xip_user.h"
 
@@ -333,6 +333,6 @@ void ospi_init(ospi_flash_cfg_t *ospi_cfg)
     ospi_writel(ospi_cfg, ser, 0);
     ospi_writel(ospi_cfg, rx_sample_dly, 4);
     ospi_writel(ospi_cfg, txd_drive_edge, 1);
-    spi_set_clk(ospi_cfg, (AXI_CLOCK / ospi_cfg->ospi_clock));
+    spi_set_clk(ospi_cfg, (GetSystemAXIClock() / ospi_cfg->ospi_clock));
     spi_enable(ospi_cfg);
 }

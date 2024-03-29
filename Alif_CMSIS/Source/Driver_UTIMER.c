@@ -443,6 +443,7 @@ static int32_t ARM_UTIMER_PowerControl (UTIMER_RESOURCES *UTIMER_RES, uint8_t ch
             break;
         }
         case ARM_POWER_LOW:
+        default:
         {
             return ARM_DRIVER_ERROR_UNSUPPORTED;
         }

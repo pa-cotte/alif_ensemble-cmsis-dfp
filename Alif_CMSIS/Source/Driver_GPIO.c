@@ -404,6 +404,11 @@ static int32_t GPIO_Control (GPIO_RESOURCES *GPIO, uint8_t pin_no, GPIO_OPERATIO
         }
         case ARM_GPIO_CONFIG_FLEXIO :
         {
+            if (!((GPIO->gpio_id == GPIO7_INSTANCE) || (GPIO->gpio_id == LPGPIO_INSTANCE)))
+            {
+                return ARM_DRIVER_ERROR_UNSUPPORTED;
+            }
+
             if (GPIO->gpio_id == LPGPIO_INSTANCE)
             {
                 if (!(lpgpio_is_flexio (pin_no)))
@@ -431,6 +436,23 @@ static int32_t GPIO_Control (GPIO_RESOURCES *GPIO, uint8_t pin_no, GPIO_OPERATIO
             else
             {
                 set_flexio_gpio_voltage_3v3();
+            }
+            break;
+        }
+        case ARM_GPIO_CONFIG_MODE :
+        {
+            if (GPIO->gpio_id != LPGPIO_INSTANCE)
+            {
+                return ARM_DRIVER_ERROR_UNSUPPORTED;
+            }
+
+            if (*arg)
+            {
+                gpio_set_hardware_mode(GPIO->reg_base, pin_no);
+            }
+            else
+            {
+                gpio_set_software_mode(GPIO->reg_base, pin_no);
             }
             break;
         }

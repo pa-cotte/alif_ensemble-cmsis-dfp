@@ -29,10 +29,11 @@ extern "C"
 /**
  @brief   : DAC flags to check the DAC initialization, DAC power done and DAC started.
  */
-typedef enum {
-    DAC_FLAG_DRV_INIT_DONE    = (1U << 0),  /* DAC Driver is Initialized */
-    DAC_FLAG_DRV_POWER_DONE   = (1U << 1),  /* DAC Driver is Powered */
-    DAC_FLAG_DRV_STARTED      = (1U << 2)   /* DAC Driver is Started */
+typedef struct _DAC_DRIVER_STATE{
+    uint32_t    initialized       :1;           /* Driver Initialized */
+    uint32_t    powered           :1;           /* Driver Powered up  */
+    uint32_t    dac_drv_start     :1;           /* Driver is Started  */
+    uint32_t    reserved          :29;          /* Reserved           */
 } DAC_DRIVER_STATE;
 
 /**
@@ -43,11 +44,11 @@ typedef enum {
  */
 typedef struct _DAC_resources
 {
-    DAC_Type            *regs;         /* DAC register address */
-    DAC_DRIVER_STATE     flags;        /* DAC Driver Flags */
-    DAC_INSTANCE         instance;     /* DAC Driver instance */
-    uint16_t             bypass_val;   /* DAC input data in bypass mode */
-    uint8_t              input_mux_val;/* DAC input data source  */
+    DAC_Type            *regs;            /* DAC register address                             */
+    DAC_DRIVER_STATE     flags;           /* DAC Driver Flags                                 */
+    DAC_INSTANCE         instance;        /* DAC Driver instance                              */
+    bool                 dac_twoscomp_in; /* Convert two's complement to unsigned binary data */
+    uint8_t              input_mux_val;   /* DAC input data source                            */
 }DAC_RESOURCES;
 
 #ifdef  __cplusplus

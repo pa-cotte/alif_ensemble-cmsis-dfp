@@ -64,19 +64,19 @@ typedef union _I2S_DRV_STATUS {
 typedef struct _I2S_CONFIG_INFO {
 
     /*!< I2S Word Select Size */
-    const I2S_WSS wss_len;
+    I2S_WSS wss_len;
 
     /*!< I2S SCLK Gating */
-    const I2S_SCLKG sclkg;
+    I2S_SCLKG sclkg;
 
     /*!< I2S word length */
     I2S_WLEN wlen;
 
     /*!< I2S Rx FIFO Trigger Level */
-    const I2S_FIFO_TRIGGER_LEVEL rx_fifo_trg_lvl;
+    const uint8_t rx_fifo_trg_lvl;
 
     /*!< I2S Tx FIFO Trigger Level */
-    const I2S_FIFO_TRIGGER_LEVEL tx_fifo_trg_lvl;
+    const uint8_t tx_fifo_trg_lvl;
 
     /*!< I2S clock source in Hz */
     const uint32_t clk_source;

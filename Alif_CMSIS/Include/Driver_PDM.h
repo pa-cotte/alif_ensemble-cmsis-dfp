@@ -50,6 +50,10 @@ extern "c"
 
 #define ARM_PDM_PEAK_DETECTION_NODE                         0x0CUL
 #define ARM_PDM_SAMPLE_ADVANCE                              0x0DUL
+#define ARM_PDM_CHANNEL_PHASE                               0x0EUL
+#define ARM_PDM_CHANNEL_GAIN                                0x0FUL
+#define ARM_PDM_CHANNEL_PEAK_DETECT_TH                      0x10UL
+#define ARM_PDM_CHANNEL_PEAK_DETECT_ITV                     0x11UL
 
 /* PDM event */
 #define ARM_PDM_EVENT_ERROR                                (1UL << 0)
@@ -95,11 +99,6 @@ typedef struct _PDM_CH_CONFIG {
     uint8_t ch_num;                 /* Channel number */
     uint32_t ch_fir_coef[PDM_MAX_FIR_COEFFICIENT]; /* Channel FIR filter Coefficient */
     uint32_t ch_iir_coef;           /* Channel IIR Filter Coefficient */
-    uint32_t ch_phase;              /* Channel Phase Control */
-    uint32_t ch_gain;               /* Channel gain control */
-    uint32_t ch_peak_detect_th;     /* Channel Peak Detector Threshold */
-    uint32_t ch_peak_detect_itv;    /* Channel Peak Detector Interval */
-    uint32_t ch_peak_detect_stat;   /* Channel Peak Detector Status */
 }PDM_CH_CONFIG;
 
 /**
@@ -120,7 +119,7 @@ typedef struct ARM_DRIVER_PDM{
     int32_t                       (*Initialize)        (ARM_PDM_SignalEvent_t cb_event);       /* Pointer pointing to \ref PDM_intialize                                        */
     int32_t                       (*Uninitialize)      (void);                                 /* Pointer to PDM_Uninitialize : Un-initialize comparator Interface              */
     int32_t                       (*PowerControl)      (ARM_POWER_STATE state);                /* Pointer to PDM_PowerControl : Control Comparator Interface Power              */
-    int32_t                       (*Control)           (uint32_t control, uint32_t arg);       /* Pointer to PDM_Control : Control Comparator Interface                         */
+    int32_t                       (*Control)           (uint32_t control, uint32_t arg1, uint32_t arg2);  /* Pointer to PDM_Control : Control Comparator Interface              */
     int32_t                       (*Config)            (PDM_CH_CONFIG *cnfg);                  /* Pointer to PDM Config: Channel configurations specific to each channel        */
     int32_t                       (*Receive)           (void *data, uint32_t num);             /* Pointer to Receive : PDM Receive Configuration                                */
 }const ARM_DRIVER_PDM;

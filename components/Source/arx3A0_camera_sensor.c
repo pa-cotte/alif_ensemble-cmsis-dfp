@@ -1816,8 +1816,34 @@ static int32_t ARX3A0_Control(uint32_t control, uint32_t arg)
   */
 static int32_t ARX3A0_Uninit(void)
 {
+    int32_t ret;
+
     /*Disable camera sensor clock source config*/
     ARX3A0_Sensor_Disable_Clk_Src();
+
+    ret = GPIO_Driver_CAM_RST->SetValue(RTE_ARX3A0_CAMERA_SENSOR_RESET_PIN_NO, GPIO_PIN_OUTPUT_STATE_LOW);
+    if(ret != ARM_DRIVER_OK)
+        return ret;
+
+    ret = GPIO_Driver_CAM_RST->PowerControl(RTE_ARX3A0_CAMERA_SENSOR_RESET_PIN_NO, ARM_POWER_OFF);
+    if(ret != ARM_DRIVER_OK)
+        return ret;
+
+    ret = GPIO_Driver_CAM_RST->Uninitialize(RTE_ARX3A0_CAMERA_SENSOR_RESET_PIN_NO);
+    if(ret != ARM_DRIVER_OK)
+        return ret;
+
+    ret = GPIO_Driver_CAM_PWR->SetValue(RTE_ARX3A0_CAMERA_SENSOR_POWER_PIN_NO, GPIO_PIN_OUTPUT_STATE_LOW);
+    if(ret != ARM_DRIVER_OK)
+        return ret;
+
+    ret = GPIO_Driver_CAM_PWR->PowerControl(RTE_ARX3A0_CAMERA_SENSOR_POWER_PIN_NO, ARM_POWER_OFF);
+    if(ret != ARM_DRIVER_OK)
+        return ret;
+
+    ret = GPIO_Driver_CAM_PWR->Uninitialize(RTE_ARX3A0_CAMERA_SENSOR_POWER_PIN_NO);
+    if(ret != ARM_DRIVER_OK)
+        return ret;
 
     return ARM_DRIVER_OK;
 }
@@ -1830,7 +1856,6 @@ static CSI_INFO arx3a0_csi_info =
 {
     .frequency                = RTE_ARX3A0_CAMERA_SENSOR_CSI_FREQ,
     .dt                       = RTE_ARX3A0_CAMERA_SENSOR_CSI_DATA_TYPE,
-    .clk_mode                 = RTE_ARX3A0_CAMERA_SENSOR_CLOCK_MODE,
     .n_lanes                  = RTE_ARX3A0_CAMERA_SENSOR_CSI_N_LANES,
     .vc_id                    = RTE_ARX3A0_CAMERA_SENSOR_CSI_VC_ID,
     .cpi_cfg.override         = RTE_ARX3A0_CAMERA_SENSOR_OVERRIDE_CPI_COLOR_MODE,

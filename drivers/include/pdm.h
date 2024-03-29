@@ -92,6 +92,10 @@ typedef struct {                                         /*!< (@ 0x43002000) PDM
 #define PDM_AUDIO_CH_6_7              3U                          /* PDM audio channel 6 and 7               */
 #define PDM_CLK_MODE                  16U                         /* PDM clock frequency mode                */
 
+#define PDM_MAX_PHASE_CTRL            0x3FU                       /* PDM phase maximum value                 */
+#define PDM_MAX_GAIN_CTRL             0xFFFU                      /* PDM gain maximum value                  */
+#define PDM_MAX_CHANNEL               8U                          /* PDM supports a maximum of 8 channels    */
+
 #define PDM_AUDIO_CHANNEL             (0x3U)
 #define PDM_CHANNEL_0_1               (PDM_AUDIO_CHANNEL << 0U)   /* check for channel 0 and 1               */
 #define PDM_CHANNEL_2_3               (PDM_AUDIO_CHANNEL << 2U)   /* check for channel 2 and 3               */

@@ -896,15 +896,6 @@ static inline void uart_rs485_disable_re_en (UART_Type *uart)
 
 /* ---------------------- END of RS485 Functions ---------------------------- */
 
-/**
- * @fn      void uart_flush_rxfifo (UART_Type *uart, UART_TRANSFER *transfer)
- * @brief   flush receiver fifo
- * @note    \ref uart_abort_rx
- * @param   uart     : Pointer to uart register set structure
- * @param   transfer : Pointer to uart transfer structure
- * @retval  none
- */
-void uart_flush_rxfifo (UART_Type *uart, UART_TRANSFER *transfer);
 
 /**
  * @fn      void uart_set_baudrate (UART_Type *uart,uint32_t clk, uint32_t baudrate)

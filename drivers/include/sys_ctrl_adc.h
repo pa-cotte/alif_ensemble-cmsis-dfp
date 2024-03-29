@@ -40,10 +40,10 @@
  */
 typedef enum _ADC_INSTANCE
 {
-    ADC_INSTANCE_ADC12_0,                         /* ADC instance - 0 */
-    ADC_INSTANCE_ADC12_1,                         /* ADC instance - 1 */
-    ADC_INSTANCE_ADC12_2,                         /* ADC instance - 2 */
-    ADC_INSTANCE_ADC24_0,                         /* ADC24 instance   */
+    ADC_INSTANCE_ADC12_0,                         /* ADC12 instance - 0 */
+    ADC_INSTANCE_ADC12_1,                         /* ADC12 instance - 1 */
+    ADC_INSTANCE_ADC12_2,                         /* ADC12 instance - 2 */
+    ADC_INSTANCE_ADC24_0,                         /* ADC24 instance - 0 */
 } ADC_INSTANCE;
 
 /* ADC120 */
@@ -118,14 +118,12 @@ static inline void disable_adc24_periph_clk(void)
  * @func         : void adc_set_differential_ctrl(uint8_t instance,
                                                   bool vcm_en,
                                                   bool differential_en)
- * @brief        :control differential setting
+ * @brief        : control differential setting
  * @parameter[1] : instance        : adc instances
- * @parameter[2] : vcm_en          : vcm enable
  * @parameter[3] : differential_en : differential enable
  * @return       : NONE
  */
 static inline void adc_set_differential_ctrl(uint8_t instance,
-                                             bool vcm_en,
                                              bool differential_en)
 {
     uint32_t value = 0U;
@@ -137,19 +135,19 @@ static inline void adc_set_differential_ctrl(uint8_t instance,
         case ADC_INSTANCE_ADC12_0:
         {
             value |= (differential_en << ADC120_DIFFERENTIAL_EN_Pos |
-                      vcm_en << ADC120_VCM_DIV_Pos);
+                     (1 << ADC120_VCM_DIV_Pos));
             break;
         }
         case ADC_INSTANCE_ADC12_1:
         {
             value |= (differential_en << ADC121_DIFFERENTIAL_EN_Pos |
-                      vcm_en << ADC121_VCM_DIV_Pos);
+                     (1 << ADC121_VCM_DIV_Pos));
             break;
         }
         case ADC_INSTANCE_ADC12_2:
         {
             value |= (differential_en << ADC122_DIFFERENTIAL_EN_Pos |
-                      vcm_en << ADC122_VCM_DIV_Pos);
+                     (1 << ADC122_VCM_DIV_Pos));
             break;
         }
         case ADC_INSTANCE_ADC24_0:
@@ -159,9 +157,9 @@ static inline void adc_set_differential_ctrl(uint8_t instance,
 }
 
 /*
- * @func         : void adc_set_differential_ctrl(uint8_t instance,
-                                                  bool vcm_en,
-                                                  bool differential_en)
+ * @func         : void adc_set_comparator_ctrl(uint8_t instance,
+                             bool comparator_en,
+                             uint8_t comparator_bias)
  * @brief        :control differential setting
  * @parameter[1] : instance        : adc instances
  * @parameter[2] : comparator_en   : comparator enable

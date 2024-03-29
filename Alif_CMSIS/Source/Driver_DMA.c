@@ -22,6 +22,7 @@
 #include "Driver_DMA_Private.h"
 #include <evtrtr.h>
 #include <dma_op.h>
+#include <string.h>
 
 #define ARM_DMA_DRV_VERSION    ARM_DRIVER_VERSION_MAJOR_MINOR(2, 1) /*!< DMA Driver Version */
 
@@ -153,8 +154,6 @@ static const ARM_DMA_CAPABILITIES DriverCapabilities = {
 #if (RTE_DMA0)
 static DMA_RESOURCES DMA0 = {
     .regs       = NULL,
-    .cfg        = {0},
-    .ns_iface   = RTE_DMA0_APB_INTERFACE,
     .state      = {0},
     .irq_start  = DMA0_IRQ0_IRQn,
     .abort_irq_priority = RTE_DMA0_ABORT_IRQ_PRI,
@@ -165,8 +164,6 @@ static DMA_RESOURCES DMA0 = {
 #if (RTE_DMALOCAL)
 static DMA_RESOURCES DMALOCAL = {
     .regs       = NULL,
-    .cfg        = {0},
-    .ns_iface   = RTE_DMALOCAL_APB_INTERFACE,
     .state      = {0},
     .irq_start  = DMALOCAL_IRQ0_IRQn,
     .abort_irq_priority = RTE_DMALOCAL_ABORT_IRQ_PRI,
@@ -195,6 +192,29 @@ static ARM_DMA_CAPABILITIES DMA_GetCapabilities(void)
 }
 
 /**
+  \fn          DMA_SECURE_STATE DMA_GetSecureState(uint8_t value)
+  \brief       Get the Secure State from RTE
+  \param[in]   value   Input value from RTE configuration
+  \return      DMA_SECURE_STATE  \ref DMA_SECURE_STATE
+*/
+static DMA_SECURE_STATE DMA_GetSecureState(uint8_t value)
+{
+    DMA_SECURE_STATE  sec_state;
+
+    switch(value)
+    {
+    case 0:
+        sec_state = DMA_STATE_SECURE;
+        break;
+    default:
+        sec_state = DMA_STATE_NON_SECURE;
+        break;
+    }
+
+    return sec_state;
+}
+
+/**
   \fn          void DMA_InitDescDefaults(uint8_t channel_num, DMA_RESOURCES *DMA)
   \brief       Set the descriptor defaults
   \param[in]   channel_num  DMA channel
@@ -206,7 +226,7 @@ static void DMA_InitDescDefaults(uint8_t channel_num, DMA_RESOURCES *DMA)
     DMA_SECURE_STATE  sec_state;
     dma_config_info_t *dma_cfg = &DMA->cfg;
 
-    sec_state = dma_manager_is_nonsecure(DMA->regs);
+    sec_state = DMA_GetSecureState(dma_manager_is_nonsecure(DMA->regs));
     dma_set_secure_state(dma_cfg, channel_num, sec_state);
 
     dma_set_cache_ctrl(dma_cfg, channel_num,
@@ -366,7 +386,7 @@ __STATIC_INLINE int32_t DMA_DeAllocate(DMA_Handle_Type *handle,
 
     event_index = dma_get_event_index(dma_cfg, channel_num);
 
-    NVIC_DisableIRQ(DMA->irq_start + event_index);
+    NVIC_DisableIRQ((IRQn_Type)(DMA->irq_start + event_index));
 
     DMA->cb_event[event_index] = (void *)0;
 
@@ -511,7 +531,7 @@ static int32_t DMA_Stop(DMA_Handle_Type *handle, DMA_RESOURCES *DMA)
     dma_disable_interrupt(DMA->regs, event_index);
     dma_clear_interrupt(DMA->regs, event_index);
 
-    NVIC_DisableIRQ(DMA->irq_start + event_index);
+    NVIC_DisableIRQ((IRQn_Type)(DMA->irq_start + event_index));
 
     /* Invalidate the data from cache */
     desc_info = dma_get_desc_info(dma_cfg, channel_num);
@@ -539,7 +559,7 @@ static int32_t DMA_Start(DMA_Handle_Type *handle,
     dma_config_info_t  *dma_cfg = &DMA->cfg;
     dma_dbginst0_t      dma_dbginst0;
     dma_dbginst1_t      dma_dbginst1;
-    dma_desc_info_t     desc_info = {0};
+    dma_desc_info_t     desc_info;
     dma_desc_info_t    *channel_desc_info;
     uint8_t             go_opcode_buf[DMA_OP_6BYTE_LEN] =  {0};
     uint8_t            *opcode_buf;
@@ -578,6 +598,8 @@ static int32_t DMA_Start(DMA_Handle_Type *handle,
         __enable_irq();
         return ARM_DMA_ERROR_BUSY;
     }
+
+    memset((void*)&desc_info, 0, sizeof(desc_info));
 
     /* Check for user provided microcode */
     if(dma_get_channel_flags(dma_cfg, channel_num)
@@ -653,13 +675,14 @@ static int32_t DMA_Start(DMA_Handle_Type *handle,
     dma_enable_interrupt(DMA->regs, event_index);
 
     /* Disable it first */
-    NVIC_DisableIRQ(DMA->irq_start + event_index);
+    NVIC_DisableIRQ((IRQn_Type)(DMA->irq_start + event_index));
     /* Clear Any Pending IRQ */
-    NVIC_ClearPendingIRQ(DMA->irq_start + event_index);
+    NVIC_ClearPendingIRQ((IRQn_Type)(DMA->irq_start + event_index));
     /* Set the priority of this particular IRQ */
-    NVIC_SetPriority(DMA->irq_start + event_index, params->irq_priority);
+    NVIC_SetPriority((IRQn_Type)(DMA->irq_start + event_index),
+                     params->irq_priority);
     /* Enable the IRQ */
-    NVIC_EnableIRQ(DMA->irq_start + event_index);
+    NVIC_EnableIRQ((IRQn_Type)(DMA->irq_start + event_index));
 
 
     dma_dbginst0.dbginst0             = 0;
@@ -869,7 +892,7 @@ static int32_t DMA_PowerControl(ARM_POWER_STATE state, DMA_RESOURCES *DMA)
             return ARM_DRIVER_OK;
         }
 
-        NVIC_DisableIRQ(DMA->irq_start + DMA_IRQ_ABORT_OFFSET);
+        NVIC_DisableIRQ((IRQn_Type)(DMA->irq_start + DMA_IRQ_ABORT_OFFSET));
 
         switch(DMA->instance)
         {
@@ -964,11 +987,12 @@ static int32_t DMA_PowerControl(ARM_POWER_STATE state, DMA_RESOURCES *DMA)
         }
 
         /* Clear Any Pending IRQ */
-        NVIC_ClearPendingIRQ(DMA->irq_start + DMA_IRQ_ABORT_OFFSET);
+        NVIC_ClearPendingIRQ((IRQn_Type)(DMA->irq_start + DMA_IRQ_ABORT_OFFSET));
         /* Set the priority of this particular IRQ */
-        NVIC_SetPriority(DMA->irq_start + DMA_IRQ_ABORT_OFFSET, DMA->abort_irq_priority);
+        NVIC_SetPriority((IRQn_Type)(DMA->irq_start + DMA_IRQ_ABORT_OFFSET),
+                         DMA->abort_irq_priority);
         /* Enable the Abort IRQ */
-        NVIC_EnableIRQ(DMA->irq_start + DMA_IRQ_ABORT_OFFSET);
+        NVIC_EnableIRQ((IRQn_Type)(DMA->irq_start + DMA_IRQ_ABORT_OFFSET));
 
         __enable_irq();
 
@@ -1075,6 +1099,7 @@ static int32_t DMA0_Initialize(void)
     DMA_RESOURCES *DMA = &DMA0;
 
     /* set the apb interface for accessing registers */
+    DMA->ns_iface = DMA_GetSecureState(RTE_DMA0_APB_INTERFACE);
     if(DMA->ns_iface)
         DMA->regs = (DMA_Type*)DMA0_NS_BASE;
     else
@@ -1506,6 +1531,7 @@ static int32_t DMALOCAL_Initialize(void)
     DMA_RESOURCES *DMA = &DMALOCAL;
 
     /* set the apb interface for accessing registers */
+    DMA->ns_iface = DMA_GetSecureState(RTE_DMALOCAL_APB_INTERFACE);
     if(DMA->ns_iface)
         DMA->regs = (DMA_Type*)DMALOCAL_NS_BASE;
     else

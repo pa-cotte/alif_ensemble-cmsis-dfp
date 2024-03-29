@@ -39,7 +39,7 @@ int ospi_hyperram_xip_init(const ospi_hyperram_xip_config *config)
 {
     OSPI_Type *ospi;
     AES_Type *aes;
-    uint32_t clk = AXI_CLOCK;
+    uint32_t clk = GetSystemAXIClock();
 
     if (config == NULL || config->instance < OSPI_INSTANCE_0 || config->instance > OSPI_INSTANCE_1)
     {

@@ -102,6 +102,70 @@ static int32_t I2S_SetSamplingRate(I2S_RESOURCES *I2S)
     return ARM_DRIVER_OK;
 }
 
+/**
+  \fn          I2S_WSS I2S_GetWordSelectSize(uint8_t value)
+  \brief       Get the Word Select Size from RTE
+  \param[in]   value   Input value from RTE configuration
+  \return      I2S_WSS  \ref I2S_WSS
+*/
+static I2S_WSS I2S_GetWordSelectSize(uint8_t value)
+{
+    I2S_WSS wss;
+
+    switch(value)
+    {
+    case 0:
+        wss = I2S_WSS_SCLK_CYCLES_16;
+        break;
+    case 1:
+        wss = I2S_WSS_SCLK_CYCLES_24;
+        break;
+    case 2:
+        wss = I2S_WSS_SCLK_CYCLES_32;
+        break;
+    default:
+        wss = I2S_WSS_SCLK_CYCLES_MAX;
+        break;
+    }
+
+    return wss;
+}
+
+/**
+  \fn          I2S_SCLKG I2S_GetClockGatingCycles(uint8_t value)
+  \brief       Get the Serial Clock gating cycles
+  \param[in]   value   Input value from RTE configuration
+  \return      I2S_SCLKG  \ref I2S_SCLKG
+*/
+static I2S_SCLKG I2S_GetClockGatingCycles(uint8_t value)
+{
+    I2S_SCLKG sclkg;
+
+    switch(value)
+    {
+    case 0:
+        sclkg = I2S_SCLKG_NONE;
+        break;
+    case 1:
+        sclkg = I2S_SCLKG_CLOCK_CYCLES_12;
+        break;
+    case 2:
+        sclkg = I2S_SCLKG_CLOCK_CYCLES_16;
+        break;
+    case 3:
+        sclkg = I2S_SCLKG_CLOCK_CYCLES_20;
+        break;
+    case 4:
+        sclkg = I2S_SCLKG_CLOCK_CYCLES_24;
+        break;
+    default:
+        sclkg = I2S_SCLKG_CLOCK_CYCLES_MAX;
+        break;
+    }
+
+    return sclkg;
+}
+
 #if I2S_DMA_ENABLE
 /**
   \fn          int32_t I2S_DMA_Initialize(DMA_PERIPHERAL_CONFIG *dma_periph)
@@ -466,10 +530,10 @@ static int32_t I2S_Initialize(ARM_SAI_SignalEvent_t cb_event, I2S_RESOURCES *I2S
     if(I2S->cfg->sclkg >= I2S_SCLKG_CLOCK_CYCLES_MAX)
         return ARM_DRIVER_ERROR_PARAMETER;
 
-    if(I2S->cfg->rx_fifo_trg_lvl >= I2S_FIFO_TRIGGER_LEVEL_MAX)
+    if(I2S->cfg->rx_fifo_trg_lvl > I2S_FIFO_TRIGGER_LEVEL_MAX)
         return ARM_DRIVER_ERROR_PARAMETER;
 
-    if(I2S->cfg->tx_fifo_trg_lvl >= I2S_FIFO_TRIGGER_LEVEL_MAX)
+    if(I2S->cfg->tx_fifo_trg_lvl > I2S_FIFO_TRIGGER_LEVEL_MAX)
         return ARM_DRIVER_ERROR_PARAMETER;
 
     /* Initialize the driver elements*/
@@ -479,7 +543,8 @@ static int32_t I2S_Initialize(ARM_SAI_SignalEvent_t cb_event, I2S_RESOURCES *I2S
     /* Initialize the transfer structure */
     I2S->transfer.tx_buff        =  NULL;
     I2S->transfer.tx_current_cnt =  0;
-    I2S->transfer.total_cnt      =  0;
+    I2S->transfer.tx_total_cnt   =  0;
+    I2S->transfer.rx_total_cnt   =  0;
     I2S->transfer.rx_buff        =  NULL;
     I2S->transfer.rx_current_cnt =  0;
     I2S->transfer.mono_mode      = false;
@@ -531,7 +596,8 @@ static int32_t I2S_Uninitialize(I2S_RESOURCES *I2S)
     /* Initialize the transfer structure */
     I2S->transfer.tx_buff        =  NULL;
     I2S->transfer.tx_current_cnt =  0;
-    I2S->transfer.total_cnt      =  0;
+    I2S->transfer.tx_total_cnt   =  0;
+    I2S->transfer.rx_total_cnt   =  0;
     I2S->transfer.rx_buff        =  NULL;
     I2S->transfer.rx_current_cnt =  0;
     I2S->transfer.mono_mode      = false;
@@ -561,7 +627,7 @@ static int32_t I2S_Send(const void *data, uint32_t num, I2S_RESOURCES *I2S)
     }
 
     /* Check if any Transfer is in progress */
-    if(I2S->drv_status.status_b.tx_busy || I2S->drv_status.status_b.rx_busy)
+    if(I2S->drv_status.status_b.tx_busy)
         return ARM_DRIVER_ERROR_BUSY;
 
     /* If the WSS len is 16, check if it is aligned to 2 bytes */
@@ -579,16 +645,15 @@ static int32_t I2S_Send(const void *data, uint32_t num, I2S_RESOURCES *I2S)
     /* Fill the transfer information */
     I2S->transfer.tx_buff        = data;
     I2S->transfer.tx_current_cnt = 0U;
-    I2S->transfer.status         = I2S_TRANSFER_STATUS_NONE;
 
     if((I2S->cfg->wlen > I2S_WLEN_RES_NONE)
         && (I2S->cfg->wlen <= I2S_WLEN_RES_16_BIT))
     {
-        I2S->transfer.total_cnt  = num * sizeof(uint16_t);
+        I2S->transfer.tx_total_cnt  = num * sizeof(uint16_t);
     }
     else
     {
-        I2S->transfer.total_cnt  = num * sizeof(uint32_t);
+        I2S->transfer.tx_total_cnt  = num * sizeof(uint32_t);
     }
 
     if(I2S->flags & I2S_FLAG_DRV_MONO_MODE)
@@ -615,7 +680,7 @@ static int32_t I2S_Send(const void *data, uint32_t num, I2S_RESOURCES *I2S)
         dma_params.cb_event      = I2S->dma_cb;
         dma_params.src_addr      = data;
         dma_params.dst_addr      = i2s_get_dma_tx_addr(I2S->regs);
-        dma_params.num_bytes     = I2S->transfer.total_cnt;
+        dma_params.num_bytes     = I2S->transfer.tx_total_cnt;
         dma_params.irq_priority  = I2S->cfg->dma_irq_priority;
 
         if((I2S->cfg->wlen > I2S_WLEN_RES_NONE)
@@ -673,7 +738,7 @@ static int32_t I2S_Receive(void *data, uint32_t num, I2S_RESOURCES *I2S)
     }
 
     /* Check if any Transfer is in progress*/
-    if(I2S->drv_status.status_b.tx_busy || I2S->drv_status.status_b.rx_busy)
+    if(I2S->drv_status.status_b.rx_busy)
         return ARM_DRIVER_ERROR_BUSY;
 
     /* If the WSS len is 16, check if it is aligned to 2 bytes */
@@ -723,12 +788,11 @@ static int32_t I2S_Receive(void *data, uint32_t num, I2S_RESOURCES *I2S)
     /* Fill in the transfer buffer information */
     I2S->transfer.rx_buff        = data;
     I2S->transfer.rx_current_cnt = 0U;
-    I2S->transfer.status = I2S_TRANSFER_STATUS_NONE;
 
     if ((I2S->cfg->wlen > I2S_WLEN_RES_NONE) && (I2S->cfg->wlen <= I2S_WLEN_RES_16_BIT))
-        I2S->transfer.total_cnt  = num * sizeof(uint16_t);
+        I2S->transfer.rx_total_cnt  = num * sizeof(uint16_t);
     else
-        I2S->transfer.total_cnt  = num * sizeof(uint32_t);
+        I2S->transfer.rx_total_cnt  = num * sizeof(uint32_t);
 
     /* See if this operation is using only one channel */
     if(I2S->flags & I2S_FLAG_DRV_MONO_MODE)
@@ -748,7 +812,7 @@ static int32_t I2S_Receive(void *data, uint32_t num, I2S_RESOURCES *I2S)
         dma_params.cb_event      = I2S->dma_cb;
         dma_params.src_addr      = i2s_get_dma_rx_addr(I2S->regs);
         dma_params.dst_addr      = data;
-        dma_params.num_bytes     = I2S->transfer.total_cnt;
+        dma_params.num_bytes     = I2S->transfer.rx_total_cnt;
         dma_params.irq_priority  = I2S->cfg->dma_irq_priority;
 
         if ((I2S->cfg->wlen > I2S_WLEN_RES_NONE)
@@ -1229,22 +1293,23 @@ static void I2S_IRQHandler(I2S_RESOURCES *I2S)
     {
         i2s_tx_irq_handler(I2S->regs, transfer);
 
-        if(transfer->status & I2S_TRANSFER_STATUS_COMPLETE)
+        if(transfer->status & I2S_TRANSFER_STATUS_TX_COMPLETE)
         {
             I2S->cb_event(ARM_SAI_EVENT_SEND_COMPLETE);
             I2S->drv_status.status_b.tx_busy = 0U;
-            transfer->status = I2S_TRANSFER_STATUS_NONE;
+            transfer->status &= ~I2S_TRANSFER_STATUS_TX_COMPLETE;
         }
     }
-    else
+
+    if(I2S->drv_status.status_b.rx_busy)
     {
         i2s_rx_irq_handler(I2S->regs, transfer);
 
-        if(transfer->status & I2S_TRANSFER_STATUS_COMPLETE)
+        if(transfer->status & I2S_TRANSFER_STATUS_RX_COMPLETE)
         {
             I2S->cb_event(ARM_SAI_EVENT_RECEIVE_COMPLETE);
             I2S->drv_status.status_b.rx_busy = 0U;
-            transfer->status &= ~I2S_TRANSFER_STATUS_COMPLETE;
+            transfer->status &= ~I2S_TRANSFER_STATUS_RX_COMPLETE;
         }
 
         if(transfer->status & I2S_TRANSFER_STATUS_RX_OVERFLOW)
@@ -1325,8 +1390,6 @@ static void I2S_DMACallback(uint32_t event, int8_t peri_num,
 #if (RTE_I2S0)
 
 static I2S_CONFIG_INFO I2S0_CONFIG = {
-    .wss_len             = RTE_I2S0_WSS_CLOCK_CYCLES,
-    .sclkg               = RTE_I2S0_SCLKG_CLOCK_CYCLES,
     .rx_fifo_trg_lvl     = RTE_I2S0_RX_TRIG_LVL,
     .tx_fifo_trg_lvl     = RTE_I2S0_TX_TRIG_LVL,
     .irq_priority        = RTE_I2S0_IRQ_PRI,
@@ -1389,6 +1452,11 @@ static I2S_RESOURCES I2S0 = {
 */
 static int32_t I2S0_Initialize(ARM_SAI_SignalEvent_t cb_event)
 {
+    I2S_RESOURCES *I2S = &I2S0;
+
+    I2S->cfg->wss_len = I2S_GetWordSelectSize(RTE_I2S0_WSS_CLOCK_CYCLES);
+    I2S->cfg->sclkg   = I2S_GetClockGatingCycles(RTE_I2S0_SCLKG_CLOCK_CYCLES);
+
     return I2S_Initialize(cb_event, &I2S0);
 }
 
@@ -1525,8 +1593,6 @@ ARM_DRIVER_SAI Driver_SAI0 = {
 #if (RTE_I2S1)
 
 static I2S_CONFIG_INFO I2S1_CONFIG = {
-    .wss_len             = RTE_I2S1_WSS_CLOCK_CYCLES,
-    .sclkg               = RTE_I2S1_SCLKG_CLOCK_CYCLES,
     .rx_fifo_trg_lvl     = RTE_I2S1_RX_TRIG_LVL,
     .tx_fifo_trg_lvl     = RTE_I2S1_TX_TRIG_LVL,
     .irq_priority        = RTE_I2S1_IRQ_PRI,
@@ -1588,6 +1654,11 @@ static I2S_RESOURCES I2S1 = {
 */
 static int32_t I2S1_Initialize(ARM_SAI_SignalEvent_t cb_event)
 {
+    I2S_RESOURCES *I2S = &I2S1;
+
+    I2S->cfg->wss_len = I2S_GetWordSelectSize(RTE_I2S1_WSS_CLOCK_CYCLES);
+    I2S->cfg->sclkg   = I2S_GetClockGatingCycles(RTE_I2S1_SCLKG_CLOCK_CYCLES);
+
     return I2S_Initialize(cb_event, &I2S1);
 }
 
@@ -1724,8 +1795,6 @@ ARM_DRIVER_SAI Driver_SAI1 = {
 #if (RTE_I2S2)
 
 static I2S_CONFIG_INFO I2S2_CONFIG = {
-    .wss_len             = RTE_I2S2_WSS_CLOCK_CYCLES,
-    .sclkg               = RTE_I2S2_SCLKG_CLOCK_CYCLES,
     .rx_fifo_trg_lvl     = RTE_I2S2_RX_TRIG_LVL,
     .tx_fifo_trg_lvl     = RTE_I2S2_TX_TRIG_LVL,
     .irq_priority        = RTE_I2S2_IRQ_PRI,
@@ -1788,6 +1857,11 @@ static I2S_RESOURCES I2S2 = {
 */
 static int32_t I2S2_Initialize(ARM_SAI_SignalEvent_t cb_event)
 {
+    I2S_RESOURCES *I2S = &I2S2;
+
+    I2S->cfg->wss_len = I2S_GetWordSelectSize(RTE_I2S2_WSS_CLOCK_CYCLES);
+    I2S->cfg->sclkg   = I2S_GetClockGatingCycles(RTE_I2S2_SCLKG_CLOCK_CYCLES);
+
     return I2S_Initialize(cb_event, &I2S2);
 }
 
@@ -1924,8 +1998,6 @@ ARM_DRIVER_SAI Driver_SAI2 = {
 #if (RTE_I2S3)
 
 static I2S_CONFIG_INFO I2S3_CONFIG = {
-    .wss_len             = RTE_I2S3_WSS_CLOCK_CYCLES,
-    .sclkg               = RTE_I2S3_SCLKG_CLOCK_CYCLES,
     .rx_fifo_trg_lvl     = RTE_I2S3_RX_TRIG_LVL,
     .tx_fifo_trg_lvl     = RTE_I2S3_TX_TRIG_LVL,
     .irq_priority        = RTE_I2S3_IRQ_PRI,
@@ -1988,6 +2060,11 @@ static I2S_RESOURCES I2S3 = {
 */
 static int32_t I2S3_Initialize(ARM_SAI_SignalEvent_t cb_event)
 {
+    I2S_RESOURCES *I2S = &I2S3;
+
+    I2S->cfg->wss_len = I2S_GetWordSelectSize(RTE_I2S3_WSS_CLOCK_CYCLES);
+    I2S->cfg->sclkg   = I2S_GetClockGatingCycles(RTE_I2S3_SCLKG_CLOCK_CYCLES);
+
     return I2S_Initialize(cb_event, &I2S3);
 }
 
@@ -2124,8 +2201,6 @@ ARM_DRIVER_SAI Driver_SAI3 = {
 #if (RTE_LPI2S)
 
 static I2S_CONFIG_INFO LPI2S_CONFIG = {
-    .wss_len             = RTE_LPI2S_WSS_CLOCK_CYCLES,
-    .sclkg               = RTE_LPI2S_SCLKG_CLOCK_CYCLES,
     .rx_fifo_trg_lvl     = RTE_LPI2S_RX_TRIG_LVL,
     .tx_fifo_trg_lvl     = RTE_LPI2S_TX_TRIG_LVL,
     .irq_priority        = RTE_LPI2S_IRQ_PRI,
@@ -2188,6 +2263,11 @@ static I2S_RESOURCES LPI2S = {
 */
 static int32_t LPI2S_Initialize(ARM_SAI_SignalEvent_t cb_event)
 {
+    I2S_RESOURCES *I2S = &LPI2S;
+
+    I2S->cfg->wss_len = I2S_GetWordSelectSize(RTE_LPI2S_WSS_CLOCK_CYCLES);
+    I2S->cfg->sclkg   = I2S_GetClockGatingCycles(RTE_LPI2S_SCLKG_CLOCK_CYCLES);
+
     return I2S_Initialize(cb_event, &LPI2S);
 }
 

@@ -52,6 +52,15 @@ extern "C"
 #include <DMA_Common.h>
 #endif
 
+/* Check if Blocking(Polling) mode support is enable? */
+#if (RTE_UART0_BLOCKING_MODE_ENABLE || RTE_UART1_BLOCKING_MODE_ENABLE || RTE_UART2_BLOCKING_MODE_ENABLE || \
+     RTE_UART3_BLOCKING_MODE_ENABLE || RTE_UART4_BLOCKING_MODE_ENABLE || RTE_UART5_BLOCKING_MODE_ENABLE || \
+     RTE_UART6_BLOCKING_MODE_ENABLE || RTE_UART7_BLOCKING_MODE_ENABLE || RTE_LPUART_BLOCKING_MODE_ENABLE)
+#define UART_BLOCKING_MODE_ENABLE  1
+#else
+#define UART_BLOCKING_MODE_ENABLE  0
+#endif
+
 /**
  * enum UART_INSTANCE
  * UART instances
@@ -146,6 +155,10 @@ typedef struct _UART_RESOURCES
     const bool                 dma_enable;         /* UART dma enable                  */
     const uint32_t             dma_irq_priority;   /* DMA IRQ priority number          */
     UART_DMA_HW_CONFIG        *dma_cfg;            /* DMA Controller configuration     */
+#endif
+
+#if UART_BLOCKING_MODE_ENABLE
+    const bool                 blocking_mode;      /* UART instance blocking mode transfer enable  */
 #endif
 
 #if RS485_SUPPORT

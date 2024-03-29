@@ -273,16 +273,6 @@ static int32_t CMP_Control(CMP_RESOURCES *CMP, uint32_t control, uint32_t arg)
 
         break;
 
-    case ARM_CMP_WINDOW_CONTROL:
-
-        if(arg < CMP_WINDOW_MIN_VALUE || arg > CMP_WINDOW_MAX_VALUE)
-            return ARM_DRIVER_ERROR_PARAMETER;
-
-        /* enable the windowing function */
-        cmp_set_window_ctrl(CMP->regs, arg);
-
-        break;
-
     case ARM_CMP_FILTER_CONTROL:
 
         if(arg < CMP_FILTER_MIN_VALUE || arg > CMP_FILTER_MAX_VALUE)
@@ -300,6 +290,26 @@ static int32_t CMP_Control(CMP_RESOURCES *CMP, uint32_t control, uint32_t arg)
 
         /* Comparator input will be sampled at the given clocks */
         cmp_set_prescaler_ctrl(CMP->regs, arg);
+
+        break;
+
+    case ARM_CMP_WINDOW_CONTROL_ENABLE:
+
+        if(arg > CMP_WINDOW_MAX_VALUE)
+            return ARM_DRIVER_ERROR_PARAMETER;
+
+        /* Set comparator window control */
+        cmp_set_window_ctrl(CMP->regs, arg);
+
+        break;
+
+    case ARM_CMP_WINDOW_CONTROL_DISABLE:
+
+        if(arg > CMP_WINDOW_MAX_VALUE)
+            return ARM_DRIVER_ERROR_PARAMETER;
+
+        /* Clear comparator window control */
+        cmp_clear_window_ctrl(CMP->regs, arg);
 
         break;
 

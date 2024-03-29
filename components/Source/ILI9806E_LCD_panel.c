@@ -531,7 +531,6 @@ static DSI_INFO ili9806e_dsi_info =
     .max_bitrate      = RTE_ILI9806E_PANEL_MAX_BITRATE_MBPS,
     .n_lanes          = RTE_ILI9806E_PANEL_DSI_N_LANES,
     .vc_id            = RTE_ILI9806E_PANEL_DSI_VC_ID,
-    .clk_mode         = RTE_ILI9806E_PANEL_DPHY_CLOCK_MODE,
     .color_coding     = RTE_ILI9806E_PANEL_DSI_COLOR_MODE,
 };
 

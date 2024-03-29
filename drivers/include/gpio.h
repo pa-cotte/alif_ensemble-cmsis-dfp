@@ -386,6 +386,30 @@ static inline bool lpgpio_is_flexio (uint8_t pin_no)
     }
 }
 
+/**
+  \fn          static inline void gpio_set_hardware_mode (GPIO_Type *gpio, uint8_t pin_no)
+  \brief       GPIO set data source as hardware mode (applicable only for LPGPIO).
+  \param       gpio     Pointer to the GPIO register map
+  \param       pin_no   pin number
+  \return      none
+*/
+static inline void gpio_set_hardware_mode (GPIO_Type *gpio, uint8_t pin_no)
+{
+    gpio->GPIO_SWPORTA_CTL |= (1 << pin_no);
+}
+
+/**
+  \fn          static inline void gpio_set_software_mode (GPIO_Type *gpio, uint8_t pin_no)
+  \brief       GPIO set data source as software mode (applicable only for LPGPIO).
+  \param       gpio     Pointer to the GPIO register map
+  \param       pin_no   pin number
+  \return      none
+*/
+static inline void gpio_set_software_mode (GPIO_Type *gpio, uint8_t pin_no)
+{
+    gpio->GPIO_SWPORTA_CTL &= ~(1 << pin_no);
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -97,13 +97,6 @@ typedef struct {
 /* i2c IC_ENABLE_STATUS Bits */
 #define I2C_IC_ENABLE_STATUS_IC_EN                  (1 << 0)
 
-/* Stop Condition issue after this byte */
-#define I2C_IC_DATA_CMD_STOP                        (1 << 9)
-/* Restart Condition issue after this byte */
-#define I2C_IC_DATA_CMD_RESTART                     (1 << 10)
-/* No Restart or stop condition after this byte */
-#define I2C_IC_DATA_CMD_NONE                        (0)
-
 /* i2c Status Register Fields. */
 #define I2C_IC_STATUS_ACTIVITY                      (0x01)      /* (1 << 0) */
 #define I2C_IC_STATUS_TRANSMIT_FIFO_NOT_FULL        (0x02)      /* (1 << 1) */
@@ -154,19 +147,36 @@ typedef struct {
                                                      I2C_IC_INTR_STAT_TX_ABRT | \
                                                      I2C_IC_INTR_STAT_STOP_DET)
 
-#define I2C_IC_INT_MST_RX_ENABLE                    (I2C_IC_INTR_STAT_TX_EMPTY| \
-                                                     I2C_IC_INTR_STAT_RX_FULL | \
-                                                     I2C_IC_INTR_STAT_RX_OVER | \
-                                                     I2C_IC_INTR_STAT_RX_UNDER| \
-                                                     I2C_IC_INTR_STAT_TX_ABRT | \
+#define I2C_IC_INT_DMA_MST_TX_ENABLE                (I2C_IC_INTR_STAT_TX_OVER  | \
+                                                     I2C_IC_INTR_STAT_TX_ABRT  | \
                                                      I2C_IC_INTR_STAT_STOP_DET)
 
+#define I2C_IC_INT_MST_RX_ENABLE                    (I2C_IC_INTR_STAT_TX_EMPTY | \
+                                                     I2C_IC_INTR_STAT_RX_FULL  | \
+                                                     I2C_IC_INTR_STAT_RX_OVER  | \
+                                                     I2C_IC_INTR_STAT_RX_UNDER | \
+                                                     I2C_IC_INTR_STAT_TX_ABRT  | \
+                                                     I2C_IC_INTR_STAT_STOP_DET)
+
+#define I2C_IC_INT_DMA_MST_RX_ENABLE                (I2C_IC_INTR_STAT_TX_EMPTY | \
+                                                     I2C_IC_INTR_STAT_RX_OVER  | \
+                                                     I2C_IC_INTR_STAT_RX_UNDER | \
+                                                     I2C_IC_INTR_STAT_TX_ABRT  | \
+                                                     I2C_IC_INTR_STAT_STOP_DET)
+/* Interrupt enable mask as slave */
 #define I2C_IC_INT_SLV_TX_ENABLE                    (I2C_IC_INTR_STAT_RD_REQ  | \
                                                      I2C_IC_INTR_STAT_TX_ABRT | \
                                                      I2C_IC_INTR_STAT_STOP_DET)
 
+#define I2C_IC_INT_DMA_SLV_TX_ENABLE                (I2C_IC_INTR_STAT_TX_ABRT  | \
+                                                     I2C_IC_INTR_STAT_STOP_DET)
+
 #define I2C_IC_INT_SLV_RX_ENABLE                    (I2C_IC_INTR_STAT_RX_FULL  | \
                                                      I2C_IC_INTR_STAT_RX_OVER  | \
+                                                     I2C_IC_INTR_STAT_RX_UNDER | \
+                                                     I2C_IC_INTR_STAT_STOP_DET)
+
+#define I2C_IC_INT_DMA_SLV_RX_ENABLE                (I2C_IC_INTR_STAT_RX_OVER  | \
                                                      I2C_IC_INTR_STAT_RX_UNDER | \
                                                      I2C_IC_INTR_STAT_STOP_DET)
 
@@ -199,6 +209,10 @@ typedef struct {
 /* Combined bits for i2c abort source as slave */
 #define I2C_SLV_ABRT_LOST_BUS                       (I2C_IC_TX_ABRT_ARB_LOST|I2C_IC_TX_ABRT_SLV_ARBLOST)
 
+/* Enabling of I2C Tx and Rx transfer through DMA */
+#define I2C_DMACR_TX_DMA_ENABLE                     (1 << 1)
+#define I2C_DMACR_RX_DMA_ENABLE                     (1 << 0)
+
 /* register configuration ------------------------------------------------------------------------------------------------------------- */
 #ifndef I2C_ALLOW_RESTART
 #define I2C_ALLOW_RESTART                           (1)    /* allow restart configuration */
@@ -216,6 +230,7 @@ typedef struct {
 #define I2C_IC_CON_MASTER_RESTART_EN                (0x00)
 #endif
 
+#define I2C_SPECIAL_START_BYTE                      0
 #if I2C_SPECIAL_START_BYTE
 #define I2C_IC_TAR_SPECIAL                          (1 << 11)
 #define I2C_IC_TAR_GC_OR_START                      (1 << 10)
@@ -314,7 +329,6 @@ typedef enum _I2C_TRANSFER_STATUS {
 /* i2c Transfer Information (Run-Time) */
 typedef struct i2c_transfer_info
 {
-  bool                          pending;          /* Transfer pending (no STOP) pending for interrupt only                   */
   const uint8_t                *tx_buf;           /* Pointer to out data buffer                                              */
   uint32_t                      tx_total_num;     /* Total number of data to be send                                         */
   volatile uint32_t             tx_curr_cnt;      /* current Number of data sent from total num                              */
@@ -325,7 +339,7 @@ typedef struct i2c_transfer_info
   volatile uint32_t             curr_cnt;         /* common current count update in ARM_I2C_GetDataCount function            */
   volatile uint32_t             tx_over;          /* i2c tx overflow count                                                   */
   volatile uint32_t             rx_over;          /* i2c rx overflow count                                                   */
-  volatile uint32_t             err_state;        /* \ref I2C_ERROR_STATE "current error state for i2c device"               */
+  volatile int32_t              err_state;        /* \ref I2C_ERROR_STATE "current error state for i2c device"               */
   volatile I2C_TRANSFER_STATE   curr_stat;        /* \ref I2C_TRANSFER_STATE "current working state for i2c device"          */
   volatile uint32_t             next_cond;        /* \ref I2C_NEXT_CONDTION "next condition for master transmit or receive", \
                                                       possible values are STOP or RESTART, it should be STOP for first open  */
@@ -370,14 +384,25 @@ static inline void i2c_set_bus_speed(I2C_Type *i2c, const uint8_t speed)
 }
 
 /**
+ * @brief   read data buffer's address
+ * @note    none
+ * @param   i2c : Pointer to i2c register map
+ * @retval  Address of I2C data buffer
+ */
+static inline volatile void* i2c_get_data_addr(I2C_Type *i2c)
+{
+    return ((volatile void*)&i2c->I2C_DATA_CMD);
+}
+
+/**
  * @brief   read data from RX FiFo Buffer
  * @note    none
  * @param   i2c : Pointer to i2c register map
  * @retval  received data (8-bit)
  */
-static inline uint32_t i2c_read_data_from_buffer(I2C_Type *i2c)
+static inline uint8_t i2c_read_data_from_buffer(I2C_Type *i2c)
 {
-    return (i2c->I2C_DATA_CMD) & 0xff;
+    return (i2c->I2C_DATA_CMD) & 0xFFU;
 }
 
 /**
@@ -424,7 +449,7 @@ static inline void i2c_clear_all_interrupt(I2C_Type *i2c)
  */
 static inline void i2c_master_enable_tx_interrupt(I2C_Type *i2c)
 {
-     i2c_unmask_interrupt(i2c, I2C_IC_INT_MST_TX_ENABLE);
+    i2c_unmask_interrupt(i2c, I2C_IC_INT_MST_TX_ENABLE);
 }
 
 /**
@@ -435,7 +460,7 @@ static inline void i2c_master_enable_tx_interrupt(I2C_Type *i2c)
  */
 static inline void i2c_master_enable_rx_interrupt(I2C_Type *i2c)
 {
-     i2c_unmask_interrupt(i2c, I2C_IC_INT_MST_RX_ENABLE);
+    i2c_unmask_interrupt(i2c, I2C_IC_INT_MST_RX_ENABLE);
 }
 
 /**
@@ -446,7 +471,7 @@ static inline void i2c_master_enable_rx_interrupt(I2C_Type *i2c)
  */
 static inline void i2c_master_disable_tx_interrupt(I2C_Type *i2c)
 {
-     i2c_mask_interrupt(i2c, I2C_IC_INT_MST_TX_ENABLE);
+    i2c_mask_interrupt(i2c, I2C_IC_INT_MST_TX_ENABLE);
 }
 
 /**
@@ -457,7 +482,7 @@ static inline void i2c_master_disable_tx_interrupt(I2C_Type *i2c)
  */
 static inline void i2c_master_disable_rx_interrupt(I2C_Type *i2c)
 {
-     i2c_mask_interrupt(i2c, I2C_IC_INT_MST_RX_ENABLE);
+    i2c_mask_interrupt(i2c, I2C_IC_INT_MST_RX_ENABLE);
 }
 
 /**
@@ -468,7 +493,7 @@ static inline void i2c_master_disable_rx_interrupt(I2C_Type *i2c)
  */
 static inline void i2c_slave_enable_tx_interrupt(I2C_Type *i2c)
 {
-     i2c_unmask_interrupt(i2c, I2C_IC_INT_SLV_TX_ENABLE);
+    i2c_unmask_interrupt(i2c, I2C_IC_INT_SLV_TX_ENABLE);
 }
 
 /**
@@ -479,7 +504,7 @@ static inline void i2c_slave_enable_tx_interrupt(I2C_Type *i2c)
  */
 static inline void i2c_slave_enable_rx_interrupt(I2C_Type *i2c)
 {
-     i2c_unmask_interrupt(i2c, I2C_IC_INT_SLV_RX_ENABLE);
+    i2c_unmask_interrupt(i2c, I2C_IC_INT_SLV_RX_ENABLE);
 }
 
 /**
@@ -490,7 +515,7 @@ static inline void i2c_slave_enable_rx_interrupt(I2C_Type *i2c)
  */
 static inline void i2c_slave_disable_tx_interrupt(I2C_Type *i2c)
 {
-     i2c_mask_interrupt(i2c, I2C_IC_INT_SLV_TX_ENABLE);
+    i2c_mask_interrupt(i2c, I2C_IC_INT_SLV_TX_ENABLE);
 }
 
 /**
@@ -501,7 +526,7 @@ static inline void i2c_slave_disable_tx_interrupt(I2C_Type *i2c)
  */
 static inline void i2c_slave_disable_rx_interrupt(I2C_Type *i2c)
 {
-     i2c_mask_interrupt(i2c, I2C_IC_INT_SLV_RX_ENABLE);
+    i2c_mask_interrupt(i2c, I2C_IC_INT_SLV_RX_ENABLE);
 }
 
 /**
@@ -512,7 +537,7 @@ static inline void i2c_slave_disable_rx_interrupt(I2C_Type *i2c)
  */
 static inline bool i2c_master_check_restart_cond(I2C_Type *i2c)
 {
-  return ((i2c->I2C_CON & I2C_IC_CON_MASTER_RESTART_EN) != 0);
+    return ((i2c->I2C_CON & I2C_IC_CON_MASTER_RESTART_EN) != 0);
 }
 
 /**
@@ -523,7 +548,7 @@ static inline bool i2c_master_check_restart_cond(I2C_Type *i2c)
  */
 static inline void i2c_master_enable_restart_cond(I2C_Type *i2c)
 {
-   i2c->I2C_CON |= I2C_IC_CON_MASTER_RESTART_EN;
+    i2c->I2C_CON |= I2C_IC_CON_MASTER_RESTART_EN;
 }
 
 /**
@@ -535,7 +560,7 @@ static inline void i2c_master_enable_restart_cond(I2C_Type *i2c)
  */
 static inline void i2c_set_tx_threshold(I2C_Type *i2c, const uint8_t threshold)
 {
-   i2c->I2C_TX_TL = threshold;
+    i2c->I2C_TX_TL = threshold;
 }
 
 /**
@@ -550,7 +575,120 @@ static inline void i2c_set_rx_threshold(I2C_Type *i2c, const uint8_t threshold)
     i2c->I2C_RX_TL = threshold;
 }
 
-/* function declarations */
+/**
+ * @brief   Enables I2C Tx DMA channel
+ * @note    none
+ * @param   i2c    : Pointer to i2c register map
+ * @retval  None
+ */
+static inline void i2c_enable_tx_dma(I2C_Type *i2c)
+{
+    i2c->I2C_DMA_CR |= I2C_DMACR_TX_DMA_ENABLE;
+}
+
+/**
+ * @brief   Disables I2C Tx DMA channel
+ * @note    none
+ * @param   i2c    : Pointer to i2c register map
+ * @retval  None
+ */
+static inline void i2c_disable_tx_dma(I2C_Type *i2c)
+{
+    i2c->I2C_DMA_CR &= (~I2C_DMACR_TX_DMA_ENABLE);
+}
+
+/**
+ * @brief   Enables I2C Rx DMA channel
+ * @note    none
+ * @param   i2c    : Pointer to i2c register map
+ * @retval  None
+ */
+static inline void i2c_enable_rx_dma(I2C_Type *i2c)
+{
+    i2c->I2C_DMA_CR |= I2C_DMACR_RX_DMA_ENABLE;
+}
+
+/**
+ * @brief   Disables I2C Rx DMA channel
+ * @note    none
+ * @param   i2c    : Pointer to i2c register map
+ * @retval  None
+ */
+static inline void i2c_disable_rx_dma(I2C_Type *i2c)
+{
+    i2c->I2C_DMA_CR &= (~I2C_DMACR_RX_DMA_ENABLE);
+}
+
+/**
+ * @brief   Returns I2C Rx DMA enable status
+ * @note    none
+ * @param   i2c    : Pointer to i2c register map
+ * @retval  None
+ */
+static inline bool i2c_is_rx_dma_enable(I2C_Type *i2c)
+{
+    return ((i2c->I2C_DMA_CR & I2C_DMACR_RX_DMA_ENABLE) != 0);
+}
+
+/**
+ * @brief       Set DMA Transmit data level
+ * @param       i2c : Pointer to the I2C register map
+ * @retval      none
+*/
+static inline void i2c_set_dma_tx_level(I2C_Type *i2c, uint8_t data_level)
+{
+    i2c->I2C_DMA_TDLR = data_level;
+}
+
+/**
+ * @brief   Set DMA Receive data level
+ * @param   i2c : Pointer to the I2C register map
+ * @retval  none
+*/
+static inline void i2c_set_dma_rx_level(I2C_Type *i2c, uint8_t data_level)
+{
+    i2c->I2C_DMA_RDLR = data_level;
+}
+
+/**
+ * @brief
+ * @param    i2c : Pointer to the I2C register map
+ * @retval   none
+*/
+static inline void i2c_enable_dma_master_tx(I2C_Type *i2c)
+{
+    i2c_unmask_interrupt(i2c, I2C_IC_INT_DMA_MST_TX_ENABLE);
+}
+
+/**
+ * @brief
+ * @param    i2c : Pointer to the I2C register map
+ * @retval   none
+*/
+static inline void i2c_enable_dma_master_rx(I2C_Type *i2c)
+{
+    i2c_unmask_interrupt(i2c, I2C_IC_INT_DMA_MST_RX_ENABLE);
+}
+
+/**
+ * @brief    Set i2c slave for DMA receive
+ * @param    i2c : Pointer to the I2C register map
+ * @retval   none
+*/
+static inline void i2c_enable_dma_slave_tx(I2C_Type *i2c)
+{
+    i2c_unmask_interrupt(i2c, I2C_IC_INT_DMA_SLV_TX_ENABLE);
+}
+
+/**
+ * @brief    Set i2c slave for DMA receive
+ * @param    i2c : Pointer to the I2C register map
+ * @retval   none
+*/
+static inline void i2c_enable_dma_slave_rx(I2C_Type *i2c)
+{
+    i2c_unmask_interrupt(i2c, I2C_IC_INT_DMA_SLV_RX_ENABLE);
+}
 
 /**
  * @brief    set i2c target address for slave device in master mode
@@ -561,7 +699,8 @@ static inline void i2c_set_rx_threshold(I2C_Type *i2c, const uint8_t threshold)
  * @retval   none
  */
 void i2c_set_target_addr(I2C_Type *i2c, const uint32_t address,
-     const i2c_address_mode_t addr_mode, const I2C_TRANSFER_STATE cur_state);
+                         const i2c_address_mode_t addr_mode,
+                         const I2C_TRANSFER_STATE cur_state);
 
 /**
  * @brief   Setup i2c master clock configuration
@@ -574,7 +713,8 @@ void i2c_set_target_addr(I2C_Type *i2c, const uint32_t address,
  *          ARM_I2C_BUS_SPEED_FAST_PLUS
  * @retval  none
  */
-void i2c_master_set_clock(I2C_Type *i2c, const uint32_t clk_khz, uint8_t speed_mode);
+void i2c_master_set_clock(I2C_Type *i2c, const uint32_t clk_khz,
+                          uint8_t speed_mode);
 
 /**
  * @brief   initialize i2c master
@@ -593,7 +733,8 @@ void i2c_master_init(I2C_Type *i2c, const uint32_t tar_addr);
  * param    addr_mode    : Addressing mode (10Bit/7Bit)
  * @retval  none
  */
-void i2c_slave_init(I2C_Type *i2c, uint32_t slave_addr, i2c_address_mode_t addr_mode);
+void i2c_slave_init(I2C_Type *i2c, uint32_t slave_addr,
+                    i2c_address_mode_t addr_mode);
 
 /**
  * @brief    i2c master transmit data using interrupt method

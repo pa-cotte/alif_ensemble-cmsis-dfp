@@ -93,6 +93,28 @@ extern "C" {
 // Function documentation
 
 /**
+  \fn          void sys_busy_loop_init_ns(void)
+  \brief       Initialize the REFCLK Counter Module to use as busy loop
+  \note        This function is not initialized at boot up. User may
+               choose to initialize based on application requirements
+  \return      none
+*/
+void sys_busy_loop_init_ns(void);
+
+/**
+  \fn          int32_t sys_busy_loop_ns(uint32_t delay_ns)
+  \brief       Using REFCLK counter for delay.
+  \note        REFCLK Counter module should be running before calling this.
+               User should call sys_high_res_busy_loop_init() once to
+               make sure the module is running.
+               Minimum delay = 10ns (Note: depends on refclk freq)
+               Maximum delay = 100ms
+  \param[in]   delay_ns delay in nano seconds.
+  \return      0 for Success -1 for Overflow error.
+*/
+int32_t sys_busy_loop_ns(uint32_t delay_ns);
+
+/**
   \fn          void sys_busy_loop_init(void)
   \brief       Initialize the S32K Counter Module to use as busy loop
   \return      none

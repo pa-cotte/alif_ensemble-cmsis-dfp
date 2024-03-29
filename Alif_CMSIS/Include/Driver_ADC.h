@@ -37,13 +37,20 @@ extern "c"
 #define ARM_ADC_COMPARATOR_B                         (0x06UL)          /* ARM ADC COMPARATOR B CONTROL           */
 #define ARM_ADC_THRESHOLD_COMPARISON                 (0X07UL)          /* ARM ADC THRESHOLD COMPARISON CONTROL   */
 #define ARM_ADC_CONVERSION_MODE_CTRL                 (0x08UL)          /* ARM ADC CONVERSION MODE CONTROL        */
-#define ARM_ADC_EXTERNAL_TRIGGER_ENABLE              (0X09UL)          /* ARM ADC EXTERNAL TRIGGER ENABLE        */
-#define ARM_ADC_EXTERNAL_TRIGGER_DISABLE             (0X10UL)          /* ARM ADC EXTERNAL TRIGGER DISABLE       */
+#define ARM_ADC_EXTERNAL_TRIGGER_ENABLE              (0x09UL)          /* ARM ADC EXTERNAL TRIGGER ENABLE        */
+#define ARM_ADC_EXTERNAL_TRIGGER_DISABLE             (0x0AUL)          /* ARM ADC EXTERNAL TRIGGER DISABLE       */
+#define ARM_ADC_HARDWARE_AVERAGING_CTRL              (0x0BUL)          /* ARM ADC SET HARDWARE AVERAGING         */
+#define ARM_ADC_SAMPLE_WIDTH_CTRL                    (0x0CUL)          /* ARM ADC SAMPLE WIDTH CONTROL           */
+#define ARM_ADC_DIFFERENTIAL_MODE_CTRL               (0x0DUL)          /* ARM ADC DIFFERENTIAL MODE CONTROL      */
+#define ARM_ADC_INPUT_CLOCK_DIV_CTRL                 (0x0FUL)          /* ARM ADC INPUT CLOCK DIVISOR CONTROL    */
+#define ARM_ADC_SET_PGA_GAIN_CTRL                    (0x10UL)          /* ARM ADC SET PGA GAIN CONTROL           */
+#define ARM_ADC_24_BIAS_CTRL                         (0x11UL)          /* ARM ADC 24 BIAS CONTROL                */
+#define ARM_ADC_24_OUTPUT_RATE_CTRL                  (0x12UL)          /* ARM ADC 24 OUTPUT RATE CONTROL         */
 
 /*********THRESHOLD COMPARSION**********/
-#define ARM_ADC_ABOVE_A_AND_ABOVE_B                  (0X00UL)          /* ARM ADC THRESHOLD ABOVE A AND ABOVE B         */
+#define ARM_ADC_ABOVE_A_AND_ABOVE_B                  (0x00UL)          /* ARM ADC THRESHOLD ABOVE A AND ABOVE B         */
 #define ARM_ADC_BELOW_A_AND_BELOW_B                  (0x01UL)          /* ARM ADC THRESHOLD BELOW A AND BELOW B         */
-#define ARM_ADC_BETWEEN_A_B_AND_OUTSIDE_A_B          (0X02UL)          /* ARM ADC THRESHOLD BETWEEN A_B AND OUTSIDE A_B */
+#define ARM_ADC_BETWEEN_A_B_AND_OUTSIDE_A_B          (0x02UL)          /* ARM ADC THRESHOLD BETWEEN A_B AND OUTSIDE A_B */
 
 /**********ADC EVENT********************/
 #define ARM_ADC_EVENT_CONVERSION_COMPLETE            (1 << 0)          /* ARM ADC EVENT CONVERSION COMPLETE        */
@@ -55,8 +62,8 @@ extern "c"
 #define ARM_ADC_COMPARATOR_THRESHOLD_OUTSIDE_A_B     (1 << 6)          /* ARM ADC COMPARATOR THRESHOLD OUTSIDE A_B */
 
 /**********ADC CONVERSION OPERATION**********/
-#define ARM_ADC_CONTINOUS_CH_CONV                    (0X00)            /* ARM ADC CHANNEL CONTINUOUS CONVERSION    */
-#define ARM_ADC_SINGLE_SHOT_CH_CONV                  (0X01)            /* ARM ADC CHANNEL SINGLE CONVERSION        */
+#define ARM_ADC_CONTINOUS_CH_CONV                    (0x00)            /* ARM ADC CHANNEL CONTINUOUS CONVERSION    */
+#define ARM_ADC_SINGLE_SHOT_CH_CONV                  (0x01)            /* ARM ADC CHANNEL SINGLE CONVERSION        */
 
 /**********ADC SCAN OPERATION**********/
 #define ARM_ADC_MULTIPLE_CH_SCAN                     (0x00)            /* ARM ADC MULTIPLE CHANNEL SCAN MODE */

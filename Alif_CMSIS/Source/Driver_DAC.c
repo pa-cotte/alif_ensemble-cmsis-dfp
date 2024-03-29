@@ -19,7 +19,7 @@
  ******************************************************************************/
 
 /* Project Includes */
-#include <Driver_DAC_Private.h>
+#include "Driver_DAC_Private.h"
 #include "analog_config.h"
 
 #if !(RTE_DAC0 || RTE_DAC1)
@@ -97,7 +97,7 @@ static int32_t DAC_Initialize(DAC_RESOURCES *DAC)
     int32_t ret = ARM_DRIVER_OK;
 
     /* Setting the flag */
-    DAC->flags |= DAC_FLAG_DRV_INIT_DONE;
+    DAC->flags.initialized = 0x1U;
 
     return ret;
 }
@@ -113,7 +113,7 @@ static int32_t DAC_Uninitialize(DAC_RESOURCES *DAC)
       int32_t ret = ARM_DRIVER_OK;
 
       /* Reset the flag */
-      DAC->flags = 0U;
+      DAC->flags.initialized = 0x0U;
 
      return ret;
 }
@@ -130,12 +130,20 @@ static int32_t DAC_Uninitialize(DAC_RESOURCES *DAC)
 static int32_t DAC_PowerControl(ARM_POWER_STATE state,
                                 DAC_RESOURCES *DAC)
 {
-    switch(state)
+    if(DAC->flags.initialized == 0x0U)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
+    switch((int32_t)state)
     {
           case ARM_POWER_OFF:
 
-               /* Reset the power flag */
-               DAC->flags &= ~(DAC_FLAG_DRV_POWER_DONE);
+              /* If already powered OFF returns OK*/
+              if(DAC->flags.powered == 0x0U)
+              {
+                 return ARM_DRIVER_OK;
+              }
 
                /* Clear the DAC configuration */
                dac_clear_config(DAC->regs);
@@ -144,22 +152,15 @@ static int32_t DAC_PowerControl(ARM_POWER_STATE state,
 
                disable_cmp_periph_clk();
 
+               DAC->flags.powered = 0x0U;
                break;
 
           case ARM_POWER_FULL:
-               if(!(DAC->flags & DAC_FLAG_DRV_INIT_DONE))
-               {
-                    /* error:Driver is not initialized */
-                    return ARM_DRIVER_ERROR;
-               }
 
-               if((DAC->flags & DAC_FLAG_DRV_POWER_DONE))
-               {
-                    return ARM_DRIVER_OK;
-               }
-
-               /* Set the power flag enabled */
-               DAC->flags |= DAC_FLAG_DRV_POWER_DONE;
+              if(DAC->flags.powered == 0x1U)
+              {
+                 return ARM_DRIVER_OK;
+              }
 
                enable_cmp_periph_clk();
 
@@ -175,7 +176,9 @@ static int32_t DAC_PowerControl(ARM_POWER_STATE state,
                dac_reset_deassert(DAC->regs);
 
                /* Initialize DAC configuration */
-               dac_set_config(DAC->regs, DAC->input_mux_val, DAC->bypass_val);
+               dac_set_config(DAC->regs, DAC->input_mux_val, DAC->dac_twoscomp_in);
+
+               DAC->flags.powered = 0x1U;
 
               break;
 
@@ -201,12 +204,43 @@ static int32_t DAC_Control(DAC_RESOURCES *DAC, uint32_t control, uint32_t arg)
     ARG_UNUSED(arg);
     int32_t ret = ARM_DRIVER_OK;
 
+    if(DAC->flags.powered == 0x0U)
+    {
+        return ARM_DRIVER_ERROR;
+    }
+
     switch (control)
     {
         case ARM_DAC_RESET:
 
-            /* DAC reset asserted */
-            dac_reset_assert(DAC->regs);
+            if (arg)
+            {
+                /* DAC reset asserted */
+                dac_reset_assert(DAC->regs);
+            }
+            else
+            {
+                /* DAC reset released */
+                dac_reset_deassert(DAC->regs);
+            }
+            break;
+
+        case ARM_DAC_INPUT_BYPASS_MODE:
+
+            /* Set DAC input through bypass mode */
+            dac_set_bypass_input(DAC->regs, arg);
+            break;
+
+        case ARM_DAC_SELECT_IBIAS_OUTPUT:
+
+            /* Set DAC output current */
+            dac_set_output_current(DAC->regs, arg);
+            break;
+
+        case ARM_DAC_CAPACITANCE_HP_MODE:
+
+            /* Set capacitance for DAC signal */
+            dac_set_capacitance(DAC->regs, arg);
             break;
 
         default:
@@ -227,21 +261,20 @@ static int32_t DAC_Start (DAC_RESOURCES *DAC)
 {
     int32_t ret = ARM_DRIVER_OK;
 
-    if(!(DAC->flags & DAC_FLAG_DRV_POWER_DONE))
+    if(DAC->flags.powered == 0x0U)
     {
-         /* error:Driver is not initialized */
          return ARM_DRIVER_ERROR;
     }
 
-    if((DAC->flags & DAC_FLAG_DRV_STARTED))
+    if(DAC->flags.dac_drv_start == 0x1U)
     {
          return ARM_DRIVER_OK;
     }
 
-    DAC->flags |= DAC_FLAG_DRV_STARTED;
-
     /* Enable the DAC */
     dac_enable(DAC->regs);
+
+    DAC->flags.dac_drv_start = 0x1U;
 
     return ret;
 }
@@ -257,10 +290,15 @@ static int32_t DAC_Stop (DAC_RESOURCES *DAC)
 {
     int32_t ret = ARM_DRIVER_OK;
 
+    if(DAC->flags.powered == 0x0U)
+    {
+         return ARM_DRIVER_ERROR;
+    }
+
     /* Disable the DAC */
     dac_disable(DAC->regs);
 
-    DAC->flags &= ~(DAC_FLAG_DRV_STARTED);
+    DAC->flags.dac_drv_start = 0x0U;
 
     return ret;
 }
@@ -278,19 +316,19 @@ static int32_t DAC_SetInput(DAC_RESOURCES *DAC, uint32_t value)
 {
     int32_t ret = ARM_DRIVER_OK;
 
-    if(!(DAC->flags & DAC_FLAG_DRV_STARTED))
+    if(DAC->flags.dac_drv_start == 0x0U)
     {
          /* error:Driver is not started */
          return ARM_DRIVER_ERROR;
     }
-    /* error if input is out of the range */
-    if(value > DAC_MAX_INPUT)
-    {
-        ret = ARM_DRIVER_ERROR_PARAMETER;
-    }
 
-    /* Set dac input */
-    dac_input(DAC->regs, value);
+    /* If bypass mode is not enabled then pass
+       the input through the DAC_IN reg */
+    if(!(dac_input_mux_enabled(DAC->regs)))
+    {
+        /* Set dac input */
+        dac_input(DAC->regs, value);
+    }
 
     return ret;
 }
@@ -300,11 +338,11 @@ static int32_t DAC_SetInput(DAC_RESOURCES *DAC, uint32_t value)
 
 /* DAC configuration */
 static DAC_RESOURCES DAC0 = {
-        .regs           = (DAC_Type *)DAC120_BASE,
-        .flags          = 0,
-        .input_mux_val  = (RTE_DAC1_INPUT_BYP_MUX_EN),
-        .bypass_val     = (RTE_DAC1_BYP_VAL),
-        .instance       = DAC_INSTANCE_0
+    .regs            = (DAC_Type *)DAC120_BASE,
+    .flags           = {0},
+    .input_mux_val   = (RTE_DAC0_INPUT_BYP_MUX_EN),
+    .dac_twoscomp_in = (RTE_DAC0_TWOSCOMP_EN),
+    .instance        = DAC_INSTANCE_0
 };
 
 /* Function Name: DAC0_Initialize */
@@ -352,15 +390,15 @@ static int32_t DAC0_SetInput(uint32_t value)
 extern ARM_DRIVER_DAC Driver_DAC0;
 ARM_DRIVER_DAC Driver_DAC0 =
 {
-        DAC_GetVersion,
-        DAC_GetCapabilities,
-        DAC0_Initialize,
-        DAC0_Uninitialize,
-        DAC0_PowerControl,
-        DAC0_Control,
-        DAC0_Start,
-        DAC0_Stop,
-        DAC0_SetInput
+    DAC_GetVersion,
+    DAC_GetCapabilities,
+    DAC0_Initialize,
+    DAC0_Uninitialize,
+    DAC0_PowerControl,
+    DAC0_Control,
+    DAC0_Start,
+    DAC0_Stop,
+    DAC0_SetInput
 };
 
 #endif /*RTE_DAC0 */
@@ -370,13 +408,12 @@ ARM_DRIVER_DAC Driver_DAC0 =
 
 /* DAC1 configuration */
 static DAC_RESOURCES DAC1 = {
-        .regs           = (DAC_Type *)DAC121_BASE,
-        .flags          = 0,
-        .input_mux_val  = (RTE_DAC1_INPUT_BYP_MUX_EN),
-        .bypass_val     = (RTE_DAC1_BYP_VAL),
-        .instance       = DAC_INSTANCE_1
+    .regs            = (DAC_Type *)DAC121_BASE,
+    .flags           = {0},
+    .input_mux_val   = (RTE_DAC1_INPUT_BYP_MUX_EN),
+    .dac_twoscomp_in = (RTE_DAC1_TWOSCOMP_EN),
+    .instance        = DAC_INSTANCE_1
 };
-
 /* Function Name: DAC1_Initialize */
 static int32_t DAC1_Initialize(void)
 {
@@ -392,7 +429,7 @@ static int32_t DAC1_Uninitialize(void)
 /* Function Name: DAC1_PowerControl */
 static int32_t DAC1_PowerControl(ARM_POWER_STATE state)
 {
-  return (DAC_PowerControl(state, &DAC1));
+    return (DAC_PowerControl(state, &DAC1));
 }
 
 /* Function Name: DAC1_Control */
@@ -422,15 +459,15 @@ static int32_t DAC1_SetInput(uint32_t value)
 extern ARM_DRIVER_DAC Driver_DAC1;
 ARM_DRIVER_DAC Driver_DAC1 =
 {
-        DAC_GetVersion,
-        DAC_GetCapabilities,
-        DAC1_Initialize,
-        DAC1_Uninitialize,
-        DAC1_PowerControl,
-        DAC1_Control,
-        DAC1_Start,
-        DAC1_Stop,
-        DAC1_SetInput
+    DAC_GetVersion,
+    DAC_GetCapabilities,
+    DAC1_Initialize,
+    DAC1_Uninitialize,
+    DAC1_PowerControl,
+    DAC1_Control,
+    DAC1_Start,
+    DAC1_Stop,
+    DAC1_SetInput
 };
 
 #endif /* RTE_DAC1 */

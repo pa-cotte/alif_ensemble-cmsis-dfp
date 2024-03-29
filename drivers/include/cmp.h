@@ -21,37 +21,36 @@ extern "C"
 /**
  @brief struct CMP_Type:- Register map for Analog Comparator
  */
-typedef struct {                                     /*!< CMP Structure                                             */
-    volatile uint32_t  CMP_COMP_REG1;                /*!< (@ 0x00000000) Comparator Register 1                      */
-    volatile uint32_t  CMP_COMP_REG2;                /*!< (@ 0x00000004) Comparator Register 2                      */
-    volatile uint32_t  CMP_POLARITY_CTRL;            /*!< (@ 0x00000008) CMP Polarity Control Register              */
-    volatile uint32_t  CMP_WINDOW_CTRL;              /*!< (@ 0x0000000C) CMP Window Control Register                */
-    volatile uint32_t  CMP_FILTER_CTRL;              /*!< (@ 0x00000010) CMP Filter Control Register                */
-    volatile uint32_t  CMP_PRESCALER_CTRL;           /*!< (@ 0x00000014) CMP Prescaler Control Register             */
+typedef struct {                                     /*!< CMP Structure                              */
+    volatile uint32_t  CMP_COMP_REG1;                /*!< Comparator Register 1                      */
+    volatile uint32_t  CMP_COMP_REG2;                /*!< Comparator Register 2                      */
+    volatile uint32_t  CMP_POLARITY_CTRL;            /*!< CMP Polarity Control Register              */
+    volatile uint32_t  CMP_WINDOW_CTRL;              /*!< CMP Window Control Register                */
+    volatile uint32_t  CMP_FILTER_CTRL;              /*!< CMP Filter Control Register                */
+    volatile uint32_t  CMP_PRESCALER_CTRL;           /*!< CMP Prescaler Control Register             */
     volatile const  uint32_t  RESERVED[2];
-    volatile uint32_t  CMP_INTERRUPT_STATUS;         /*!< (@ 0x00000020) CMP Interrupt Status and Clear Register    */
-    volatile uint32_t  CMP_INTERRUPT_MASK;           /*!< (@ 0x00000024) CMP Interrupt Mask Register                */
-}CMP_Type;                                           /*!< Size = 40 (0x28)                                          */
+    volatile uint32_t  CMP_INTERRUPT_STATUS;         /*!< CMP Interrupt Status and Clear Register    */
+    volatile uint32_t  CMP_INTERRUPT_MASK;           /*!< CMP Interrupt Mask Register                */
+}CMP_Type;                                          /*!< Size = 40 (0x28)                           */
 
-#define CMP0_ENABLE                    (1U << 28)    /* To enable the Comp0                                         */
-#define CMP1_ENABLE                    (1U << 29)    /* To enable the Comp1                                         */
-#define CMP2_ENABLE                    (1U << 30)    /* To enable the Comp2                                         */
-#define CMP3_ENABLE                    (1U << 31)    /* To enable the Comp3                                         */
-#define LPCMP_ENABLE                   (1U << 24)    /* To enable the LPCMP                                         */
+#define CMP0_ENABLE                    (1U << 28)    /* To enable the Comp0                          */
+#define CMP1_ENABLE                    (1U << 29)    /* To enable the Comp1                          */
+#define CMP2_ENABLE                    (1U << 30)    /* To enable the Comp2                          */
+#define CMP3_ENABLE                    (1U << 31)    /* To enable the Comp3                          */
+#define LPCMP_ENABLE                   (1U << 24)    /* To enable the LPCMP                          */
 
-#define CMP_FILTER_CONTROL_ENABLE      (1U << 0)     /* To enable the filter control                                */
-#define CMP_WINDOW_CONTROL_ENABLE      (3U << 0)     /* To enable the window control for B0 board                   */
-#define CMP_PRESCALER_MAX_VALUE        (0x3FU)       /* Maximum value of prescaler control                          */
-#define CMP_POLARITY_MAX_VALUE         (0x2U)        /* Maximum value of polarity control                           */
-#define CMP_WINDOW_MIN_VALUE           (0x0U)        /* Minimum value of window control                             */
-#define CMP_WINDOW_MAX_VALUE           (0x3U)        /* Miximum value of window control                             */
-#define CMP_FILTER_MIN_VALUE           (0x2U)        /* Minimum value of filter control                             */
-#define CMP_FILTER_MAX_VALUE           (0x8U)        /* Maximum value of filter control                             */
+#define CMP_FILTER_CONTROL_ENABLE      (1U << 0)     /* To enable the filter control                 */
+#define CMP_WINDOW_CONTROL_ENABLE      (3U << 0)     /* To enable the window control                 */
+#define CMP_PRESCALER_MAX_VALUE        (0x3FU)       /* Maximum value of prescaler control           */
+#define CMP_POLARITY_MAX_VALUE         (0x2U)        /* Maximum value of polarity control            */
+#define CMP_WINDOW_MAX_VALUE           (0x3U)        /* Maximum value of window control              */
+#define CMP_FILTER_MIN_VALUE           (0x2U)        /* Minimum value of filter control              */
+#define CMP_FILTER_MAX_VALUE           (0x8U)        /* Maximum value of filter control              */
 
-#define CMP_INT_MASK                   (0x01UL)      /* Mask for the interrupt                                      */
-#define CMP_INTERRUPT_CLEAR            (0x01UL)      /* To clear the interrupt                                      */
+#define CMP_INT_MASK                   (0x01UL)      /* Mask for the interrupt                       */
+#define CMP_INTERRUPT_CLEAR            (0x01UL)      /* To clear the interrupt                       */
 
-#define LPCMP_MSK_CTRL_VAL             (0xFEU << 24) /* Mask all LPCMP configuration value                          */
+#define LPCMP_MSK_CTRL_VAL             (0xFEU << 24) /* Mask all LPCMP configuration value           */
 
 /**
   @fn          void cmp_enable_interrupt(CMP_Type *cmp)
@@ -125,12 +124,24 @@ static inline void cmp_set_polarity_ctrl(CMP_Type *cmp, uint32_t arg)
   @brief       Select one of the 4 inputs which will control the windowing
                (gating) function.
   @param[in]   cmp    Pointer to the CMP register map
-  @param[in]   arg    4 input events inputs to control the processing window.
+  @param[in]   arg    4 input events to control the processing window.
   @return      none
 */
 static inline void cmp_set_window_ctrl(CMP_Type *cmp, uint32_t arg)
 {
     cmp->CMP_WINDOW_CTRL = (CMP_WINDOW_CONTROL_ENABLE | arg << 8);
+}
+
+/**
+  @fn          void cmp_clear_window_ctrl(CMP_Type *cmp, uint32_t arg)
+  @brief       Clear the windowing inputs to the comparator
+  @param[in]   cmp    Pointer to the CMP register map
+  @param[in]   arg    4 input events to control the processing window.
+  @return      none
+*/
+static inline void cmp_clear_window_ctrl(CMP_Type *cmp, uint32_t arg)
+{
+    cmp->CMP_WINDOW_CTRL &= ~(CMP_WINDOW_CONTROL_ENABLE | arg << 8);
 }
 
 /**

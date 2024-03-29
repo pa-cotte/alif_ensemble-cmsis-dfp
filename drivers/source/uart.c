@@ -307,25 +307,6 @@ void uart_set_flow_control(UART_Type          *uart,
 }
 
 /**
- * @fn      void uart_flush_rxfifo (UART_Type *uart, UART_TRANSFER *transfer)
- * @brief   flush receiver fifo
- * @note    \ref uart_abort_rx
- * @param   uart     : Pointer to uart register set structure
- * @param   transfer : Pointer to uart transfer structure
- * @retval  none
- */
-void uart_flush_rxfifo (UART_Type *uart, UART_TRANSFER *transfer)
-{
-    /* read all the bytes which are available in RX fifo till given rx total length */
-    while (uart_rx_ready(uart) && (transfer->rx_curr_cnt != transfer->rx_total_num))
-    {
-        /* read a char from rbr receive buffer register. */
-        transfer->rx_buf[transfer->rx_curr_cnt] = uart_receive_a_char_from_rbr(uart);
-        transfer->rx_curr_cnt++;
-    }
-}
-
-/**
  * @fn      void uart_irq_handler (UART_Type *uart, UART_TRANSFER *transfer)
  * @brief   uart interrupt handler
  * @note    only one combined interrupt for

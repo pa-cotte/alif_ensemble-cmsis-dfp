@@ -48,17 +48,17 @@
 
 #define CRC_CALLBACK_EVENT_SUCCESS    1
 
-volatile int32_t call_back_event = 0;
+static volatile int32_t call_back_event = 0;
 
 /* CRC driver instance */
 extern ARM_DRIVER_CRC Driver_CRC0;
 static ARM_DRIVER_CRC *CRCdrv = &Driver_CRC0;
 
-void crc_demo();
+static void crc_demo(void);
 
 #if INPUT_HEX_VALUE
 
-uint8_t input_value[] = {0x67, 0x3F, 0x90, 0xC9, 0x25, 0xF0, 0x4A, 0xB1, 0x12};
+static uint8_t input_value[] = {0x67, 0x3F, 0x90, 0xC9, 0x25, 0xF0, 0x4A, 0xB1, 0x12};
 
 #endif
 
@@ -68,12 +68,19 @@ uint8_t input_value[] = {"Hello"};
 
 #endif
 
-uint32_t seed_value_8_bit   = (0x00000000);  /* Seed value for 8 bit */
-uint32_t seed_value_16_bit  = (0x00000000);  /* Seed value for 16 bit */
-uint32_t seed_value_32_bit  = (0xFFFFFFFF);  /* Seed value for 32 bit */
-uint32_t seed_value_32C_bit = (0xFFFFFFFF);  /* Seed value for 32 bit custom polynomial */
+#if CRC_8_BIT
+static uint32_t seed_value_8_bit   = (0x00000000);  /* Seed value for 8 bit */
 
-uint32_t polynomial = 0x2CEEA6C8;  /* polynomial value for 32 bit custom polynomial */
+#elif CRC_16_BIT
+static uint32_t seed_value_16_bit  = (0x00000000);  /* Seed value for 16 bit */
+
+#elif CRC_32_BIT
+static uint32_t seed_value_32_bit  = (0xFFFFFFFF);  /* Seed value for 32 bit */
+
+#elif CRC_CUSTOM_32_BIT
+static uint32_t seed_value_32C_bit = (0xFFFFFFFF);  /* Seed value for 32 bit custom polynomial */
+static uint32_t polynomial = 0x2CEEA6C8;            /* polynomial value for 32 bit custom polynomial */
+#endif
 
 /*
  * @func   : void crc_compute_callback(uint32_t event)
@@ -89,7 +96,7 @@ static void crc_compute_callback(uint32_t event)
 }
 
 /**
- * @fn         :void crc_demo()
+ * @fn         :void crc_demo(void)
  * @brief      :CRC demo :
                   - This initialize the CRC.
                   - For 8 bit, 16 bit and 32 bit,the seed value will be added
@@ -102,7 +109,7 @@ static void crc_compute_callback(uint32_t event)
                     DATA_IN_32 register.
  * @return     : none
  */
-void crc_demo()
+static void crc_demo(void)
 {
     int32_t  ret = 0;
     uint8_t len;

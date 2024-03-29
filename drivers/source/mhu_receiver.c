@@ -177,14 +177,6 @@ static void MHU_receiver_interrupt_initialize(uint32_t receiver_frame_count)
   {
     MHU_receiver_frame_register_t * receiver_reg_base =
         get_receiver_frame_base_address(receiver_id);
-    MHU_receiver_set_irq_enable(receiver_reg_base, MHU_CHCOMB, false);
-
-    /* CHCOMB must be cleared through channel's interrupt clear register */
-    for (mhu_channel_number_t channel_number = 0;
-        channel_number < MHU_CHANNELS; channel_number++)
-    {
-      WRITE_REGISTER_U32(&receiver_reg_base->CHANNEL[channel_number].CH_CLR, 0xFFFFFFFF);
-    }
 
     MHU_receiver_set_irq_enable(receiver_reg_base, MHU_CHCOMB, true);
   }

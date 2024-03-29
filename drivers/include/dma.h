@@ -311,8 +311,8 @@ static inline bool dma_get_channel_fault_status(DMA_Type *dma,
 static inline DMA_THREAD_STATUS dma_get_channel_status(DMA_Type *dma,
                                                        uint8_t   channel_num)
 {
-    return (dma->DMA_CHANNEL_RT_INFO[channel_num].DMA_CSR
-            & DMA_CSR_CHANNEL_STATUS_Msk);
+    return (DMA_THREAD_STATUS)(dma->DMA_CHANNEL_RT_INFO[channel_num].DMA_CSR
+                               & DMA_CSR_CHANNEL_STATUS_Msk);
 }
 
 /**
