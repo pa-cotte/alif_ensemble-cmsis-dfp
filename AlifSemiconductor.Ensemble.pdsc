@@ -12,8 +12,18 @@
   -->
 
   <releases>
+    <release version="1.1.3" tag="v1.1.3" url="https://github.com/alifsemi/alif_ensemble-cmsis-dfp/releases/download/v1.1.3/AlifSemiconductor.Ensemble.1.1.3.pack" date="2024-05-13">
+      - Fix FLM file format issue
+      - Minor updates to Demo_pm_baremetal and mhu_sender sources
+      - Update SE services to v1.0.94
+    </release>
     <release version="1.1.2" tag="v1.1.2" url="https://github.com/alifsemi/alif_ensemble-cmsis-dfp/releases/download/v1.1.2/AlifSemiconductor.Ensemble.1.1.2.pack" date="2024-04-19">
       - Update SE services to v1.0.93
+    </release>
+    <release version="1.1.1" tag="v1.1.1" url="https://github.com/alifsemi/alif_ensemble-cmsis-dfp/releases/download/v1.1.1/AlifSemiconductor.Ensemble.1.1.1.pack" date="2024-03-25">
+      - Update SE services to v1.0.92
+      - Update drivers and testapps
+      - Rename HSCMP component as CMP
     </release>
   <release version="1.0.0" date="2023-11-15">
       Initial release

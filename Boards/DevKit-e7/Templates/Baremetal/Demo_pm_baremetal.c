@@ -505,6 +505,12 @@ int main(void)
 #else
     runp.memory_blocks = SRAM4_1_MASK | SRAM4_2_MASK
                          | SRAM5_1_MASK | SRAM5_2_MASK;
+
+    if(!RTSS_Is_TCM_Addr((const volatile void*)SCB->VTOR))
+    {
+        runp.memory_blocks |= MRAM_MASK;
+    }
+
 #endif
 
     /* Set the new run configuration */
