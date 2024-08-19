@@ -12,6 +12,11 @@
   -->
 
   <releases>
+    <release version="1.2.2" tag="v1.2.2" url="https://github.com/alifsemi/alif_ensemble-cmsis-dfp/releases/download/v1.2.2/AlifSemiconductor.Ensemble.1.2.2.pack" date="2024-08-13">
+      - update SD Driver for various fixes
+      - Add emmc init sequence
+      - Low Capacity SD card support
+    </release>
     <release version="1.2.1" tag="v1.2.1" url="https://github.com/alifsemi/alif_ensemble-cmsis-dfp/releases/download/v1.2.1/AlifSemiconductor.Ensemble.1.2.1.pack" date="2024-06-27">
       - update SE services to 1.97.0
     </release>
@@ -1028,7 +1033,7 @@
         <file category="source" name="Boards/DevKit-e7/Templates/Common/Include/temperature.h" attr="template" select="TSENS FreeRTOS Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/FreeRTOS/i2s_testapp.c" attr="template" select="I2S FreeRTOS Demo"/>
         <file category="header" name="Boards/DevKit-e7/Templates/FreeRTOS/i2s_samples.h" attr="template" select="I2S FreeRTOS Demo"/>
-        
+
 	<!--  LWIP templates -->
         <file category="source" name="Boards/DevKit-e7/Templates/lwip/httpd/fs.c" attr="template" select="LWIP httpd Demo"/>
         <file category="source" name="Boards/DevKit-e7/Templates/lwip/httpd/httpd.c" attr="template" select="LWIP httpd Demo"/>
@@ -1410,7 +1415,7 @@
         <file category="source" name="components/Source/HM0360_camera_sensor.c"/>
       </files>
     </component>
-    
+
     <component Cclass="BSP" Cgroup="External peripherals" Csub="CAMERA Sensor ARX3A0" Cversion="1.1.0" condition="Camera Sensor Driver">
       <description>CAMERA Sensor Driver for ARX3A0</description>
       <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
