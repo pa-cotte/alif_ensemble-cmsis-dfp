@@ -12,7 +12,17 @@
   -->
 
   <releases>
-     <release version="1.3.0"  tag="v1.3.0" url="https://github.com/alifsemi/alif_ensemble-cmsis-dfp/releases/download/v1.3.0/AlifSemiconductor.Ensemble.1.3.0.pack" date="2024-10-04">
+    <release version="1.3.1"  tag="v1.3.1" url="https://github.com/alifsemi/alif_ensemble-cmsis-dfp/releases/download/v1.3.1/AlifSemiconductor.Ensemble.1.3.1.pack" date="2024-10-29">
+      - Power off will wait till all queued data is transmitted in UART
+      - update se services to FWv1.101
+      - Build fix for LP timer as retargetting uart.
+      - BECP-2265 Support for OV5675 Camera Sensor
+      - Add LPSPI Blocking mode macro in RTE_Device.h
+      - Add ifdef guards for M55 SYSTEM_CLOCK
+      - LLVM CLang fixes   - add copy and zero table handling for llvm clang builds
+      - Fix CMSIS_6 related Warnings
+    </release>
+    <release version="1.3.0"  tag="v1.3.0" url="https://github.com/alifsemi/alif_ensemble-cmsis-dfp/releases/download/v1.3.0/AlifSemiconductor.Ensemble.1.3.0.pack" date="2024-10-04">
       - ICM42670 driver
       - New component for MIPI DPHY
       - Support for ILI9488 1-lane Display
@@ -1246,7 +1256,6 @@
 		<file category="header" name="drivers/include/uart.h"/>
 		<file category="header" name="drivers/include/sys_ctrl_uart.h"/>
 	    <file category="header" name="Alif_CMSIS/Source/Driver_USART_Private.h"/>
-        <file category="header" name="Alif_CMSIS/Include/Driver_USART.h"/>
       </files>
     </component>
 
@@ -1417,7 +1426,6 @@
         #define RTE_Drivers_SPI   1           /* Driver SPI */
       </RTE_Components_h>
       <files>
-	    <file category="header" name="Alif_CMSIS/Include/Driver_SPI.h"/>
         <file category="source" name="Alif_CMSIS/Source/Driver_SPI.c"/>
         <file category="header" name="Alif_CMSIS/Source/Driver_SPI_Private.h"/>
 		<file category="header" name="drivers/include/spi.h"/>
@@ -1500,6 +1508,16 @@
       </RTE_Components_h>
       <files>
         <file category="source" name="components/Source/OV5647_camera_sensor.c"/>
+      </files>
+    </component>
+
+    <component Cclass="BSP" Cgroup="External peripherals" Csub="CAMERA Sensor OV5675" Cversion="1.3.0" condition="Camera Sensor Driver">
+      <description>CAMERA Sensor Driver for OV5675</description>
+      <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
+        #define RTE_Drivers_CAMERA_SENSOR_OV5675			1           /* Driver CAMERA Sensor */
+      </RTE_Components_h>
+      <files>
+        <file category="source" name="components/Source/OV5675_camera_sensor.c"/>
       </files>
     </component>
 
@@ -1749,7 +1767,6 @@
         #define RTE_Drivers_CANFD   1           /* Driver CAN-FD */
       </RTE_Components_h>
       <files>
-        <file category="header" name="Alif_CMSIS/Include/Driver_CAN.h"/>
         <file category="header" name="Alif_CMSIS/Source/CANFD_Private.h"/>
         <file category="source" name="Alif_CMSIS/Source/Driver_CAN.c"/>
         <file category="header" name="drivers/include/canfd.h"/>
@@ -1862,7 +1879,7 @@
       </files>
     </component>
 
-    <component Cclass="Device" Cgroup="SOC Peripherals" Csub="MHU" Cversion="1.100.0" condition="SE SERVICES MHU">
+    <component Cclass="Device" Cgroup="SOC Peripherals" Csub="MHU" Cversion="1.101.0" condition="SE SERVICES MHU">
       <description>Message Handling Unit driver for Alif Soc</description>
       <files>
         <file category="header" name="drivers/include/drivers_common.h"/>
@@ -1884,10 +1901,10 @@
       </files>
     </component> -->
 
-    <component Cclass="Device" Cgroup="SE runtime Services" Csub="core" Cvariant="Source" Cversion="1.100.0" condition="SE SERVICES SRC">
+    <component Cclass="Device" Cgroup="SE runtime Services" Csub="core" Cvariant="Source" Cversion="1.101.0" condition="SE SERVICES SRC">
       <description>SE runtime Services for RTSS cores</description>
       <files>
-        <file category="doc" name="se_services/document/SE_Host_Services_API_v1.100.0.pdf"/>
+        <file category="doc" name="se_services/document/SE_Host_Services_API_v1.101.0.pdf"/>
         <file category="include" name="se_services/include/"/>
         <file category="source" name="se_services/source/services_host_application.c"/>
         <file category="source" name="se_services/source/services_host_boot.c"/>
