@@ -2,7 +2,7 @@
  * @file services_host_clocks.c
  *
  * @brief Clocks services service source file
- * @ingroup host-services
+ * @ingroup host_services
  * @par
  *
  * Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.

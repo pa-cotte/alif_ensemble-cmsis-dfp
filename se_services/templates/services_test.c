@@ -97,13 +97,13 @@ static uint32_t test_services_bor_en(char *p_test_name, uint32_t services_handle
 /*******************************************************************************
  *  M A C R O   D E F I N E S
  ******************************************************************************/
-#define RANDOMIZER_FEATURE          0
-#define NUMBER_OF_TEST_RUNS         1   /* Number of times to test            */
+#define RANDOMIZER_FEATURE            0
+#define NUMBER_OF_TEST_RUNS           1   /* Number of times to test            */
 
-#define SANITY_TESTS_ENABLE         1   /* Enable the sanity tests run as part of release builds */
-#define A32_BOOT_WORKAROUND         1   /* Skip A32 boot tests that crash the current B0 device */
-#define PLL_XTAL_TESTS_ENABLE       0
-#define CPU_BOOT_SEQUENCE_TEST_ENABLE 0 /* Boot a CPU core using the low level APIs */
+#define SANITY_TESTS_ENABLE           1   /* Enable the sanity tests run as part of release builds */
+#define A32_BOOT_WORKAROUND           1   /* Skip A32 boot tests that crash the current B0 device  */
+#define PLL_XTAL_TESTS_ENABLE         0
+#define CPU_BOOT_SEQUENCE_TEST_ENABLE 0   /* Boot a CPU core using the low level APIs */
 
 #if defined(M55_HE)
 #define CPU_STRING "M55_HE"
@@ -124,24 +124,17 @@ static uint32_t test_services_bor_en(char *p_test_name, uint32_t services_handle
 #define TOC_IMAGE_ENCRYPT             0x80u
 #define TOC_IMAGE_DEFERRED            0x100u
 
-/**
- * @brief Flag positions with the flag string
- */
-#define FLAG_STRING_COMPRESSED 0
-#define FLAG_STRING_LOAD_IMAGE 1
-#define FLAG_STRING_VERIFY     2
-#define FLAG_STRING_CPU_BOOTED 3
-#define FLAG_STRING_ENCRYPTED  4
-#define FLAG_STRING_DEFERRED   5
-#define FLAG_STRING_END        6
-#define FLAG_STRING_SIZE       10
-
-
 #define PRINT_TEST_RESULT   TEST_print(services_handle, \
                                        "** TEST %s error_code=%s service_resp=0x%08X\n", \
                                        p_test_name,                  \
                                        SERVICES_error_to_string(error_code), \
                                        service_error_code)
+
+#define SHA256_BYTES                  32  // 256 bits
+#define SHA256_PRINT                  64  // 256 bits is 64 characters
+#define KEY_SIZE                      256
+#define AES_IV_SIZE                   16
+#define AES_BLOCK_SIZE                16
 
 /*******************************************************************************
  *  T Y P E D E F S
@@ -258,6 +251,9 @@ static char *CPUID_to_string(uint32_t cpu_id)
          break;
        case EXTSYS_1:
          p_str = "M55_HE";
+         break;
+       case 7:
+         p_str = "EXT0";
          break;
        case 15:
          p_str = "CM0+  ";
@@ -634,6 +630,17 @@ static uint32_t test_services_gettoc_data(char *p_test_name,
   uint32_t service_error_code;
   uint32_t each_toc;
 
+  /* Test for INVALID Parameter */
+  error_code = SERVICES_system_get_toc_data(services_handle,
+                                            NULL,
+                                            &service_error_code);
+  TEST_print(services_handle,
+             "** TEST %s error_code=%s TOC number = %d service_resp=0x%08X\n",
+             p_test_name,
+             SERVICES_error_to_string(error_code),
+             toc_info.number_of_toc_entries,
+             service_error_code);
+
   error_code = SERVICES_system_get_toc_data(services_handle,
                                             &toc_info,
                                             &service_error_code);
@@ -645,19 +652,16 @@ static uint32_t test_services_gettoc_data(char *p_test_name,
              service_error_code);
 
   TEST_print(services_handle,
-          "+-----------------------------------------------------------------------------------+\n");
+          "+------------------------------------------------------------------------------+\n");
   TEST_print(services_handle,
-
-          "|   Name   |    CPU   |Load Address|Boot Address|Image Size|  Version  |    Flags   |\n");
+          "|   Name   |    CPU   |Load Address|Boot Address|Image Size|  Version  | Flags |\n");
   TEST_print(services_handle,
-          "+-----------------------------------------------------------------------------------+\n");
+          "+------------------------------------------------------------------------------+\n");
 
   for (each_toc = 0; each_toc < toc_info.number_of_toc_entries ; each_toc++)
   {
-    char flags_string[FLAG_STRING_SIZE] = {0}; /* Flags as string   */
-
     TEST_print(services_handle,
-               "| %8s |  %6s  | 0x%08X | 0x%08X | %8d |%11s| %10s |\n",
+               "| %8s |  %6s  | 0x%08X | 0x%08X | %8d |%11s| %6s|\n",
                toc_info.toc_entry[each_toc].image_identifier,
                CPUID_to_string(toc_info.toc_entry[each_toc].cpu),
                toc_info.toc_entry[each_toc].load_address,
@@ -667,11 +671,11 @@ static uint32_t test_services_gettoc_data(char *p_test_name,
                    (toc_info.toc_entry[each_toc].version >> 24) & 0xFF,
                    (toc_info.toc_entry[each_toc].version >> 16) & 0xFF,
                    (toc_info.toc_entry[each_toc].version >>  8) & 0xFF),
-               flags_to_string(toc_info.toc_entry[each_toc].flags,
-                               flags_string));
+               toc_info.toc_entry[each_toc].flags_string
+               );
   }
   TEST_print(services_handle,
-          "+-----------------------------------------------------------------------------------+\n");
+          "+------------------------------------------------------------------------------+\n");
 
   return error_code;
 }
@@ -744,8 +748,7 @@ static uint32_t test_services_gettoc_via_name_m55_hp(char *p_test_name,
 }
 
 /**
- * @brief TOC Test - get version
- *
+ * @brief TOC Test - get SE SW version
  * @param p_test_name
  * @param services_handle
  * @return
@@ -753,19 +756,29 @@ static uint32_t test_services_gettoc_via_name_m55_hp(char *p_test_name,
 static uint32_t test_services_gettoc_version(char *p_test_name,
                                              uint32_t services_handle)
 {
-  uint32_t error_code = SERVICES_REQ_SUCCESS;
-  uint32_t version = 0;                  /*<! Returned version */
-  uint32_t service_error_code;
+  uint32_t error_code = SERVICES_REQ_SUCCESS; /* Service return */
+  uint32_t service_error_code;                /* Packet error   */
+  uint32_t version = 0;                       /* Returned version */
+  uint32_t major;                             /* version Major  */
+  uint32_t minor;                             /* version Minor  */
+  uint32_t patch;                             /* version Patch  */
 
   error_code = SERVICES_system_get_toc_version(services_handle,
                                                &version,
                                                &service_error_code);
+  /* Unpack the SE version */
+  major = (version >> 24) & 0xFF;
+  minor = (version >> 16) & 0xFF;
+  patch = (version >>  8) & 0xFF;
+
   TEST_print(services_handle,
-             "** TEST %s error_code=%s service_resp=0x%08X version=%X\n",
+             "** TEST %s error_code=%s service_resp=0x%08X version=%d.%d.%d\n",
              p_test_name,
              SERVICES_error_to_string(error_code),
              service_error_code,
-             version);
+             major,
+             minor,
+             patch);
 
   return error_code;
 }
@@ -1049,7 +1062,6 @@ static uint32_t test_services_mem_retention_config(char *p_test_name,
 static uint32_t test_services_boot_toc_a32(char *p_test_name,
                                            uint32_t services_handle)
 {
-  const uint32_t BL_ERROR_INVALID_TOC_ENTRY_ID = 0x21; /*boot_loader.h*/
   uint32_t error_code = SERVICES_REQ_SUCCESS;
   uint32_t service_error_code = 0;
   uint8_t entry_id[8];
@@ -1167,7 +1179,7 @@ static uint32_t test_services_boot_release_extsys0(char *p_test_name,
                                                    uint32_t services_handle)
 {
   uint32_t error_code = SERVICES_REQ_SUCCESS;
-  uint32_t service_error_code;
+  uint32_t service_error_code = 0;
 
   error_code = SERVICES_boot_release_cpu(services_handle,
                                          EXTSYS_0,
@@ -1192,9 +1204,6 @@ static uint32_t test_services_mbedtls_aes(char *p_test_name,
    * In C++, const really means const and can be used to declare static array sizes
    * In C, it is not a constant variable expression
    */
-#define KEY_SIZE 256
-#define AES_IV_SIZE 16
-#define AES_BLOCK_SIZE 16
 
   /* https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/AES_OFB.pdf */
   static const uint8_t IV[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
@@ -1305,9 +1314,6 @@ static uint32_t test_services_mbedtls_sha(char *p_test_name,
                                           uint32_t services_handle)
 {
   (void)(p_test_name);
-
-#define SHA256_BYTES         32  // 256 bits
-#define SHA256_PRINT         64  // 256 bits is 64 characters
 
   char * test_payload = "SHA 256";
   uint32_t error_code = SERVICES_REQ_SUCCESS;

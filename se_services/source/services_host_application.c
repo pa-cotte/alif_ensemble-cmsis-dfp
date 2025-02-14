@@ -51,7 +51,6 @@
  *                                     const uint8_t *uart_data)
  * @brief write to UART
  * @param services_handle
- * @param buffer_size
  * @param uart_data
  * @return
  */

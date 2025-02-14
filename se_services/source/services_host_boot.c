@@ -2,7 +2,7 @@
  * @file services_host_boot.c
  *
  * @brief Boot services service source file
- * @ingroup host-services
+ * @ingroup host_services
  * @par
  *
  * Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.

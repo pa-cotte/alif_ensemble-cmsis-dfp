@@ -2,7 +2,7 @@
  * @file services_lib_bare_metal.h
  *
  * @brief Services library public API header file
- * @defgroup host_services Host Services
+ * @defgroup host_services host_services
  * @par
  *
  * Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
