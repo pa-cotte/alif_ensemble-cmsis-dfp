@@ -4,7 +4,36 @@
  * @brief Private header file for services library
  *
  * @par
- * @ingroup services
+ * @defgroup services-host-boot        BOOT
+ * @defgroup services-host-clocks      CLOCKS
+ * @defgroup services-host-crypto      CRYPTO
+ * @defgroup services-host-error       ERROR
+ * @defgroup services-host-extsys0     EXTSYS0
+ * @defgroup services-host-handler     HANDLER
+ * @defgroup services-host-maintenance MAINTENANCE
+ * @defgroup services-host-system      SYSTEM
+ * @defgroup services-host-update      UPDATE
+ * @defgroup services-host-power       POWER
+ * @defgroup services-host-aipm        AIPM
+ * @defgroup services-host-padcontrol  PADCONTROL
+ * @defgroup services-host-pinmux      PINMUX
+ *
+ * @page Secure Enclave SERVICES
+ * Application SERVICES C library and examples
+ * - Library supports the following SERVICES
+ *  -# Boot
+ *  -# Clock (PLL, XTAL, Dividers, Clock Sources)
+ *  -# CRYPTOGRAPHIC
+ *  -# External System 0
+ *  -# SERVICES support functions
+ *  -# Maintenance
+ *  -# System
+ *  -# Update
+ *  -# Power
+ *  -# Padcontrol
+ *  -# PinMux
+ *  -# Error Handling support
+ *
  * Copyright (C) 2024 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
@@ -29,10 +58,10 @@ extern "C" {
  *  M A C R O   D E F I N E S
  ******************************************************************************/
 /* See SERVICES documentation for change log */
-#define SE_SERVICES_VERSION_STRING                 "0.50.3"
+#define SE_SERVICES_VERSION_STRING                 "0.50.5"
 #define SE_SERVICES_VERSION_MAJOR                  0
 #define SE_SERVICES_VERSION_MINOR                  50
-#define SE_SERVICES_VERSION_PATCH                  3
+#define SE_SERVICES_VERSION_PATCH                  5
 
 #define IMAGE_NAME_LENGTH                          8
 #define VERSION_RESPONSE_LENGTH                    80
@@ -67,6 +96,7 @@ extern "C" {
 
 /**
  * @struct service_header_t
+ * @brief  Common packet for all SERVICEs
  */
 typedef struct {
 	volatile uint16_t hdr_service_id; // Requested Service ID
@@ -93,6 +123,10 @@ typedef struct {
 } se_sleep_svc_t;
 
 // AI PM APIs
+/**
+ * @struct  aipm_set_run_profile_svc_t
+ * @brief aipm run set profile service packet
+ */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_power_domains;
@@ -109,6 +143,10 @@ typedef struct {
 	volatile int      resp_error_code;
 } aipm_set_run_profile_svc_t;
 
+/**
+ * @struct aipm_get_run_profile_svc_t
+ * @brief aipm run get profile service packet
+ */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t resp_power_domains;
@@ -125,6 +163,10 @@ typedef struct {
 	volatile int      resp_error_code;
 } aipm_get_run_profile_svc_t;
 
+/**
+ * @struct aipm_set_off_profile_svc_t
+ * @brief aipm off set profile service packet
+ */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_power_domains;
@@ -144,6 +186,10 @@ typedef struct {
 	volatile int      resp_error_code;
 } aipm_set_off_profile_svc_t;
 
+/**
+ * @struct aipm_get_off_profile_svc_t
+ * @brief aipm off get profile service packet
+ */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t resp_power_domains;
@@ -408,6 +454,10 @@ typedef struct {
 // Boot Services
 
 // Process TOC Entry
+/**
+ * @struct process_toc_entry_svc_t
+ * @brief  Get TOC entry data
+ */
 typedef struct {
 	service_header_t header;
 	volatile uint8_t   send_entry_id[IMAGE_NAME_LENGTH];
@@ -415,6 +465,10 @@ typedef struct {
 } process_toc_entry_svc_t;
 
 // Boot CPU
+/**
+ * @struct boot_cpu_svc_t
+ * @brief  Boot CPU packet
+ */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t  send_cpu_id;
@@ -434,6 +488,10 @@ typedef struct {
  */
 
 // Pimux
+/**
+ * @struct pinmux_svc_t
+ * @brief pinmux services packet
+ */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_port_num;
@@ -443,6 +501,10 @@ typedef struct {
 } pinmux_svc_t;
 
 // Pad Control
+/**
+ * @struct pad_control_svc_t
+ * @brief Pad control services packet
+ */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_port_num;
@@ -476,7 +538,7 @@ typedef struct {
 
 /**
  * @struct get_se_revision_t
- * Retrieve SERAM version banner
+ * @brief  Retrieve SERAM version banner
  */
 typedef struct {
 	service_header_t header;
@@ -491,7 +553,7 @@ typedef struct {
 
 /**
  * @struct get_toc_version_svc_t
- * Get TOC Version
+ * @brief  Get TOC Version
  */
 typedef struct {
 	service_header_t header;
@@ -501,7 +563,7 @@ typedef struct {
 
 /**
  * @struct get_toc_number_svc_t
- * Get TOC Number
+ * @brief  Get TOC Number
  */
 typedef struct {
 	service_header_t header;
@@ -511,7 +573,7 @@ typedef struct {
 
 /**
  * @struct get_toc_via_name_svc_t
- * Get TOC via Name
+ * @brief  Get TOC via Name
  */
 typedef struct {
   service_header_t   header;
@@ -521,7 +583,7 @@ typedef struct {
 
 /**
  * @struct get_toc_via_cpuid_svc_t
- * Get TOC via CPU ID
+ * @brief  Get TOC via CPU ID
  */
 typedef struct {
   service_header_t   header;
@@ -586,7 +648,7 @@ typedef struct {
 
 /**
  * @struct get_device_part_svc_t
- * Get Device Part
+ * @brief  Get Device Part
  */
 typedef struct {
 	service_header_t header;
@@ -616,7 +678,7 @@ typedef struct {
 
 /**
  * @struct set_services_capabilities_t
- * Set capabilities
+ * @brief Set capabilities
  * @note for now it is limited to debug toggle
  */
 typedef struct {

@@ -253,7 +253,7 @@ typedef int (*print_msg_t)(const char *fmt, ...);
 
 /**
  * @enum SERVICES_cpuid_t
- * @brief
+ * @brief CPU names
  */
 typedef enum {
 	HOST_CPU_0   = 0,                /*!< A32_0 CPU               HOST_CPU_0 */
@@ -299,6 +299,7 @@ typedef struct {
 
 /**
  * @struct SERVICES_toc_data_t
+ * @brief user facing structure for all TOC data
  */
 typedef struct {
 	uint32_t number_of_toc_entries;     /*!< Number of real TOC objects */
@@ -307,6 +308,7 @@ typedef struct {
 
 /**
  * @enum services_power_profile_t
+ * @brief Power profiles
  */
 typedef enum {
 	OFF_PROFILE = 0,               /*!< OFF_PROFILE                    */
@@ -318,19 +320,29 @@ typedef enum {
  * Clocks Services definitions
  */
 
-// Oscillator clock selectors
+/**
+ * @enum oscillator_source_t
+ * @brief Oscillator clock selectors
+ */
 typedef enum {
 	OSCILLATOR_SOURCE_RC,    // use RC as oscillator clock
 	OSCILLATOR_SOURCE_XTAL   // use XTAL  as oscillator clock
 } oscillator_source_t;
 
+/**
+ * @enum oscillator_target_t
+ * @brief Oscillator target selectors
+ */
 typedef enum {
 	OSCILLATOR_TARGET_SYS_CLOCKS,    // various system clocks
 	OSCILLATOR_TARGET_PERIPH_CLOCKS, // clock for peripherrals
 	OSCILLATOR_TARGET_S32K_CLOCK     // 32K low frequency clock
 } oscillator_target_t;
 
-// PLL clock selectors
+/**
+ * @enum pll_source_t
+ * @brief PLL clock selectors
+ */
 typedef enum {
 	PLL_SOURCE_PLL,  // use the PLL clocks
 	PLL_SOURCE_OSC   // use the OCS clocks (can be RC or XTAL)
@@ -341,7 +353,10 @@ typedef enum {
 #define ES0_CLOCK_24MHZ   4
 #define ES0_CLOCK_48MHZ   0xC
 
-// ExtSys0 Boot arguments
+/**
+ * @struct net_proc_boot_args_t
+ * @brief ExtSys0 Boot arguments
+ */
 typedef struct {
 	uint32_t nvds_src_addr;
 	uint32_t nvds_dst_addr;
@@ -351,64 +366,92 @@ typedef struct {
 	uint32_t es0_clock_select;
 } net_proc_boot_args_t;
 
+/**
+ * @enum pll_target_t
+ * @brief PLL Target selectors
+ */
 typedef enum {
-	PLL_TARGET_SYSREFCLK,
-	PLL_TARGET_SYSCLK,
-	PLL_TARGET_UART,
-	PLL_TARGET_ES0,
-	PLL_TARGET_ES1,
-	PLL_TARGET_SECENC,
-	PLL_TARGET_PD4_SRAM
+	PLL_TARGET_SYSREFCLK,/**< PLL_TARGET_SYSREFCLK */
+	PLL_TARGET_SYSCLK,   /**< PLL_TARGET_SYSCLK */
+	PLL_TARGET_UART,     /**< PLL_TARGET_UART */
+	PLL_TARGET_ES0,      /**< PLL_TARGET_ES0 */
+	PLL_TARGET_ES1,      /**< PLL_TARGET_ES1 */
+	PLL_TARGET_SECENC,   /**< PLL_TARGET_SECENC */
+	PLL_TARGET_PD4_SRAM  /**< PLL_TARGET_PD4_SRAM */
 } pll_target_t;
 
+/**
+ * @enum clock_enable_t
+ * @brief Clock selectors
+ */
 typedef enum {
-	CLKEN_SYSPLL,
-	CLKEN_CPUPLL,
-	CLKEN_ES0,
-	CLKEN_ES1,
-	CLKEN_HFXO_OUT,
-	CLKEN_CLK_160M,
-	CLKEN_CLK_100M,
-	CLKEN_USB,
-	CLKEN_HFOSC,
-	CLKEN_SRAM0,
-	CLKEN_SRAM1
+	CLKEN_SYSPLL,  /**< CLKEN_SYSPLL */
+	CLKEN_CPUPLL,  /**< CLKEN_CPUPLL */
+	CLKEN_ES0,     /**< CLKEN_ES0 */
+	CLKEN_ES1,     /**< CLKEN_ES1 */
+	CLKEN_HFXO_OUT,/**< CLKEN_HFXO_OUT */
+	CLKEN_CLK_160M,/**< CLKEN_CLK_160M */
+	CLKEN_CLK_100M,/**< CLKEN_CLK_100M */
+	CLKEN_USB,     /**< CLKEN_USB */
+	CLKEN_HFOSC,   /**< CLKEN_HFOSC */
+	CLKEN_SRAM0,   /**< CLKEN_SRAM0 */
+	CLKEN_SRAM1    /**< CLKEN_SRAM1 */
 } clock_enable_t;
 
+/**
+ * @enum a32_source_t
+ * @brief A32 clock sources
+ */
 typedef enum {
-	A32_CLOCK_GATE = 0,
-	A32_REFCLK = 1,
-	A32_SYSPLL = 2,
-	A32_CPUPLL = 4
+	A32_CLOCK_GATE = 0,/**< A32_CLOCK_GATE */
+	A32_REFCLK = 1,    /**< A32_REFCLK */
+	A32_SYSPLL = 2,    /**< A32_SYSPLL */
+	A32_CPUPLL = 4     /**< A32_CPUPLL */
 } a32_source_t;
 
+/**
+ * @enum aclk_source_t
+ * @brief Clock sources
+ */
 typedef enum {
-	ACLK_CLOCK_GATE = 0,
-	ACLK_REFCLK = 1,
-	ACLK_SYSPLL = 2
+	ACLK_CLOCK_GATE = 0,/**< ACLK_CLOCK_GATE */
+	ACLK_REFCLK = 1,    /**< ACLK_REFCLK */
+	ACLK_SYSPLL = 2     /**< ACLK_SYSPLL */
 } aclk_source_t;
 
+/**
+ * @enum clock_divider_t
+ * @brief Clock divider selectors
+ */
 typedef enum {
-	DIVIDER_CPUPLL,
-	DIVIDER_SYSPLL,
-	DIVIDER_ACLK,
-	DIVIDER_HCLK,
-	DIVIDER_PCLK
+	DIVIDER_CPUPLL,/**< DIVIDER_CPUPLL */
+	DIVIDER_SYSPLL,/**< DIVIDER_SYSPLL */
+	DIVIDER_ACLK,  /**< DIVIDER_ACLK */
+	DIVIDER_HCLK,  /**< DIVIDER_HCLK */
+	DIVIDER_PCLK   /**< DIVIDER_PCLK */
 } clock_divider_t;
 
+/**
+ * @enum power_setting_t
+ * @brief Power setting selectors
+ */
 typedef enum {
-	POWER_SETTING_BOR_EN,
-	POWER_SETTING_SCALED_CLK_FREQ
+	POWER_SETTING_BOR_EN,        /**< POWER_SETTING_BOR_EN */
+	POWER_SETTING_SCALED_CLK_FREQ/**< POWER_SETTING_SCALED_CLK_FREQ */
 } power_setting_t;
 
+/**
+ * @enum clock_setting_t
+ * @brief Clock frequency selectors
+ */
 typedef enum {
-    CLOCK_SETTING_HFOSC_FREQ,
-    CLOCK_SETTING_EXTSYS0_FREQ,
-    CLOCK_SETTING_EXTSYS1_FREQ,
-    CLOCK_SETTING_AXI_FREQ,
-    CLOCK_SETTING_AHB_FREQ,
-    CLOCK_SETTING_APB_FREQ,
-    CLOCK_SETTING_SYSREF_FREQ,
+    CLOCK_SETTING_HFOSC_FREQ,  /**< CLOCK_SETTING_HFOSC_FREQ */
+    CLOCK_SETTING_EXTSYS0_FREQ,/**< CLOCK_SETTING_EXTSYS0_FREQ */
+    CLOCK_SETTING_EXTSYS1_FREQ,/**< CLOCK_SETTING_EXTSYS1_FREQ */
+    CLOCK_SETTING_AXI_FREQ,    /**< CLOCK_SETTING_AXI_FREQ */
+    CLOCK_SETTING_AHB_FREQ,    /**< CLOCK_SETTING_AHB_FREQ */
+    CLOCK_SETTING_APB_FREQ,    /**< CLOCK_SETTING_APB_FREQ */
+    CLOCK_SETTING_SYSREF_FREQ, /**< CLOCK_SETTING_SYSREF_FREQ */
 } clock_setting_t;
 
 /*******************************************************************************
@@ -637,6 +680,9 @@ uint32_t SERVICES_system_get_eui_extension(uint32_t services_handle,
 					bool is_eui48,
 					uint8_t *eui_extension,
 					uint32_t *error_code);
+uint32_t SERVICES_system_get_device_id64(uint32_t services_handle,
+                    uint8_t *device_id,
+                    uint32_t *error_code);
 
 uint32_t SERVICES_boot_process_toc_entry(uint32_t services_handle,
 					 const uint8_t *image_id,

@@ -4,7 +4,8 @@
  * @brief Private header file for services library
  *
  * @par
- * @ingroup services
+ * @ingroup host_services
+ *
  * Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement

@@ -2,7 +2,7 @@
 /**
  * @file aipm.h
  * @brief Autonomous Intelligent Power Management API header
- * @defgroup host_services host_services
+ * @ingroup  services-host-aipm
  * @par
  *
  * Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
@@ -19,18 +19,21 @@
 
 #include <stdint.h>
 
-/* Power Domains Enumeration */
+/**
+ * @enum power_domain_t
+ * @brief Power Domains Enumeration
+ */
 typedef enum  {
-	PD0 = 0,
-	PD1,
-	PD2,
-	PD3,
-	PD4,
-	PD5,
-	PD6,
-	PD7,
-	PD8,
-	PD9
+	PD0 = 0,/**< PD0 */
+	PD1,    /**< PD1 */
+	PD2,    /**< PD2 */
+	PD3,    /**< PD3 */
+	PD4,    /**< PD4 */
+	PD5,    /**< PD5 */
+	PD6,    /**< PD6 */
+	PD7,    /**< PD7 */
+	PD8,    /**< PD8 */
+	PD9     /**< PD9 */
 } power_domain_t;
 
 /* Power Domains Bit mask */
@@ -46,16 +49,16 @@ typedef enum  {
 #define PD9_MASK (1 << PD9)    // bit9
 
 /* Power Domain Aliases */
-#define PD_VBAT_AON      PD0    // bit0
-#define PD_SRAM_CTRL_AON PD1    // bit1
-#define PD_SSE700_AON    PD2    // bit2
-#define PD_RTSS_HE       PD3    // bit3
-#define PD_SRAMS         PD4    // bit4
-#define PD_SESS          PD5    // bit5
-#define PD_SYST          PD6    // bit6
-#define PD_RTSS_HP       PD7    // bit7
-#define PD_DBSS          PD8    // bit8
-#define PD2_APPS         PD9    // bit9
+#define PD_VBAT_AON      PD0    /**< VBAT AON   bit0 */
+#define PD_SRAM_CTRL_AON PD1    /**< SRAM AON   bit1 */
+#define PD_SSE700_AON    PD2    /**< SSE700 AON bit2 */
+#define PD_RTSS_HE       PD3    /**< RTSS_HE    bit3 */
+#define PD_SRAMS         PD4    /**< SRAMS      bit4 */
+#define PD_SESS          PD5    /**< SESS       bit5 */
+#define PD_SYST          PD6    /**< SYSTOP     bit6 */
+#define PD_RTSS_HP       PD7    /**< RTSS_HP    bit7 */
+#define PD_DBSS          PD8    /**< DBSS       bit8 */
+#define PD2_APPS         PD9    /**< PD2 APPS   bit9 */
 
 /* Power Domain Aliases Bit mask */
 #define PD_VBAT_AON_MASK      PD0_MASK    // bit0
@@ -69,94 +72,109 @@ typedef enum  {
 #define PD_DBSS_MASK          PD8_MASK    // bit8
 #define PD2_APPS_MASK         PD9_MASK    // bit9
 
-/* LF Clock Sources */
+/**
+ * @enum lfclock_t
+ * @brief LF Clock Sources
+ */
 typedef enum {
-	CLK_SRC_LFRC = 0,
-	CLK_SRC_LFXO,
+	CLK_SRC_LFRC = 0,/**< CLK_SRC_LFRC */
+	CLK_SRC_LFXO,    /**< CLK_SRC_LFXO */
 } lfclock_t;
 
-/* HF Clock Sources */
+/**
+ * @enum hfclock_t
+ * @brief HF Clock Sources
+ */
 typedef enum {
-	CLK_SRC_HFRC = 0,
-	CLK_SRC_HFXO,
-	CLK_SRC_PLL
+	CLK_SRC_HFRC = 0,/**< CLK_SRC_HFRC */
+	CLK_SRC_HFXO,    /**< CLK_SRC_HFXO */
+	CLK_SRC_PLL      /**< CLK_SRC_PLL */
 } hfclock_t;
 
-/* Clocks frequencies */
+/**
+ * @enum clock_frequency_t
+ * @brief Clock frequencies
+ */
 typedef enum {
-	CLOCK_FREQUENCY_800MHZ,        /* Application CPU values */
-	CLOCK_FREQUENCY_400MHZ,
-	CLOCK_FREQUENCY_300MHZ,
-	CLOCK_FREQUENCY_200MHZ,
-	CLOCK_FREQUENCY_160MHZ,
-	CLOCK_FREQUENCY_120MHZ,
-	CLOCK_FREQUENCY_80MHZ,
-	CLOCK_FREQUENCY_60MHZ,
-	CLOCK_FREQUENCY_100MHZ,       /* Peripheral Clock values */
-	CLOCK_FREQUENCY_50MHZ,
-	CLOCK_FREQUENCY_20MHZ,
-	CLOCK_FREQUENCY_10MHZ,
-	CLOCK_FREQUENCY_76_8_RC_MHZ,  /* RC and XO clocks */
-	CLOCK_FREQUENCY_38_4_RC_MHZ,
-	CLOCK_FREQUENCY_76_8_XO_MHZ,
-	CLOCK_FREQUENCY_38_4_XO_MHZ,
-	CLOCK_FREQUENCY_DISABLED
+	CLOCK_FREQUENCY_800MHZ,        /* Application CPU values *//**< CLOCK_FREQUENCY_800MHZ */
+	CLOCK_FREQUENCY_400MHZ,                                    /**< CLOCK_FREQUENCY_400MHZ */
+	CLOCK_FREQUENCY_300MHZ,                                    /**< CLOCK_FREQUENCY_300MHZ */
+	CLOCK_FREQUENCY_200MHZ,                                    /**< CLOCK_FREQUENCY_200MHZ */
+	CLOCK_FREQUENCY_160MHZ,                                    /**< CLOCK_FREQUENCY_160MHZ */
+	CLOCK_FREQUENCY_120MHZ,                                    /**< CLOCK_FREQUENCY_120MHZ */
+	CLOCK_FREQUENCY_80MHZ,                                     /**< CLOCK_FREQUENCY_80MHZ */
+	CLOCK_FREQUENCY_60MHZ,                                     /**< CLOCK_FREQUENCY_60MHZ */
+	CLOCK_FREQUENCY_100MHZ,       /* Peripheral Clock values *//**< CLOCK_FREQUENCY_100MHZ */
+	CLOCK_FREQUENCY_50MHZ,                                     /**< CLOCK_FREQUENCY_50MHZ */
+	CLOCK_FREQUENCY_20MHZ,                                     /**< CLOCK_FREQUENCY_20MHZ */
+	CLOCK_FREQUENCY_10MHZ,                                     /**< CLOCK_FREQUENCY_10MHZ */
+	CLOCK_FREQUENCY_76_8_RC_MHZ,  /* RC and XO clocks */       /**< CLOCK_FREQUENCY_76_8_RC_MHZ */
+	CLOCK_FREQUENCY_38_4_RC_MHZ,                               /**< CLOCK_FREQUENCY_38_4_RC_MHZ */
+	CLOCK_FREQUENCY_76_8_XO_MHZ,                               /**< CLOCK_FREQUENCY_76_8_XO_MHZ */
+	CLOCK_FREQUENCY_38_4_XO_MHZ,                               /**< CLOCK_FREQUENCY_38_4_XO_MHZ */
+	CLOCK_FREQUENCY_DISABLED                                   /**< CLOCK_FREQUENCY_DISABLED */
 } clock_frequency_t;
 
-/* Scaled HFRC/HFXO clock frequencies*/
+/**
+ * @enum scaled_clk_freq_t
+ * @brief Scaled HFRC/HFXO clock frequencies
+ */
 typedef enum {
-	SCALED_FREQ_RC_ACTIVE_76_8_MHZ = 0,    /* HFRC frequencies in ACTIVE mode */
-	SCALED_FREQ_RC_ACTIVE_38_4_MHZ,
-	SCALED_FREQ_RC_ACTIVE_19_2_MHZ,
-	SCALED_FREQ_RC_ACTIVE_9_6_MHZ,
-	SCALED_FREQ_RC_ACTIVE_4_8_MHZ,
-	SCALED_FREQ_RC_ACTIVE_2_4_MHZ,
-	SCALED_FREQ_RC_ACTIVE_1_2_MHZ,
-	SCALED_FREQ_RC_ACTIVE_0_6_MHZ,
+	SCALED_FREQ_RC_ACTIVE_76_8_MHZ = 0,    /* HFRC frequencies in ACTIVE mode */         /**< SCALED_FREQ_RC_ACTIVE_76_8_MHZ */
+	SCALED_FREQ_RC_ACTIVE_38_4_MHZ,                                                      /**< SCALED_FREQ_RC_ACTIVE_38_4_MHZ */
+	SCALED_FREQ_RC_ACTIVE_19_2_MHZ,                                                      /**< SCALED_FREQ_RC_ACTIVE_19_2_MHZ */
+	SCALED_FREQ_RC_ACTIVE_9_6_MHZ,                                                       /**< SCALED_FREQ_RC_ACTIVE_9_6_MHZ */
+	SCALED_FREQ_RC_ACTIVE_4_8_MHZ,                                                       /**< SCALED_FREQ_RC_ACTIVE_4_8_MHZ */
+	SCALED_FREQ_RC_ACTIVE_2_4_MHZ,                                                       /**< SCALED_FREQ_RC_ACTIVE_2_4_MHZ */
+	SCALED_FREQ_RC_ACTIVE_1_2_MHZ,                                                       /**< SCALED_FREQ_RC_ACTIVE_1_2_MHZ */
+	SCALED_FREQ_RC_ACTIVE_0_6_MHZ,                                                       /**< SCALED_FREQ_RC_ACTIVE_0_6_MHZ */
 
-	SCALED_FREQ_RC_STDBY_76_8_MHZ = 8,     /* HFRC frequencies in STANDBY mode */
-	SCALED_FREQ_RC_STDBY_38_4_MHZ,
-	SCALED_FREQ_RC_STDBY_19_2_MHZ,
-	SCALED_FREQ_RC_STDBY_4_8_MHZ,
-	SCALED_FREQ_RC_STDBY_1_2_MHZ,
-	SCALED_FREQ_RC_STDBY_0_6_MHZ,
-	SCALED_FREQ_RC_STDBY_0_3_MHZ,
-	SCALED_FREQ_RC_STDBY_0_075_MHZ,
+	SCALED_FREQ_RC_STDBY_76_8_MHZ = 8,     /* HFRC frequencies in STANDBY mode */        /**< SCALED_FREQ_RC_STDBY_76_8_MHZ */
+	SCALED_FREQ_RC_STDBY_38_4_MHZ,                                                       /**< SCALED_FREQ_RC_STDBY_38_4_MHZ */
+	SCALED_FREQ_RC_STDBY_19_2_MHZ,                                                       /**< SCALED_FREQ_RC_STDBY_19_2_MHZ */
+	SCALED_FREQ_RC_STDBY_4_8_MHZ,                                                        /**< SCALED_FREQ_RC_STDBY_4_8_MHZ */
+	SCALED_FREQ_RC_STDBY_1_2_MHZ,                                                        /**< SCALED_FREQ_RC_STDBY_1_2_MHZ */
+	SCALED_FREQ_RC_STDBY_0_6_MHZ,                                                        /**< SCALED_FREQ_RC_STDBY_0_6_MHZ */
+	SCALED_FREQ_RC_STDBY_0_3_MHZ,                                                        /**< SCALED_FREQ_RC_STDBY_0_3_MHZ */
+	SCALED_FREQ_RC_STDBY_0_075_MHZ,                                                      /**< SCALED_FREQ_RC_STDBY_0_075_MHZ */
 
-	SCALED_FREQ_XO_LOW_DIV_38_4_MHZ = 16,  /* HFXO frequencies using the LOW divider */
-	SCALED_FREQ_XO_LOW_DIV_19_2_MHZ,
-	SCALED_FREQ_XO_LOW_DIV_9_6_MHZ,
-	SCALED_FREQ_XO_LOW_DIV_4_8_MHZ,
-	SCALED_FREQ_XO_LOW_DIV_2_4_MHZ,
-	SCALED_FREQ_XO_LOW_DIV_1_2_MHZ,
-	SCALED_FREQ_XO_LOW_DIV_0_6_MHZ,
-	SCALED_FREQ_XO_LOW_DIV_0_3_MHZ,
+	SCALED_FREQ_XO_LOW_DIV_38_4_MHZ = 16,  /* HFXO frequencies using the LOW divider */  /**< SCALED_FREQ_XO_LOW_DIV_38_4_MHZ */
+	SCALED_FREQ_XO_LOW_DIV_19_2_MHZ,                                                     /**< SCALED_FREQ_XO_LOW_DIV_19_2_MHZ */
+	SCALED_FREQ_XO_LOW_DIV_9_6_MHZ,                                                      /**< SCALED_FREQ_XO_LOW_DIV_9_6_MHZ */
+	SCALED_FREQ_XO_LOW_DIV_4_8_MHZ,                                                      /**< SCALED_FREQ_XO_LOW_DIV_4_8_MHZ */
+	SCALED_FREQ_XO_LOW_DIV_2_4_MHZ,                                                      /**< SCALED_FREQ_XO_LOW_DIV_2_4_MHZ */
+	SCALED_FREQ_XO_LOW_DIV_1_2_MHZ,                                                      /**< SCALED_FREQ_XO_LOW_DIV_1_2_MHZ */
+	SCALED_FREQ_XO_LOW_DIV_0_6_MHZ,                                                      /**< SCALED_FREQ_XO_LOW_DIV_0_6_MHZ */
+	SCALED_FREQ_XO_LOW_DIV_0_3_MHZ,                                                      /**< SCALED_FREQ_XO_LOW_DIV_0_3_MHZ */
 
-	SCALED_FREQ_XO_HIGH_DIV_38_4_MHZ = 24,  /* HFXO frequencies using the HIGH divider */
-	SCALED_FREQ_XO_HIGH_DIV_19_2_MHZ,
-	SCALED_FREQ_XO_HIGH_DIV_9_6_MHZ,
-	SCALED_FREQ_XO_HIGH_DIV_2_4_MHZ,
-	SCALED_FREQ_XO_HIGH_DIV_0_6_MHZ,
-	SCALED_FREQ_XO_HIGH_DIV_0_3_MHZ,
-	SCALED_FREQ_XO_HIGH_DIV_0_15_MHZ,
-	SCALED_FREQ_XO_HIGH_DIV_0_0375_MHZ,
-	SCALED_FREQ_NONE
+	SCALED_FREQ_XO_HIGH_DIV_38_4_MHZ = 24,  /* HFXO frequencies using the HIGH divider *//**< SCALED_FREQ_XO_HIGH_DIV_38_4_MHZ */
+	SCALED_FREQ_XO_HIGH_DIV_19_2_MHZ,                                                    /**< SCALED_FREQ_XO_HIGH_DIV_19_2_MHZ */
+	SCALED_FREQ_XO_HIGH_DIV_9_6_MHZ,                                                     /**< SCALED_FREQ_XO_HIGH_DIV_9_6_MHZ */
+	SCALED_FREQ_XO_HIGH_DIV_2_4_MHZ,                                                     /**< SCALED_FREQ_XO_HIGH_DIV_2_4_MHZ */
+	SCALED_FREQ_XO_HIGH_DIV_0_6_MHZ,                                                     /**< SCALED_FREQ_XO_HIGH_DIV_0_6_MHZ */
+	SCALED_FREQ_XO_HIGH_DIV_0_3_MHZ,                                                     /**< SCALED_FREQ_XO_HIGH_DIV_0_3_MHZ */
+	SCALED_FREQ_XO_HIGH_DIV_0_15_MHZ,                                                    /**< SCALED_FREQ_XO_HIGH_DIV_0_15_MHZ */
+	SCALED_FREQ_XO_HIGH_DIV_0_0375_MHZ,                                                  /**< SCALED_FREQ_XO_HIGH_DIV_0_0375_MHZ */
+	SCALED_FREQ_NONE                                                                     /**< SCALED_FREQ_NONE */
 } scaled_clk_freq_t;
 
 #ifdef BALLETTO_DEVICE
-/* Memory Blocks */
+/**
+ * @enum memory_block_t
+ * @brief Memory Blocks
+ */
 typedef enum {
   MB_SRAM2,
   MB_SRAM3,
-  MB_SRAM4_1, // M55-HE ITCM RET1 itcm 64kb;
-  MB_SRAM4_2, // M55-HE ITCM RET2 itcm 64kb;
-  MB_SRAM4_3, // M55-HE ITCM RET3 itcm 128kb;
-  MB_SRAM4_4, // M55-HE ITCM RET4 itcm 256kb;
-  MB_SRAM5_1, // M55-HE DTCM RET1 dtcm 64kb
-  MB_SRAM5_2, // M55-HE DTCM RET2 dtcm 64kb
-  MB_SRAM5_3, // M55-HE DTCM RET3 dtcm 128kb
-  MB_SRAM5_4, // M55-HE DTCM RET4 dtcm 256kb
-  MB_SRAM5_5, // M55-HE DTCM RET5 dtcm 1024kb
+  MB_SRAM4_1, /**< M55-HE ITCM RET1 itcm 64kb; */
+  MB_SRAM4_2, /**< M55-HE ITCM RET2 itcm 64kb; */
+  MB_SRAM4_3, /**< M55-HE ITCM RET3 itcm 128kb;*/
+  MB_SRAM4_4, /**< M55-HE ITCM RET4 itcm 256kb;*/
+  MB_SRAM5_1, /**< M55-HE DTCM RET1 dtcm 64kb  */
+  MB_SRAM5_2, /**< M55-HE DTCM RET2 dtcm 64kb  */
+  MB_SRAM5_3, /**< M55-HE DTCM RET3 dtcm 128kb */
+  MB_SRAM5_4, /**< M55-HE DTCM RET4 dtcm 256kb */
+  MB_SRAM5_5, /**< M55-HE DTCM RET5 dtcm 1024kb*/
   MB_MRAM,
   MB_OSPI0,
   MB_OSPI1,
@@ -191,12 +209,15 @@ typedef enum {
 #define BACKUP4K_MASK   (1 << MB_BACKUP4K)       // bit19
 
 #else
-/* Memory Blocks */
+/**
+ * @enum memory_block_t
+ * @brief Memory Blocks
+ */
 typedef enum {
-	MB_SRAM0 = 0,
-	MB_SRAM1,
-	MB_SRAM2,
-	MB_SRAM3,
+	MB_SRAM0 = 0,/**< MB_SRAM0 */   /**< MB_SRAM0 */
+	MB_SRAM1,    /**< MB_SRAM1 */   /**< MB_SRAM1 */
+	MB_SRAM2,    /**< MB_SRAM2 */   /**< MB_SRAM2 */
+	MB_SRAM3,    /**< MB_SRAM3 */   /**< MB_SRAM3 */
 	MB_SRAM4_1, // M55-HE ITCM RET1 itcm 128kb;
 	MB_SRAM4_2, // M55-HE ITCM RET2 itcm 128kb;
 	MB_SRAM5_1, // M55-HE DTCM RET1 dtcm 128kb
@@ -206,14 +227,14 @@ typedef enum {
 	MB_SRAM7_1, // XTENSA ITCM1
 	MB_SRAM7_2, // XTENSA ITCM2
 	MB_SRAM7_3, // XTENSA ITCM3
-	MB_SRAM8,
-	MB_SRAM9,
-	MB_MRAM,
-	MB_OSPI0,
-	MB_OSPI1,
-	MB_SERAM,
-	MB_FWRAM,
-	MB_BACKUP4K
+	MB_SRAM8,    /**< MB_SRAM8 */   /**< MB_SRAM8 */
+	MB_SRAM9,    /**< MB_SRAM9 */   /**< MB_SRAM9 */
+	MB_MRAM,     /**< MB_MRAM */    /**< MB_MRAM */
+	MB_OSPI0,    /**< MB_OSPI0 */   /**< MB_OSPI0 */
+	MB_OSPI1,    /**< MB_OSPI1 */   /**< MB_OSPI1 */
+	MB_SERAM,    /**< MB_SERAM */   /**< MB_SERAM */
+	MB_FWRAM,    /**< MB_FWRAM */   /**< MB_FWRAM */
+	MB_BACKUP4K  /**< MB_BACKUP4K *//**< MB_BACKUP4K */
 } memory_block_t;
 
 /* Memory block bit mask */
@@ -288,39 +309,55 @@ typedef enum {
 #define EWIC_BROWN_OUT               0x00400000UL// bit22
 #endif // #ifdef BALLETTO_DEVICE
 
+/**
+ * @enum dcdc_voltage_t
+ * @brief DC-DC Voltage
+ */
 typedef enum {
-  DCDC_VOUT_0800 = 1,
-  DCDC_VOUT_0825 = 2,
-  DCDC_VOUT_0850 = 3
+  DCDC_VOUT_0800 = 1,/**< DCDC_VOUT_0800 */
+  DCDC_VOUT_0825 = 2,/**< DCDC_VOUT_0825 */
+  DCDC_VOUT_0850 = 3 /**< DCDC_VOUT_0850 */
 } dcdc_voltage_t;
 
+/**
+ * @enum dcdc_mode_t
+ * @brief DC-DC Modes
+ */
 typedef enum {
-	DCDC_MODE_OFF = 0,
-	DCDC_MODE_PFM_AUTO,
-	DCDC_MODE_PFM_FORCED,
-	DCDC_MODE_PWM
+	DCDC_MODE_OFF = 0,   /**< DCDC_MODE_OFF */
+	DCDC_MODE_PFM_AUTO,  /**< DCDC_MODE_PFM_AUTO */
+	DCDC_MODE_PFM_FORCED,/**< DCDC_MODE_PFM_FORCED */
+	DCDC_MODE_PWM        /**< DCDC_MODE_PWM */
 } dcdc_mode_t;
 
+/**
+ * @enum ioflex_mode_t
+ * @brief IOFLEX values
+ */
 typedef enum {
-	IOFLEX_LEVEL_3V3,
-	IOFLEX_LEVEL_1V8
+	IOFLEX_LEVEL_3V3,/**< IOFLEX_LEVEL_3V3 */
+	IOFLEX_LEVEL_1V8 /**< IOFLEX_LEVEL_1V8 */
 } ioflex_mode_t;
 
+/**
+ * @enum ip_clock_gating_t
+ * @brief IP Clock gating items
+ */
 typedef enum {
-	NPU_HP,
-	NPU_HE,
-	ISIM,
-	OSPI_1,
-	CANFD,
-	SDC,
-	USB,
-	ETH,
-	GPU,
-	CDC200,
-	CAMERA,
-	MIPI_DSI,
-	MIPI_CSI,
-	LP_PERIPH
+	NPU_HP,  /**< NPU_HP */
+	NPU_HE,  /**< NPU_HE */
+	ISIM,    /**< ISIM */
+	OSPI_1,  /**< OSPI_1 */
+	CANFD,   /**< CANFD */
+	SDC,     /**< SDC */
+	USB,     /**< USB */
+	ETH,     /**< ETH */
+	GPU,     /**< GPU */
+	CDC200,  /**< CDC200 */
+	CAMERA,  /**< CAMERA */
+	MIPI_DSI,/**< MIPI_DSI */
+	MIPI_CSI,/**< MIPI_CSI */
+	LP_PERIPH/**< LP_PERIPH */
 } ip_clock_gating_t;
 
 #define NPU_HP_MASK       (1 << NPU_HP)   // bit0
@@ -337,12 +374,16 @@ typedef enum {
 #define MIPI_CSI_MASK     (1 << MIPI_CSI) // bit12
 #define LP_PERIPH_MASK    (1 << LP_PERIPH)// bit13
 
+/**
+ * @enum phy_gating_t
+ * @brief PHY Gating items
+ */
 typedef enum {
-	LDO_PHY,
-	USB_PHY,
-	MIPI_TX_DPHY,
-	MIPI_RX_DPHY,
-	MIPI_PLL_DPHY
+	LDO_PHY,     /**< LDO_PHY */
+	USB_PHY,     /**< USB_PHY */
+	MIPI_TX_DPHY,/**< MIPI_TX_DPHY */
+	MIPI_RX_DPHY,/**< MIPI_RX_DPHY */
+	MIPI_PLL_DPHY/**< MIPI_PLL_DPHY */
 } phy_gating_t;
 
 #define LDO_PHY_MASK          (1 << LDO_PHY)       // bit0
@@ -351,7 +392,10 @@ typedef enum {
 #define MIPI_RX_DPHY_MASK     (1 << MIPI_RX_DPHY)  // bit3
 #define MIPI_PLL_DPHY_MASK    (1 << MIPI_PLL_DPHY) // bit4
 
-/* Power Management Data Structures */
+/**
+ * @struct run_profile_t
+ * @brief aiPM Power Management Data Structures - run
+ */
 typedef struct {
 	uint32_t power_domains;         /* Power domains to stay on */
 	uint32_t dcdc_voltage;          /* DCDC output voltage 750-850mv */
@@ -366,9 +410,13 @@ typedef struct {
 	ioflex_mode_t vdd_ioflex_3V3;   /* Enable 3.3V GPIOs */
 } run_profile_t;
 
+/**
+ * @struct off_profile_t
+ * @brief aiPM Power Management Data Structures - off
+ */
 typedef struct {
 	uint32_t power_domains;         /* Power domains to stay on */
-  uint32_t dcdc_voltage;          /* DCDC output voltage 750-850mv */
+    uint32_t dcdc_voltage;          /* DCDC output voltage 750-850mv */
 	dcdc_mode_t dcdc_mode;          /* DCDC mode - PWM or PFM based on the workload */
 	lfclock_t aon_clk_src;          /* LFRC/LFXO */
 	hfclock_t stby_clk_src;         /* HFRC/HFXO/PLL */

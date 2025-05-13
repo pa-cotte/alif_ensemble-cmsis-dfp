@@ -1516,8 +1516,13 @@ static void UART_IRQHandler(UART_RESOURCES *uart)
             uart->cb_event(ARM_USART_EVENT_SEND_COMPLETE);
     }
 
-    /* check for transfer receive complete. */
-    if(transfer->status & UART_TRANSFER_STATUS_RECEIVE_COMPLETE)
+    /* check for transfer receive complete OR If the data requested by
+     * application is already received then mark the transaction as complete
+     * even if there is RX timeout.
+     */
+    if((uart->status.rx_busy == UART_STATUS_BUSY)                  &&
+       ((transfer->status & UART_TRANSFER_STATUS_RECEIVE_COMPLETE) ||
+        (transfer->rx_total_num == transfer->rx_curr_cnt)))
     {
         /* clear transfer status */
         transfer->status = UART_TRANSFER_STATUS_NONE;

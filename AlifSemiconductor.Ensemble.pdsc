@@ -12,7 +12,17 @@
   -->
 
   <releases>
-      <release version="1.3.3"  tag="v1.3.3" url="https://github.com/alifsemi/alif_ensemble-cmsis-dfp/releases/download/v1.3.3/AlifSemiconductor.Ensemble.1.3.3.pack" date="2025-02-25">
+       <release version="1.3.4"  tag="v1.3.4" url="https://github.com/alifsemi/alif_ensemble-cmsis-dfp/releases/download/v1.3.4/AlifSemiconductor.Ensemble.1.3.4.pack" date="2025-05-09">
+      - Fix the OSPI HyperRAM XIP demo
+      - Fix rx transfer in UART irq handler
+      - Update SE host services to SE FWv105
+      - wm8904 driver support
+      - hm360 camera sensor Snapshot-mode support
+      - remove WA for P10_7 pinmux issue for OSPI
+      - add restart support and peripheral sync support to I2C
+      - update msg xfer method for LPI2C
+      </release>
+     <release version="1.3.3"  tag="v1.3.3" url="https://github.com/alifsemi/alif_ensemble-cmsis-dfp/releases/download/v1.3.3/AlifSemiconductor.Ensemble.1.3.3.pack" date="2025-02-25">
       - Fixed SD, HWSEM App issues
       - Fixed FLM Flashing
       - Fixed CAN-FD build
@@ -1036,7 +1046,7 @@
         <file category="linkerScript" name="Device/E7/AE722F80F55D5XX/linker_script/ARM/M55_HP.sct" version="1.3.0" attr="config" condition="ARMCC6"/>
         <file category="linkerScript" name="Device/E7/AE722F80F55D5XX/linker_script/GCC/gcc_M55_HP.ld" version="1.3.0" attr="config" condition="GCC"/>
         <file category="sourceC" name="Device/common/source/system_M55.c"/>
-        <file category="header" name="Device/E7/AE722F80F55D5XX/RTE_Device.h" version="1.3.0" attr="config"/>
+        <file category="header" name="Device/E7/AE722F80F55D5XX/RTE_Device.h" version="1.3.4" attr="config"/>
         <file category="header" name="Device/core/M55_HP/include/M55_HP_map.h" version="1.3.0" attr="config"/>
         <file category="header" name="Device/core/M55_HP/config/M55_HP_Config.h" version="1.3.0" attr="config"/>
         <file category="header" name="Device/common/include/global_map.h" version="1.3.0" attr="config"/>
@@ -1177,7 +1187,7 @@
         <file category="linkerScript" name="Device/E7/AE722F80F55D5XX/linker_script/ARM/M55_HE.sct" version="1.3.0" attr="config" condition="ARMCC6"/>
         <file category="linkerScript" name="Device/E7/AE722F80F55D5XX/linker_script/GCC/gcc_M55_HE.ld" version="1.3.0" attr="config" condition="GCC"/>
         <file category="sourceC" name="Device/common/source/system_M55.c"/>
-        <file category="header" name="Device/E7/AE722F80F55D5XX/RTE_Device.h" version="1.3.0" attr="config"/>
+        <file category="header" name="Device/E7/AE722F80F55D5XX/RTE_Device.h" version="1.3.4" attr="config"/>
 	    <file category="header" name="Device/core/M55_HE/include/M55_HE_map.h" version="1.3.0" attr="config"/>
 	    <file category="header" name="Device/core/M55_HE/config/M55_HE_Config.h" version="1.3.0" attr="config"/>
 	    <file category="header" name="Device/common/include/global_map.h" version="1.3.0" attr="config"/>
@@ -1958,7 +1968,7 @@
       </files>
     </component>
 
-    <component Cclass="Device" Cgroup="SOC Peripherals" Csub="MHU" Cversion="1.103.0" condition="SE SERVICES MHU">
+    <component Cclass="Device" Cgroup="SOC Peripherals" Csub="MHU" Cversion="1.105.0" condition="SE SERVICES MHU">
       <description>Message Handling Unit driver for Alif Soc</description>
       <files>
         <file category="header" name="drivers/include/drivers_common.h"/>
@@ -1980,10 +1990,10 @@
       </files>
     </component> -->
 
-    <component Cclass="Device" Cgroup="SE runtime Services" Csub="core" Cvariant="Source" Cversion="1.103.0" condition="SE SERVICES SRC">
+    <component Cclass="Device" Cgroup="SE runtime Services" Csub="core" Cvariant="Source" Cversion="1.105.0" condition="SE SERVICES SRC">
       <description>SE runtime Services for RTSS cores</description>
       <files>
-        <file category="doc" name="se_services/document/SE_Host_Services_API_v1.103.0.pdf"/>
+        <file category="doc" name="se_services/document/SE_Host_Services_API_v1.105.0.pdf"/>
         <file category="include" name="se_services/include/"/>
         <file category="source" name="se_services/source/services_host_application.c"/>
         <file category="source" name="se_services/source/services_host_boot.c"/>
@@ -2008,7 +2018,7 @@
     </component>
 
 
-    <component Cclass="Device" Cgroup="SE runtime Services" Csub="Initialization Helper" Cvariant="Source" Cversion="1.3.0" condition="SE SERVICES INIT">
+    <component Cclass="Device" Cgroup="SE runtime Services" Csub="Initialization Helper" Cvariant="Source" Cversion="1.5.0" condition="SE SERVICES INIT">
       <description>SE runtime Services initialization helper for RTSS cores</description>
       <files>
         <file category="include" name="se_services/port/include/"/>

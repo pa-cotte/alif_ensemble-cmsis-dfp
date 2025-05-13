@@ -2984,6 +2984,25 @@
 // </e> LPI2S (Low Power Integrated Interchip Sound) [Driver_SAILP]
 // </h> I2S (Integrated Interchip Sound)
 
+// <h> WM8904 Codec [Driver_WM8904]
+// <i> Configuration settings for Driver_WM8904 in component ::Drivers:WM8904
+#define RTE_WM8904_CODEC                      1
+
+#if RTE_WM8904_CODEC
+
+// <o> Select WM8904 i2c instance
+// <i> Defines WM8904 i2c instance
+//     <0=>   I2C0
+//     <1=>   I2C1
+//     <2=>   I2C2
+//     <3=>   I2C3
+//     <I3C=> I2C OVER I3C
+// <i> Default: 2
+#define RTE_WM8904_CODEC_I2C_INSTANCE         2
+#endif
+
+// </h> WM8904 Codec [Driver_WM8904]
+
 // <h> UART (Universal asynchronous receiver transmitter)
 // <e> UART0 (Universal asynchronous receiver transmitter) [Driver_USART0]
 // <i> Configuration settings for Driver_USART0 in component ::Drivers:USART
