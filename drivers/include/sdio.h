@@ -101,122 +101,271 @@ extern "C" {
  * Card Common Control Registers (CCCR)
  */
 
+#ifndef SDIO_CCCR_CCCR
 #define SDIO_CCCR_CCCR          0x00U
-
+#endif
+#ifndef SDIO_CCCR_REV_1_00
 #define SDIO_CCCR_REV_1_00      0U    /* CCCR/FBR Version 1.00 */
+#endif
+#ifndef SDIO_CCCR_REV_1_10
 #define SDIO_CCCR_REV_1_10      1U    /* CCCR/FBR Version 1.10 */
+#endif
+#ifndef SDIO_CCCR_REV_1_20
 #define SDIO_CCCR_REV_1_20      2U    /* CCCR/FBR Version 1.20 */
+#endif
+#ifndef SDIO_CCCR_REV_3_00
 #define SDIO_CCCR_REV_3_00      3U    /* CCCR/FBR Version 3.00 */
-
+#endif
+#ifndef SDIO_SDIO_REV_1_00
 #define SDIO_SDIO_REV_1_00      0U    /* SDIO Spec Version 1.00 */
+#endif
+#ifndef SDIO_SDIO_REV_1_10
 #define SDIO_SDIO_REV_1_10      1U    /* SDIO Spec Version 1.10 */
+#endif
+#ifndef SDIO_SDIO_REV_1_20
 #define SDIO_SDIO_REV_1_20      2U    /* SDIO Spec Version 1.20 */
+#endif
+#ifndef SDIO_SDIO_REV_2_00
 #define SDIO_SDIO_REV_2_00      3U    /* SDIO Spec Version 2.00 */
+#endif
+#ifndef SDIO_SDIO_REV_3_00
 #define SDIO_SDIO_REV_3_00      4U    /* SDIO Spec Version 3.00 */
-
+#endif
+#ifndef SDIO_CCCR_SD
 #define SDIO_CCCR_SD            0x01U
-
+#endif
+#ifndef SDIO_SD_REV_1_01
 #define SDIO_SD_REV_1_01        0U    /* SD Physical Spec Version 1.01 */
+#endif
+#ifndef SDIO_SD_REV_1_10
 #define SDIO_SD_REV_1_10        1U    /* SD Physical Spec Version 1.10 */
+#endif
+#ifndef SDIO_SD_REV_2_00
 #define SDIO_SD_REV_2_00        2U    /* SD Physical Spec Version 2.00 */
+#endif
+#ifndef SDIO_SD_REV_3_00
 #define SDIO_SD_REV_3_00        3U    /* SD Physical Spec Version 3.00 */
-
+#endif
+#ifndef SDIO_CCCR_IOEx
 #define SDIO_CCCR_IOEx          0x02U
+#endif
+#ifndef SDIO_CCCR_IORx
 #define SDIO_CCCR_IORx          0x03U
-
+#endif
+#ifndef SDIO_CCCR_IENx
 #define SDIO_CCCR_IENx          0x04U    /* Function/Master Interrupt Enable */
+#endif
+#ifndef SDIO_CCCR_INTx
 #define SDIO_CCCR_INTx          0x05U    /* Function Interrupt Pending */
-
+#endif
+#ifndef SDIO_CCCR_ABORT
 #define SDIO_CCCR_ABORT         0x06U    /* function abort/card reset */
-
+#endif
+#ifndef SDIO_CCCR_IF
 #define SDIO_CCCR_IF            0x07U    /* bus interface controls */
-
+#endif
+#ifndef SDIO_BUS_WIDTH_Msk
 #define SDIO_BUS_WIDTH_Msk      0x03U    /* data bus width setting */
+#endif
+#ifndef SDIO_BUS_WIDTH_1BIT
 #define SDIO_BUS_WIDTH_1BIT     0x00U
+#endif
+#ifndef SDIO_BUS_WIDTH_RESERVED
 #define SDIO_BUS_WIDTH_RESERVED 0x01U
+#endif
+#ifndef SDIO_BUS_WIDTH_4BIT
 #define SDIO_BUS_WIDTH_4BIT     0x02U
+#endif
+#ifndef SDIO_BUS_ECSI
 #define SDIO_BUS_ECSI           0x20U    /* Enable continuous SPI interrupt */
+#endif
+#ifndef SDIO_BUS_SCSI
 #define SDIO_BUS_SCSI           0x40U    /* Support continuous SPI interrupt */
-
+#endif
+#ifndef SDIO_BUS_ASYNC_INT
 #define SDIO_BUS_ASYNC_INT      0x20U
-
+#endif
+#ifndef SDIO_BUS_CD_DISABLE
 #define SDIO_BUS_CD_DISABLE     0x80U    /* disable pull-up on DAT3 (pin 1) */
-
+#endif
+#ifndef SDIO_CCCR_CAPS
 #define SDIO_CCCR_CAPS          0x08U
-
+#endif
+#ifndef SDIO_CCCR_CAP_SDC
 #define SDIO_CCCR_CAP_SDC       0x01U    /* can do CMD52 while data transfer */
+#endif
+#ifndef SDIO_CCCR_CAP_SMB
 #define SDIO_CCCR_CAP_SMB       0x02U    /* can do multi-block xfers (CMD53) */
+#endif
+#ifndef SDIO_CCCR_CAP_SRW
 #define SDIO_CCCR_CAP_SRW       0x04U    /* supports read-wait protocol */
+#endif
+#ifndef SDIO_CCCR_CAP_SBS
 #define SDIO_CCCR_CAP_SBS       0x08U    /* supports suspend/resume */
+#endif
+#ifndef SDIO_CCCR_CAP_S4MI
 #define SDIO_CCCR_CAP_S4MI      0x10U    /* interrupt during 4-bit CMD53 */
+#endif
+#ifndef SDIO_CCCR_CAP_E4MI
 #define SDIO_CCCR_CAP_E4MI      0x20U    /* enable ints during 4-bit CMD53 */
+#endif
+#ifndef SDIO_CCCR_CAP_LSC
 #define SDIO_CCCR_CAP_LSC       0x40U    /* low speed card */
+#endif
+#ifndef SDIO_CCCR_CAP_4BLS
 #define SDIO_CCCR_CAP_4BLS      0x80U    /* 4 bit low speed card */
-
+#endif
+#ifndef SDIO_CCCR_CIS
 #define SDIO_CCCR_CIS           0x09U    /* common CIS pointer (3 bytes) */
-
-/* Following 4 regs are valid only if SBS is set */
+#endif
+#ifndef SDIO_CCCR_SUSPEND
 #define SDIO_CCCR_SUSPEND           0x0CU
+#endif
+#ifndef SDIO_CCCR_SELx
 #define SDIO_CCCR_SELx              0x0DU
+#endif
+#ifndef SDIO_CCCR_EXECx
 #define SDIO_CCCR_EXECx             0x0EU
+#endif
+#ifndef SDIO_CCCR_READYx
 #define SDIO_CCCR_READYx            0x0FU
-
+#endif
+#ifndef SDIO_CCCR_BLKSIZE
 #define SDIO_CCCR_BLKSIZE           0x10U
-
+#endif
+#ifndef SDIO_CCCR_POWER
 #define SDIO_CCCR_POWER             0x12U
-
+#endif
+#ifndef SDIO_POWER_SMPC
 #define  SDIO_POWER_SMPC            0x01U    /* Supports Master Power Control */
+#endif
+#ifndef SDIO_POWER_EMPC
 #define  SDIO_POWER_EMPC            0x02U    /* Enable Master Power Control */
-
+#endif
+#ifndef SDIO_CCCR_SPEED
 #define SDIO_CCCR_SPEED             0x13U
-
+#endif
+#ifndef SDIO_SPEED_SHS
 #define  SDIO_SPEED_SHS             0x01U    /* Supports High-Speed mode */
+#endif
+#ifndef SDIO_SPEED_BSS_SHIFT
 #define  SDIO_SPEED_BSS_SHIFT       1U
+#endif
+#ifndef SDIO_SPEED_BSS_Msk
 #define  SDIO_SPEED_BSS_Msk         (7U << SDIO_SPEED_BSS_SHIFT)
+#endif
+#ifndef SDIO_SPEED_SDR12
 #define  SDIO_SPEED_SDR12           (0U << SDIO_SPEED_BSS_SHIFT)
+#endif
+#ifndef SDIO_SPEED_SDR25
 #define  SDIO_SPEED_SDR25           (1U << SDIO_SPEED_BSS_SHIFT)
+#endif
+#ifndef SDIO_SPEED_SDR50
 #define  SDIO_SPEED_SDR50           (2U << SDIO_SPEED_BSS_SHIFT)
+#endif
+#ifndef SDIO_SPEED_SDR104
 #define  SDIO_SPEED_SDR104          (3U << SDIO_SPEED_BSS_SHIFT)
+#endif
+#ifndef SDIO_SPEED_DDR50
 #define  SDIO_SPEED_DDR50           (4U << SDIO_SPEED_BSS_SHIFT)
+#endif
+#ifndef SDIO_SPEED_EHS
 #define  SDIO_SPEED_EHS             SDIO_SPEED_SDR25    /* Enable High-Speed */
-
+#endif
+#ifndef SDIO_CCCR_UHS
 #define SDIO_CCCR_UHS               0x14U
+#endif
+#ifndef SDIO_UHS_SDR50
 #define  SDIO_UHS_SDR50             0x01U
+#endif
+#ifndef SDIO_UHS_SDR104
 #define  SDIO_UHS_SDR104            0x02U
+#endif
+#ifndef SDIO_UHS_DDR50
 #define  SDIO_UHS_DDR50             0x04U
-
+#endif
+#ifndef SDIO_CCCR_DRIVE_STRENGTH
 #define SDIO_CCCR_DRIVE_STRENGTH    0x15U
+#endif
+#ifndef SDIO_SDTx_Msk
 #define SDIO_SDTx_Msk               0x07U
+#endif
+#ifndef SDIO_DRIVE_SDTA
 #define SDIO_DRIVE_SDTA             (1U << 0U)
+#endif
+#ifndef SDIO_DRIVE_SDTC
 #define SDIO_DRIVE_SDTC             (1U << 1U)
+#endif
+#ifndef SDIO_DRIVE_SDTD
 #define SDIO_DRIVE_SDTD             (1U << 2U)
+#endif
+#ifndef SDIO_DRIVE_DTSx_Msk
 #define SDIO_DRIVE_DTSx_Msk         0x03U
+#endif
+#ifndef SDIO_DRIVE_DTSx_SHIFT
 #define SDIO_DRIVE_DTSx_SHIFT       4U
+#endif
+#ifndef SDIO_DTSx_SET_TYPE_B
 #define SDIO_DTSx_SET_TYPE_B        (0U << SDIO_DRIVE_DTSx_SHIFT)
+#endif
+#ifndef SDIO_DTSx_SET_TYPE_A
 #define SDIO_DTSx_SET_TYPE_A        (1U << SDIO_DRIVE_DTSx_SHIFT)
+#endif
+#ifndef SDIO_DTSx_SET_TYPE_C
 #define SDIO_DTSx_SET_TYPE_C        (2U << SDIO_DRIVE_DTSx_SHIFT)
+#endif
+#ifndef SDIO_DTSx_SET_TYPE_D
 #define SDIO_DTSx_SET_TYPE_D        (3U << SDIO_DRIVE_DTSx_SHIFT)
-
+#endif
+#ifndef SDIO_CCCR_INTERRUPT_EXT
 #define SDIO_CCCR_INTERRUPT_EXT     0x16U
+#endif
+#ifndef SDIO_INTERRUPT_EXT_SAI
 #define SDIO_INTERRUPT_EXT_SAI      (1U << 0U)
+#endif
+#ifndef SDIO_INTERRUPT_EXT_EAI
 #define SDIO_INTERRUPT_EXT_EAI      (1U << 1U)
-
+#endif
 /*
  * Function Basic Registers (FBR)
  */
 
+#ifndef SDIO_FBR_BASE
 #define SDIO_FBR_BASE(f)            ((f) * 0x100U) /* base of function f's FBRs */
+#endif
+#ifndef SDIO_FBR_STD_IF
 #define SDIO_FBR_STD_IF             0x00U
+#endif
+#ifndef SDIO_FBR_SUPPORTS_CSA
 #define SDIO_FBR_SUPPORTS_CSA       0x40U    /* supports Code Storage Area */
+#endif
+#ifndef SDIO_FBR_ENABLE_CSA
 #define SDIO_FBR_ENABLE_CSA         0x80U    /* enable Code Storage Area */
+#endif
+#ifndef SDIO_FBR_STD_IF_EXT
 #define SDIO_FBR_STD_IF_EXT         0x01U
+#endif
+#ifndef SDIO_FBR_POWER
 #define SDIO_FBR_POWER              0x02U
+#endif
+#ifndef SDIO_FBR_POWER_SPS
 #define SDIO_FBR_POWER_SPS          0x01U    /* Supports Power Selection */
+#endif
+#ifndef SDIO_FBR_POWER_EPS
 #define SDIO_FBR_POWER_EPS          0x02U    /* Enable (low) Power Selection */
+#endif
+#ifndef SDIO_FBR_CIS
 #define SDIO_FBR_CIS                0x09U    /* CIS pointer (3 bytes) */
+#endif
+#ifndef SDIO_FBR_CSA
 #define SDIO_FBR_CSA                0x0CU    /* CSA pointer (3 bytes) */
+#endif
+#ifndef SDIO_FBR_CSA_DATA
 #define SDIO_FBR_CSA_DATA           0x0FU
+#endif
+#ifndef SDIO_FBR_BLKSIZE
 #define SDIO_FBR_BLKSIZE            0x10U    /* block size (2 bytes) */
+#endif
 
 typedef struct _sdio_opcond_t{
     uint8_t isInitialized;  /*!< indicates Card is initialized              */

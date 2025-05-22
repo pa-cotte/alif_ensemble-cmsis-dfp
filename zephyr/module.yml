@@ -1,0 +1,3 @@
+name: hal_alif_cmsis_dfp
+build:
+  cmake: .
