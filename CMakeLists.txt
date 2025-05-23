@@ -4,7 +4,9 @@ zephyr_include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/include
   ${CMAKE_CURRENT_SOURCE_DIR}/Device/drivers/include
   ${CMAKE_CURRENT_SOURCE_DIR}/Device/common/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/Device/core/M55_HP/include
   ${CMAKE_CURRENT_SOURCE_DIR}/Device/E7/AE722F80F55D5XX
+  ${CMAKE_CURRENT_SOURCE_DIR}/zephyr/include
 )
 
 zephyr_library_sources(${CMAKE_CURRENT_SOURCE_DIR}/drivers/source/sd.c)
