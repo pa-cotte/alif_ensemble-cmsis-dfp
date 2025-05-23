@@ -13,3 +13,5 @@ zephyr_include_directories(
 zephyr_library_sources(${CMAKE_CURRENT_SOURCE_DIR}/drivers/source/sd.c)
 zephyr_library_sources(${CMAKE_CURRENT_SOURCE_DIR}/drivers/source/sdio.c)
 zephyr_library_sources(${CMAKE_CURRENT_SOURCE_DIR}/drivers/source/sd_host.c)
+zephyr_library_sources(${CMAKE_CURRENT_SOURCE_DIR}/Device/common/source/system_utils.c)
+

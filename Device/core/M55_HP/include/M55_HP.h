@@ -123,7 +123,7 @@ extern "C" {
 #define LOCAL_NPU_IRQ_IRQn          NPU_HP_IRQ_IRQn
 
 /* -------------------------  Interrupt Number Definition  ------------------------ */
-
+#ifndef _SOC_H_
 typedef enum {
 /* =======================================  ARM Cortex-M55 Specific Interrupt Numbers  ======================================= */
   Reset_IRQn                = -15,              /*!< -15  Reset Vector, invoked on Power up and warm reset                     */
@@ -638,7 +638,7 @@ typedef enum {
   UTIMER_IRQ94_IRQn         = 471,              /*!< 471  Channel 11, interrupt request 94                                     */
   UTIMER_IRQ95_IRQn         = 472               /*!< 472  Channel 11, interrupt request 95                                     */
 } IRQn_Type;
-
+#endif
 /* ================================================================================ */
 /* ================      Processor and Core Peripheral Section     ================ */
 /* ================================================================================ */
