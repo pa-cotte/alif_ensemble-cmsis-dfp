@@ -22,6 +22,8 @@
 
 #include <stdbool.h>
 
+#define M55_HP
+
 #if defined (M55_HP)
   #include "M55_HP.h"
   #include "M55_HP_Config.h"
